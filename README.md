@@ -3,9 +3,11 @@
 一个**零第三方依赖**的编码 Agent：实现「输入 → 推理 → 工具调用 → 观察 → 输出」的完整
 Agent 循环，可通过命令行交互。它同时是"测试生成 Agent"实验的通用基线（A0）。
 
-**当前状态：复评整改版。** Agent 内核、工具层、CLI 与评测 harness 可运行。
-A0–A3 的80份记录属于历史版本（v2 难例集20例）；本次只重算保存的数据，
-没有新模型采样，历史结论不自动适用于修复后实现。结论与数据见
+**默认保持通用 Agent；A4/A5 是实验功能。** 新增契约依据、逐条验证、增量保留
+及独立开发故障反馈。有效开发对照的30个run中，A0/A4通过率和杀伤率均为100%，
+A4 token约增加0.4%、生成时间约增加51%，未显示质量收益，因此不替换默认模式。
+结果见 [开发试验报告](results/testgen_pilot_v2/report.md)。环境诊断轮v1已标记不可比。
+A0–A3 的80份记录属于历史版本（v2 难例集20例），历史结论不自动适用于修复后实现。结论与数据见
 [Design.md](Design.md) 与 [results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)。
 
 ## 快速开始
@@ -57,6 +59,49 @@ LLM_MODEL=deepseek-chat
 任何 OpenAI 兼容接口都可用。未配置时会**明确提示**已退回离线模式，不会静默降级。
 
 ## 三种输出模式
+
+### 契约约束与逐测试验证（A4）
+
+```bash
+# 目标目录包含 solution.py；当前解释器需要安装 pytest
+python main.py -C /path/to/function --test-generation --max-turns 12 \
+    --max-output-tokens 4096 --print "为 solution.py 生成单元测试"
+```
+
+模型通过 `submit_tests` 提交独立候选，记录docstring原文依据、输入域、预期结果
+推导和要捕捉的错误。工具检查可识别的显式输入约束，逐条隔离运行，报告错误断言
+或超时，再用合并回归检查保留通过的测试。失败候选不能替换已接受的测试。
+产物为 `test_solution.py` 和包含接受/拒绝依据的 `testgen_report.json`。
+已有测试作为不可删除的基底参与合并回归；基底自身失败时保留原文并报告失败。
+默认不加载该工具，A0保持通用；A4没有“pytest通过就立即收尾”的钩子。
+
+元数据与自然语言推导仍需审核；未识别的约束标为未检查。参考实现上通过不等于
+证明规范正确，也不等于发现更多缺陷。新机制的开发试验规则见
+[docs/testgen-pilot.md](docs/testgen-pilot.md)，新结果与历史A0–A3分开报告。
+
+```bash
+# 无API请求的脚本化演示：错误断言修复、非法输入拒绝、增量保留
+python scripts/demo_testgen.py
+```
+
+演示使用脚本化LLM和真实验证工具，不作为模型效果证据。
+
+### 独立开发故障反馈（A5）
+
+```bash
+# 包含A4验证；最多两轮开发故障反馈，用于定向追加测试
+python main.py -C /path/to/function --fault-feedback --max-turns 12 \
+    --max-output-tokens 4096 --print "为 solution.py 生成单元测试"
+
+# 无API请求：真实Agent闭环，生成结束后再用独立评分故障验证
+python scripts/demo_fault_feedback.py
+```
+
+`inspect_survivors` 给出已接受套件漏检的开发改动，追加候选仍经逐条与合并验证。
+反馈与评分采用不同算子家族，并核对AST指纹无交集。两次套件相同的查询复用缓存；
+超时与疑似等价改动不算检出。A5评分仅覆盖保留家族，基线须用相同评分池重测。
+协议与限制见 [docs/fault-feedback.md](docs/fault-feedback.md)。A5尚无真实模型对照
+结果；控制演示的独立边界故障检出从0/2到2/2，只证明闭环可运行。
 
 | 模式 | 命令 | stdout | stderr |
 |---|---|---|---|

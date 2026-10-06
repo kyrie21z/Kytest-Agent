@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from code_agent.agent import Agent, RunResult  # noqa: E402
+from code_agent.agent import Agent, RunResult, TurnDecision  # noqa: E402
 from code_agent.config import Settings  # noqa: E402
 from code_agent.tools.factories import GENERAL_TOOL_NAMES, build_registry  # noqa: E402
 
@@ -108,6 +108,17 @@ def default_variant(name: str = "A0") -> Variant:
             system_runs_cap=4,
             coverage_rounds_cap=2,
         )
+    if name == "A4":
+        from code_agent.testgen import TESTGEN_PROMPT
+        return Variant(name=name, description="契约依据 + 逐测试验证 + 增量保留",
+                       system_prompt=TESTGEN_PROMPT,
+                       tool_names=(*GENERAL_TOOL_NAMES, "submit_tests"))
+    if name == "A5":
+        from code_agent.testgen import TESTGEN_PROMPT
+        from code_agent.fault_feedback import FAULT_PROMPT
+        return Variant(name=name, description="A4 + 开发故障反馈（独立评分池）",
+                       system_prompt=TESTGEN_PROMPT + FAULT_PROMPT,
+                       tool_names=(*GENERAL_TOOL_NAMES, "submit_tests", "inspect_survivors"))
     raise KeyError(f"未知变体 `{name}`")
 
 
@@ -279,6 +290,9 @@ def run_single(
     max_mutants: int = 20,
     wall_clock_limit: float = 300.0,
     keep_tests: bool = True,
+    defer_measurement: bool = False,
+    measurement_timeouts: Optional[tuple] = None,
+    mutation_operators: Optional[Sequence[str]] = None,
 ) -> RunOutcome:
     """在一个实例上运行一个变体，并在每个 checkpoint 采集指标。
 
@@ -298,6 +312,14 @@ def run_single(
     )
 
     settings = settings_factory(workspace)
+    if variant.name == "A5":
+        from code_agent.fault_feedback import HELDOUT_OPERATORS, independent_pools
+        independent_pools(instance.solution_source, scoring_limit=max_mutants)
+        if mutation_operators is not None and set(mutation_operators) != set(HELDOUT_OPERATORS):
+            raise ValueError("A5 scoring must use the held-out operator families")
+        mutation_operators = HELDOUT_OPERATORS
+    if mutation_operators is not None:
+        outcome.environment["mutation_operators"] = list(mutation_operators)
     settings.max_steps = variant.max_turns
     settings.llm_max_tokens = variant.llm_max_tokens
     settings.max_total_tokens = variant.max_total_tokens
@@ -308,6 +330,8 @@ def run_single(
     metrics: Any = None
     timed_out = False
     finish_hook = None
+    generation_started = 0.0
+    generation_finished = 0.0
     # Agent 的构造也必须在 try 里：工厂可能因为 LLM 客户端配置错误而抛异常，
     # 构造期的异常和运行期的异常一样，只应该让这一个实例失败，不能让整批倒下。
     agent: Optional[Agent] = None
@@ -325,6 +349,17 @@ def run_single(
                     max_pytest_runs=variant.system_runs_cap,
                     max_coverage_rounds=variant.coverage_rounds_cap,
                 )
+            if "submit_tests" in variant.tool_names:
+                from code_agent.testgen import make_testgen_hook
+                finish_hook = make_testgen_hook(registry.get("submit_tests"))
+            if defer_measurement:
+                policy_hook = finish_hook
+                def bounded_hook(agent, outcome):
+                    decision = policy_hook(agent, outcome) if policy_hook else None
+                    if time.monotonic() - generation_started >= wall_clock_limit:
+                        return TurnDecision(end=True, reason="generation_timeout")
+                    return decision
+                finish_hook = bounded_hook
             agent = Agent(
                 llm=_build_llm(settings),
                 tools=registry,
@@ -342,10 +377,11 @@ def run_single(
         # 一个实例 = 一个任务：预算基线在此建立，checkpoint 的多次 run_until
         # 共享同一基线（任务内累计语义不变）。
         agent.begin_task()
+        generation_started = time.monotonic()
         deadline = started + wall_clock_limit
         ended = False
 
-        for checkpoint in sorted(checkpoints):
+        for checkpoint in (() if defer_measurement else sorted(checkpoints)):
             if time.time() > deadline:
                 timed_out = True
                 break
@@ -365,9 +401,14 @@ def run_single(
 
         if not timed_out and not ended:
             result = agent.run()
+        generation_finished = time.monotonic()
+        if defer_measurement:
+            timed_out = generation_finished - generation_started >= wall_clock_limit
 
         metrics = collect_metrics(
-            instance, workspace, checkpoint=0, include_mutation=True, max_mutants=max_mutants
+            instance, workspace, checkpoint=0, include_mutation=True, max_mutants=max_mutants,
+            mutation_operators=mutation_operators,
+            **(dict(zip(("pytest_timeout", "coverage_timeout", "mutant_timeout"), measurement_timeouts)) if measurement_timeouts else {})
         )
         # 每次采集的入口都会核查 solution.py 是否被改写过（见 collect_metrics）；
         # 任意一轮发现即置位——该行为是失败分类的一类，必须可见。
@@ -406,6 +447,19 @@ def run_single(
             "system_actions": list(getattr(getattr(finish_hook, "state", None), "actions", [])),
             "tool_trace": _tool_trace(events),
         }
+        if defer_measurement and generation_started:
+            outcome.agent["generation_seconds"] = round((generation_finished or time.monotonic()) - generation_started, 3)
+            outcome.agent["measurement_deferred"] = True
+        submitter = registry.get("submit_tests")
+        if submitter is not None:
+            outcome.agent["testgen"] = {
+                "accepted": list(submitter.accepted.values()), "attempts": submitter.attempts,
+                "subprocess_runs": submitter.subprocess_runs,
+                "validation_seconds": round(submitter.validation_seconds, 3),
+            }
+        inspector = registry.get("inspect_survivors")
+        if inspector is not None:
+            outcome.agent["fault_feedback"] = inspector.actions
         outcome.network_attempt = _detect_network_attempt(registry)
         outcome.duration_sec = time.time() - started
 
@@ -466,10 +520,25 @@ def run_batch(
     resume: bool = True,
     wall_clock_limit: float = 300.0,
     on_result: Optional[Callable[[RunOutcome], None]] = None,
+    mutation_operators: Optional[Sequence[str]] = None,
 ) -> List[RunOutcome]:
     """批量运行。按 (variant, instance) 展开任务，支持续跑与并发。"""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if any(v.name == "A5" for v in variants):
+        from code_agent.fault_feedback import HELDOUT_OPERATORS
+        if mutation_operators is not None and set(mutation_operators) != set(HELDOUT_OPERATORS):
+            raise ValueError("A5 comparisons must use the held-out scoring families for every condition")
+        mutation_operators = HELDOUT_OPERATORS
+    from .mutation import default_operators
+    expected_pool = set(mutation_operators or default_operators())
+    for saved in output_dir.glob("*/*.json"):
+        payload = json.loads(saved.read_text(encoding="utf-8"))
+        saved_pool = payload.get("environment", {}).get("mutation_operators") or default_operators()
+        if set(saved_pool) != expected_pool:
+            raise ValueError("Saved scoring pool differs; use a new output directory")
+    if mutation_operators is not None and (output_dir / "official_baseline.json").exists():
+        raise ValueError("Existing official baseline has no matching scoring-pool receipt; use a new output directory")
     jobs = [(variant, instance) for variant in variants for instance in instances]
 
     pending = []
@@ -497,6 +566,7 @@ def run_batch(
                 checkpoints=checkpoints,
                 max_mutants=max_mutants,
                 wall_clock_limit=wall_clock_limit,
+                mutation_operators=mutation_operators,
             ): (variant, instance)
             for variant, instance in pending
         }
@@ -510,6 +580,7 @@ def run_batch(
                     variant=variant.name,
                     status="eval_error",
                     error=traceback.format_exc(limit=6),
+                    environment={"mutation_operators": list(mutation_operators)} if mutation_operators is not None else {},
                 )
             write_result(output_dir, outcome)
             completed.append(outcome)

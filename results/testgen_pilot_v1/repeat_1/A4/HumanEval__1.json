@@ -1,0 +1,545 @@
+{
+  "instance_id": "HumanEval/1",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 18226,
+    "output_tokens": 3899,
+    "total_tokens": 22125,
+    "final_text": "All 6 tests are now accepted. Here's the summary of the test suite:\n\n## Accepted Test Suite\n\n| Test | What it covers |\n|------|---------------|\n| `test_docstring_example` | The canonical example from the docstring — three groups with spaces, verifying correct separation and space stripping |\n| `test_single_group` | A single balanced pair — verifies basic functionality and return type (list) |\n| `test_empty_string` | Empty input — edge case ensuring no crash and returns `[]` |\n| `test_spaces_only` | Whitespace-only input — ensures spaces don't produce spurious empty-string entries |\n| `test_multiple_simple_groups` | Three adjacent `()` pairs without separators — verifies independent grouping at boundary count=0 |\n| `test_deeply_nested` | Four levels of nesting `(((())))` — verifies a single deeply-nested group is returned intact with correct depth |\n\n## Remaining Limitations\n\n1. **Unbalanced input** — The function doesn't document behavior for unbalanced parentheses (e.g., `\"(()\"`). The implementation would silently include partial groups or skip them depending on final counter state. No test covers this since the contract doesn't specify it.\n\n2. **Mixed valid/invalid sequences** — Cases like `\"())(\"` where a closing paren appears before an opening one aren't tested. The function may produce unexpected results but the contract doesn't address this.\n\n3. **Non-parenthesis characters** — Input containing letters, digits, or other symbols isn't tested. The implementation appends all non-space characters indiscriminately.\n\n4. **Very large inputs** — No stress test with many groups or deep nesting to check performance or stack limits.\n\n5. **Return type enforcement** — Only two tests (`test_single_group`, `test_empty_string`) explicitly verify the return is a `list`. Others implicitly rely on indexing which would fail on wrong types.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.045,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 23 行，显示第 1-23 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.106,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "from solution import separate_paren_groups\n\ndef test_docstring_example():\n    \"\"\"Test the exact example from the docstring.\"\"\"\n    result = separate_paren_groups('( ) (( )) (( )( ))')\n    assert result == ['()', '(())', '(()())']",
+              "contract_quote": "\"Separate groups are balanced (each open brace is properly closed) and not nested within each other. Ignore any spaces in the input string.\"",
+              "input_domain": "String containing three groups: a space-wrapped pair, a double-nested pair, and a mixed-depth pair, separated by spaces.",
+              "oracle_reason": "The first group '( )' has balanced parens with inner space stripped -> '()'. The second '(( ))' strips space -> '(())'. The third '(( )( ))' strips spaces -> '(()())'. Each group reaches balance count 0 independently.",
+              "fault_hypothesis": "If spaces were not properly ignored, or if groups were incorrectly merged/split, the output would differ."
+            },
+            {
+              "name": "test_single_group",
+              "code": "from solution import separate_paren_groups\n\ndef test_single_group():\n    \"\"\"A single balanced group should return a list with one element.\"\"\"\n    result = separate_paren_groups('()')\n    assert result == ['()']\n    assert isinstance(result, list)\n    assert len(result) == 1",
+              "contract_quote": "\"Input to this function is a string containing multiple groups of nested parentheses. Your goal is to separate those group into separate strings and return the list of those.\"",
+              "input_domain": "A single balanced pair of parentheses with no spaces.",
+              "oracle_reason": "One complete balanced group exists; the counter goes 0->1->0, triggering one append.",
+              "fault_hypothesis": "If the function failed to handle a single group, it might return an empty list or wrong type."
+            },
+            {
+              "name": "test_empty_string",
+              "code": "from solution import separate_paren_groups\n\ndef test_empty_string():\n    \"\"\"Empty input should return an empty list.\"\"\"\n    result = separate_paren_groups('')\n    assert result == []\n    assert isinstance(result, list)",
+              "contract_quote": "\"Input to this function is a string containing multiple groups of nested parentheses.\"",
+              "input_domain": "An empty string with no characters.",
+              "oracle_reason": "No characters means no groups can be formed; the loop body never executes meaningful work, and results stays empty.",
+              "fault_hypothesis": "If the function did not handle empty input gracefully, it might crash or return non-empty."
+            },
+            {
+              "name": "test_spaces_only",
+              "code": "from solution import separate_paren_groups\n\ndef test_spaces_only():\n    \"\"\"A string of only spaces should return an empty list since no groups exist.\"\"\"\n    result = separate_paren_groups('     ')\n    assert result == []\n    assert isinstance(result, list)",
+              "contract_quote": "\"Ignore any spaces in the input string.\" and \"if group != '' results.append(group)\"",
+              "input_domain": "A string containing only whitespace characters.",
+              "oracle_reason": "All characters are spaces, so group remains empty throughout. The condition `group != ''` prevents appending anything.",
+              "fault_hypothesis": "If spaces were not filtered out before the group check, an empty string could be appended."
+            },
+            {
+              "name": "test_multiple_simple_groups",
+              "code": "from solution import separate_paren_groups\n\ndef test_multiple_simple_groups():\n    \"\"\"Multiple adjacent simple groups should each be returned separately.\"\"\"\n    result = separate_paren_groups('()()()')\n    assert result == ['()', '()', '()']\n    assert len(result) == 3",
+              "contract_quote": "\"Separate groups are balanced (each open brace is properly closed) and not nested within each other.\"",
+              "input_domain": "Three consecutive simple pairs with no separators.",
+              "oracle_reason": "Each '()' independently balances (cnt goes 0->1->0), producing three separate groups.",
+              "fault_hypothesis": "If groups were incorrectly concatenated, the result might be a single string or wrong count."
+            },
+            {
+              "name": "test_deeply_nested",
+              "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((()))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+              "contract_quote": "\"groups of nested parentheses\" and \"Separate groups are balanced\"",
+              "input_domain": "Four levels of nesting forming one balanced group.",
+              "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+              "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a sol"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.688,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "from solution import separate_paren_groups\n\ndef test_docstring_example():\n    \"\"\"Test the exact example from the docstring.\"\"\"\n    result = separate_paren_groups('( ) (( )) (( )( ))')\n    assert result == ['()', '(())', '(()())']",
+              "contract_quote": "Input to this function is a string containing multiple groups of nested parentheses.",
+              "input_domain": "String containing three groups: a space-wrapped pair, a double-nested pair, and a mixed-depth pair, separated by spaces.",
+              "oracle_reason": "The first group '( )' has balanced parens with inner space stripped -> '()'. The second '(( ))' strips space -> '(())'. The third '(( )( ))' strips spaces -> '(()())'. Each group reaches balance count 0 independently.",
+              "fault_hypothesis": "If spaces were not properly ignored, or if groups were incorrectly merged/split, the output would differ."
+            },
+            {
+              "name": "test_single_group",
+              "code": "from solution import separate_paren_groups\n\ndef test_single_group():\n    \"\"\"A single balanced group should return a list with one element.\"\"\"\n    result = separate_paren_groups('()')\n    assert result == ['()']\n    assert isinstance(result, list)\n    assert len(result) == 1",
+              "contract_quote": "separate those group into separate strings and return the list of those.",
+              "input_domain": "A single balanced pair of parentheses with no spaces.",
+              "oracle_reason": "One complete balanced group exists; the counter goes 0->1->0, triggering one append.",
+              "fault_hypothesis": "If the function failed to handle a single group, it might return an empty list or wrong type."
+            },
+            {
+              "name": "test_empty_string",
+              "code": "from solution import separate_paren_groups\n\ndef test_empty_string():\n    \"\"\"Empty input should return an empty list.\"\"\"\n    result = separate_paren_groups('')\n    assert result == []\n    assert isinstance(result, list)",
+              "contract_quote": "Your goal is to separate those group into separate strings and return the list of those.",
+              "input_domain": "An empty string with no characters.",
+              "oracle_reason": "No characters means no groups can be formed; the loop body never executes meaningful work, and results stays empty.",
+              "fault_hypothesis": "If the function did not handle empty input gracefully, it might crash or return non-empty."
+            },
+            {
+              "name": "test_spaces_only",
+              "code": "from solution import separate_paren_groups\n\ndef test_spaces_only():\n    \"\"\"A string of only spaces should return an empty list since no groups exist.\"\"\"\n    result = separate_paren_groups('     ')\n    assert result == []\n    assert isinstance(result, list)",
+              "contract_quote": "Ignore any spaces in the input string.",
+              "input_domain": "A string containing only whitespace characters.",
+              "oracle_reason": "All characters are spaces, so group remains empty throughout. The condition group != '' prevents appending anything.",
+              "fault_hypothesis": "If spaces were not filtered out before the group check, an empty string could be appended."
+            },
+            {
+              "name": "test_multiple_simple_groups",
+              "code": "from solution import separate_paren_groups\n\ndef test_multiple_simple_groups():\n    \"\"\"Multiple adjacent simple groups should each be returned separately.\"\"\"\n    result = separate_paren_groups('()()()')\n    assert result == ['()', '()', '()']\n    assert len(result) == 3",
+              "contract_quote": "Separate groups are balanced (each open brace is properly closed) and not nested within each other",
+              "input_domain": "Three consecutive simple pairs with no separators.",
+              "oracle_reason": "Each '()' independently balances (cnt goes 0->1->0), producing three separate groups.",
+              "fault_hypothesis": "If groups were incorrectly concatenated, the result might be a single string or wrong count."
+            },
+            {
+              "name": "test_deeply_nested",
+              "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((()))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+              "contract_quote": "groups of nested parentheses. Your goal is to separate those group",
+              "input_domain": "Four levels of nesting forming one balanced group.",
+              "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+              "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.522,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_deeply_nested",
+              "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((())))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+              "contract_quote": "groups of nested parentheses. Your goal is to separate those group",
+              "input_domain": "Four levels of nesting forming one balanced group.",
+              "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+              "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 11, \"results\": [{\"name\": \"test_deeply_nested\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\": \"A"
+      }
+    ],
+    "generation_seconds": 40.088,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_docstring_example",
+          "code": "from solution import separate_paren_groups\n\ndef test_docstring_example():\n    \"\"\"Test the exact example from the docstring.\"\"\"\n    result = separate_paren_groups('( ) (( )) (( )( ))')\n    assert result == ['()', '(())', '(()())']",
+          "contract_quote": "Input to this function is a string containing multiple groups of nested parentheses.",
+          "input_domain": "String containing three groups: a space-wrapped pair, a double-nested pair, and a mixed-depth pair, separated by spaces.",
+          "oracle_reason": "The first group '( )' has balanced parens with inner space stripped -> '()'. The second '(( ))' strips space -> '(())'. The third '(( )( ))' strips spaces -> '(()())'. Each group reaches balance count 0 independently.",
+          "fault_hypothesis": "If spaces were not properly ignored, or if groups were incorrectly merged/split, the output would differ."
+        },
+        {
+          "name": "test_single_group",
+          "code": "from solution import separate_paren_groups\n\ndef test_single_group():\n    \"\"\"A single balanced group should return a list with one element.\"\"\"\n    result = separate_paren_groups('()')\n    assert result == ['()']\n    assert isinstance(result, list)\n    assert len(result) == 1",
+          "contract_quote": "separate those group into separate strings and return the list of those.",
+          "input_domain": "A single balanced pair of parentheses with no spaces.",
+          "oracle_reason": "One complete balanced group exists; the counter goes 0->1->0, triggering one append.",
+          "fault_hypothesis": "If the function failed to handle a single group, it might return an empty list or wrong type."
+        },
+        {
+          "name": "test_empty_string",
+          "code": "from solution import separate_paren_groups\n\ndef test_empty_string():\n    \"\"\"Empty input should return an empty list.\"\"\"\n    result = separate_paren_groups('')\n    assert result == []\n    assert isinstance(result, list)",
+          "contract_quote": "Your goal is to separate those group into separate strings and return the list of those.",
+          "input_domain": "An empty string with no characters.",
+          "oracle_reason": "No characters means no groups can be formed; the loop body never executes meaningful work, and results stays empty.",
+          "fault_hypothesis": "If the function did not handle empty input gracefully, it might crash or return non-empty."
+        },
+        {
+          "name": "test_spaces_only",
+          "code": "from solution import separate_paren_groups\n\ndef test_spaces_only():\n    \"\"\"A string of only spaces should return an empty list since no groups exist.\"\"\"\n    result = separate_paren_groups('     ')\n    assert result == []\n    assert isinstance(result, list)",
+          "contract_quote": "Ignore any spaces in the input string.",
+          "input_domain": "A string containing only whitespace characters.",
+          "oracle_reason": "All characters are spaces, so group remains empty throughout. The condition group != '' prevents appending anything.",
+          "fault_hypothesis": "If spaces were not filtered out before the group check, an empty string could be appended."
+        },
+        {
+          "name": "test_multiple_simple_groups",
+          "code": "from solution import separate_paren_groups\n\ndef test_multiple_simple_groups():\n    \"\"\"Multiple adjacent simple groups should each be returned separately.\"\"\"\n    result = separate_paren_groups('()()()')\n    assert result == ['()', '()', '()']\n    assert len(result) == 3",
+          "contract_quote": "Separate groups are balanced (each open brace is properly closed) and not nested within each other",
+          "input_domain": "Three consecutive simple pairs with no separators.",
+          "oracle_reason": "Each '()' independently balances (cnt goes 0->1->0), producing three separate groups.",
+          "fault_hypothesis": "If groups were incorrectly concatenated, the result might be a single string or wrong count."
+        },
+        {
+          "name": "test_deeply_nested",
+          "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((())))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+          "contract_quote": "groups of nested parentheses. Your goal is to separate those group",
+          "input_domain": "Four levels of nesting forming one balanced group.",
+          "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+          "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_docstring_example",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_single_group",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_empty_string",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_spaces_only",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_multiple_simple_groups",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_deeply_nested",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_docstring_example",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_single_group",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_empty_string",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_spaces_only",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_multiple_simple_groups",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_deeply_nested",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.251,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n______________________________ test_deeply_nested ______________________________\ntest_solution.py:6: in test_deeply_nested\n    assert result == ['(((()))']\nE   AssertionError: assert ['(((())))'] == ['(((()))']\nE     \nE     At index 0 diff: '(((())))' != '(((()))'\nE     Use -v to get more diff\n=========================== short test summary info ============================\nFAILED test_solution.py::test_deeply_nested - AssertionError: assert ['(((())...\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_deeply_nested",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 13,
+      "validation_seconds": 3.012
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 11,
+    "executable_lines": 11,
+    "mutation_score": 1.0,
+    "mutants_total": 9,
+    "mutants_killed": 9,
+    "mutant_operators": {
+      "CRP": 4,
+      "ROR": 5
+    },
+    "killed_by_operator": {
+      "CRP": 4,
+      "ROR": 5
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 5.318
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.045,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 23 行，显示第 1-23 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.106,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "from solution import separate_paren_groups\n\ndef test_docstring_example():\n    \"\"\"Test the exact example from the docstring.\"\"\"\n    result = separate_paren_groups('( ) (( )) (( )( ))')\n    assert result == ['()', '(())', '(()())']",
+            "contract_quote": "\"Separate groups are balanced (each open brace is properly closed) and not nested within each other. Ignore any spaces in the input string.\"",
+            "input_domain": "String containing three groups: a space-wrapped pair, a double-nested pair, and a mixed-depth pair, separated by spaces.",
+            "oracle_reason": "The first group '( )' has balanced parens with inner space stripped -> '()'. The second '(( ))' strips space -> '(())'. The third '(( )( ))' strips spaces -> '(()())'. Each group reaches balance count 0 independently.",
+            "fault_hypothesis": "If spaces were not properly ignored, or if groups were incorrectly merged/split, the output would differ."
+          },
+          {
+            "name": "test_single_group",
+            "code": "from solution import separate_paren_groups\n\ndef test_single_group():\n    \"\"\"A single balanced group should return a list with one element.\"\"\"\n    result = separate_paren_groups('()')\n    assert result == ['()']\n    assert isinstance(result, list)\n    assert len(result) == 1",
+            "contract_quote": "\"Input to this function is a string containing multiple groups of nested parentheses. Your goal is to separate those group into separate strings and return the list of those.\"",
+            "input_domain": "A single balanced pair of parentheses with no spaces.",
+            "oracle_reason": "One complete balanced group exists; the counter goes 0->1->0, triggering one append.",
+            "fault_hypothesis": "If the function failed to handle a single group, it might return an empty list or wrong type."
+          },
+          {
+            "name": "test_empty_string",
+            "code": "from solution import separate_paren_groups\n\ndef test_empty_string():\n    \"\"\"Empty input should return an empty list.\"\"\"\n    result = separate_paren_groups('')\n    assert result == []\n    assert isinstance(result, list)",
+            "contract_quote": "\"Input to this function is a string containing multiple groups of nested parentheses.\"",
+            "input_domain": "An empty string with no characters.",
+            "oracle_reason": "No characters means no groups can be formed; the loop body never executes meaningful work, and results stays empty.",
+            "fault_hypothesis": "If the function did not handle empty input gracefully, it might crash or return non-empty."
+          },
+          {
+            "name": "test_spaces_only",
+            "code": "from solution import separate_paren_groups\n\ndef test_spaces_only():\n    \"\"\"A string of only spaces should return an empty list since no groups exist.\"\"\"\n    result = separate_paren_groups('     ')\n    assert result == []\n    assert isinstance(result, list)",
+            "contract_quote": "\"Ignore any spaces in the input string.\" and \"if group != '' results.append(group)\"",
+            "input_domain": "A string containing only whitespace characters.",
+            "oracle_reason": "All characters are spaces, so group remains empty throughout. The condition `group != ''` prevents appending anything.",
+            "fault_hypothesis": "If spaces were not filtered out before the group check, an empty string could be appended."
+          },
+          {
+            "name": "test_multiple_simple_groups",
+            "code": "from solution import separate_paren_groups\n\ndef test_multiple_simple_groups():\n    \"\"\"Multiple adjacent simple groups should each be returned separately.\"\"\"\n    result = separate_paren_groups('()()()')\n    assert result == ['()', '()', '()']\n    assert len(result) == 3",
+            "contract_quote": "\"Separate groups are balanced (each open brace is properly closed) and not nested within each other.\"",
+            "input_domain": "Three consecutive simple pairs with no separators.",
+            "oracle_reason": "Each '()' independently balances (cnt goes 0->1->0), producing three separate groups.",
+            "fault_hypothesis": "If groups were incorrectly concatenated, the result might be a single string or wrong count."
+          },
+          {
+            "name": "test_deeply_nested",
+            "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((()))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+            "contract_quote": "\"groups of nested parentheses\" and \"Separate groups are balanced\"",
+            "input_domain": "Four levels of nesting forming one balanced group.",
+            "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+            "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a sol"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.688,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "from solution import separate_paren_groups\n\ndef test_docstring_example():\n    \"\"\"Test the exact example from the docstring.\"\"\"\n    result = separate_paren_groups('( ) (( )) (( )( ))')\n    assert result == ['()', '(())', '(()())']",
+            "contract_quote": "Input to this function is a string containing multiple groups of nested parentheses.",
+            "input_domain": "String containing three groups: a space-wrapped pair, a double-nested pair, and a mixed-depth pair, separated by spaces.",
+            "oracle_reason": "The first group '( )' has balanced parens with inner space stripped -> '()'. The second '(( ))' strips space -> '(())'. The third '(( )( ))' strips spaces -> '(()())'. Each group reaches balance count 0 independently.",
+            "fault_hypothesis": "If spaces were not properly ignored, or if groups were incorrectly merged/split, the output would differ."
+          },
+          {
+            "name": "test_single_group",
+            "code": "from solution import separate_paren_groups\n\ndef test_single_group():\n    \"\"\"A single balanced group should return a list with one element.\"\"\"\n    result = separate_paren_groups('()')\n    assert result == ['()']\n    assert isinstance(result, list)\n    assert len(result) == 1",
+            "contract_quote": "separate those group into separate strings and return the list of those.",
+            "input_domain": "A single balanced pair of parentheses with no spaces.",
+            "oracle_reason": "One complete balanced group exists; the counter goes 0->1->0, triggering one append.",
+            "fault_hypothesis": "If the function failed to handle a single group, it might return an empty list or wrong type."
+          },
+          {
+            "name": "test_empty_string",
+            "code": "from solution import separate_paren_groups\n\ndef test_empty_string():\n    \"\"\"Empty input should return an empty list.\"\"\"\n    result = separate_paren_groups('')\n    assert result == []\n    assert isinstance(result, list)",
+            "contract_quote": "Your goal is to separate those group into separate strings and return the list of those.",
+            "input_domain": "An empty string with no characters.",
+            "oracle_reason": "No characters means no groups can be formed; the loop body never executes meaningful work, and results stays empty.",
+            "fault_hypothesis": "If the function did not handle empty input gracefully, it might crash or return non-empty."
+          },
+          {
+            "name": "test_spaces_only",
+            "code": "from solution import separate_paren_groups\n\ndef test_spaces_only():\n    \"\"\"A string of only spaces should return an empty list since no groups exist.\"\"\"\n    result = separate_paren_groups('     ')\n    assert result == []\n    assert isinstance(result, list)",
+            "contract_quote": "Ignore any spaces in the input string.",
+            "input_domain": "A string containing only whitespace characters.",
+            "oracle_reason": "All characters are spaces, so group remains empty throughout. The condition group != '' prevents appending anything.",
+            "fault_hypothesis": "If spaces were not filtered out before the group check, an empty string could be appended."
+          },
+          {
+            "name": "test_multiple_simple_groups",
+            "code": "from solution import separate_paren_groups\n\ndef test_multiple_simple_groups():\n    \"\"\"Multiple adjacent simple groups should each be returned separately.\"\"\"\n    result = separate_paren_groups('()()()')\n    assert result == ['()', '()', '()']\n    assert len(result) == 3",
+            "contract_quote": "Separate groups are balanced (each open brace is properly closed) and not nested within each other",
+            "input_domain": "Three consecutive simple pairs with no separators.",
+            "oracle_reason": "Each '()' independently balances (cnt goes 0->1->0), producing three separate groups.",
+            "fault_hypothesis": "If groups were incorrectly concatenated, the result might be a single string or wrong count."
+          },
+          {
+            "name": "test_deeply_nested",
+            "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((()))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+            "contract_quote": "groups of nested parentheses. Your goal is to separate those group",
+            "input_domain": "Four levels of nesting forming one balanced group.",
+            "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+            "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.522,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_deeply_nested",
+            "code": "from solution import separate_paren_groups\n\ndef test_deeply_nested():\n    \"\"\"Deeply nested parentheses form a single group.\"\"\"\n    result = separate_paren_groups('(((())))')\n    assert result == ['(((())))']\n    assert len(result) == 1\n    # Verify the group is deeply nested\n    assert result[0].count('(') == 4\n    assert result[0].count(')') == 4",
+            "contract_quote": "groups of nested parentheses. Your goal is to separate those group",
+            "input_domain": "Four levels of nesting forming one balanced group.",
+            "oracle_reason": "The counter reaches 4 at maximum depth and returns to 0 only after the last ')', yielding one group with 4 opens and 4 closes.",
+            "fault_hypothesis": "If nesting was mishandled, the group might be split prematurely or have wrong depth."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 11, \"results\": [{\"name\": \"test_deeply_nested\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\": \"A"
+    }
+  ],
+  "started_at": 1791299647.4598465,
+  "duration_sec": 45.559,
+  "tests_chars": 1866
+}

@@ -321,6 +321,7 @@ def run_mutation_tests(
     *,
     max_mutants: int = 20,
     timeout: float = MUTANT_TIMEOUT_SEC,
+    operators: Optional[Sequence[str]] = None,
 ) -> Dict[str, Any]:
     """对 `solution.py` 施加变异，用给定测试套件去杀。
 
@@ -329,7 +330,7 @@ def run_mutation_tests(
     """
     workspace = Path(workspace).expanduser().resolve()
     solution_path = workspace / SOLUTION_FILENAME
-    mutants: List[Mutant] = generate_mutants(original_source, max_mutants=max_mutants)
+    mutants: List[Mutant] = generate_mutants(original_source, max_mutants=max_mutants, operators=operators)
 
     result: Dict[str, Any] = {
         "total": len(mutants),
@@ -374,6 +375,10 @@ def collect_metrics(
     include_mutation: bool,
     tests_target: str = "test_solution.py",
     max_mutants: int = 20,
+    pytest_timeout: float = PYTEST_TIMEOUT_SEC,
+    coverage_timeout: float = COVERAGE_TIMEOUT_SEC,
+    mutant_timeout: float = MUTANT_TIMEOUT_SEC,
+    mutation_operators: Optional[Sequence[str]] = None,
 ) -> Metrics:
     """采集一个 checkpoint 上的指标。
 
@@ -411,9 +416,9 @@ def collect_metrics(
         metrics.eval_duration_sec = time.monotonic() - started
         return metrics
 
-    metrics.pytest = run_pytest_on(tests_target, workspace)
+    metrics.pytest = run_pytest_on(tests_target, workspace, timeout=pytest_timeout)
 
-    coverage = measure_coverage(workspace, SOLUTION_FILENAME)
+    coverage = measure_coverage(workspace, SOLUTION_FILENAME, timeout=coverage_timeout)
     if "error" in coverage:
         metrics.eval_error = str(coverage["error"])
     else:
@@ -423,7 +428,8 @@ def collect_metrics(
 
     if include_mutation:
         mutation = run_mutation_tests(
-            workspace, instance.solution_source, tests_target, max_mutants=max_mutants
+            workspace, instance.solution_source, tests_target, max_mutants=max_mutants, timeout=mutant_timeout,
+            operators=mutation_operators,
         )
         metrics.mutants_total = mutation["total"]
         metrics.mutants_killed = mutation["killed"]

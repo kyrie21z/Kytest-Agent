@@ -1,0 +1,103 @@
+"""Scripted production-loop demo; held-out scoring happens after generation."""
+import argparse
+import hashlib
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from code_agent.agent import Agent
+from code_agent.config import Settings
+from code_agent.fault_feedback import FAULT_PROMPT, fingerprint, independent_pools
+from code_agent.llm import LLMResponse, MockLLM, ToolCall
+from code_agent.testgen import TESTGEN_PROMPT, make_testgen_hook
+from code_agent.tools.factories import build_registry
+
+SOURCE = '''def classify(value, low, high):
+    """For low <= high, return -1 below low, 1 above high, and 0 inside the inclusive interval."""
+    if value < low:
+        return -1
+    if value > high:
+        return 1
+    return 0
+'''
+QUOTE = "return -1 below low, 1 above high, and 0 inside the inclusive interval."
+
+
+def candidate(name, value, expected):
+    return {"name": name,
+            "code": f"from solution import classify\ndef {name}():\n    assert classify({value}, 2, 8) == {expected}\n",
+            "contract_quote": QUOTE, "input_domain": "ordered endpoints 2 <= 8",
+            "oracle_reason": f"Compare {value} with the two endpoints, including equality, per the contract",
+            "fault_hypothesis": "Incorrect outside result or exclusive rather than inclusive boundary"}
+
+
+def response(name, args):
+    return LLMResponse(tool_calls=[ToolCall("demo", name, json.dumps(args))])
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    output = args.output or Path(tempfile.mkdtemp(prefix="fault-demo-"))
+    workspace = output / "agent_workspace"
+    workspace.mkdir(parents=True, exist_ok=False)
+    (workspace / "solution.py").write_text(SOURCE, encoding="utf-8")
+    registry = build_registry(Settings(workspace=workspace), ("submit_tests", "inspect_survivors"))
+    submitter = registry.get("submit_tests")
+    stages = {}
+    def event(e):
+        if getattr(e, "name", None) == "submit_tests" and hasattr(e, "content"):
+            if len(submitter.accepted) == 1:
+                stages["before"] = submitter.suite_source()
+    llm = MockLLM(responses=[
+        response("submit_tests", {"cases": [candidate("test_inside", 5, 0)]}),
+        response("inspect_survivors", {}),
+        response("submit_tests", {"cases": [candidate("test_below", 1, -1), candidate("test_above", 9, 1),
+                                             candidate("test_low_inclusive", 2, 0), candidate("test_high_inclusive", 8, 0)]}),
+        response("inspect_survivors", {}),
+        LLMResponse(content="Preserved the accepted test and added contract-based outside and adjacent boundary checks.")])
+    agent = Agent(llm=llm, tools=registry, system_prompt=TESTGEN_PROMPT + FAULT_PROMPT,
+                  max_turns=6, finish_turn=make_testgen_hook(submitter), on_event=event)
+    agent.state.add_user("Generate tests for solution.py")
+    result = agent.run()
+    if result.status != "completed" or len(submitter.accepted) != 5 or "before" not in stages:
+        raise SystemExit("Production-loop demo failed")
+    stages["after"] = submitter.suite_source()
+    development, heldout = independent_pools(SOURCE)
+    measurements = {}
+    # The model has finished. It never receives these candidates or scores.
+    for stage, suite in stages.items():
+        rows = []
+        for mutant in heldout:
+            outcome = submitter._execute(suite, 2, source=mutant.source)
+            rows.append({**mutant.to_dict(), "fingerprint": fingerprint(mutant),
+                         "status": outcome["status"],
+                         "detected": outcome["status"] == "FAIL" and outcome["returncode"] == 1})
+        measurements[stage] = {"reference_passed": submitter._execute(suite, 5)["status"] == "PASS",
+                               "total": len(rows), "detected": sum(r["detected"] for r in rows), "faults": rows}
+        (output / f"{stage}.tests.py").write_text(suite, encoding="utf-8")
+    receipt = {"evidence_scope": "controlled scripted demonstration, not real-model quality evidence",
+               "protocol_sha256": hashlib.sha256((ROOT / "docs/fault-feedback.md").read_bytes()).hexdigest(),
+               "scoring_after_generation": True,
+               "feedback_fingerprints": [fingerprint(m) for m in development],
+               "heldout_fingerprints": [fingerprint(m) for m in heldout],
+               "measurements": measurements, "agent_status": result.status,
+               "accepted": len(submitter.accepted),
+               "reference_unchanged": (workspace / "solution.py").read_text() == SOURCE}
+    (output / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not receipt["reference_unchanged"] or not all(m["reference_passed"] for m in measurements.values()):
+        raise SystemExit("Reference compatibility failed")
+    if not heldout or measurements["after"]["detected"] <= measurements["before"]["detected"]:
+        raise SystemExit("Controlled transfer acceptance failed")
+    print(json.dumps({"scope": receipt["evidence_scope"], "measurements": {
+        k: {"detected": v["detected"], "total": v["total"]} for k, v in measurements.items()},
+        "output": str(output)}, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

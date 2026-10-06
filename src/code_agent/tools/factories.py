@@ -55,6 +55,13 @@ _BUILDERS: Dict[str, Any] = {
 
 def build_tool(settings: Any, name: str) -> Tool:
     """按名字构造单个工具。名字非法时立即报错，不留到运行时才炸。"""
+    # Lazy import: the generic tool registry remains free of testing policy.
+    if name == "submit_tests":
+        from ..testgen import SubmitTestsTool
+        return SubmitTestsTool(settings)
+    if name == "inspect_survivors":
+        from ..fault_feedback import InspectSurvivorsTool
+        return InspectSurvivorsTool(settings)
     builder = _BUILDERS.get(name)
     if builder is None:
         raise KeyError(f"未知工具 `{name}`，可用工具：{', '.join(sorted(_BUILDERS))}")
@@ -79,9 +86,12 @@ def build_registry(
     registry = ToolRegistry()
     for name in names:
         registry.register(build_tool(settings, name))
+    inspector = registry.get("inspect_survivors")
+    if inspector is not None:
+        inspector.submitter = registry.get("submit_tests")
     return registry
 
 
 def available_tool_names() -> List[str]:
     """返回所有可装配的工具名，便于 CLI 校验与文档生成。"""
-    return sorted(_BUILDERS)
+    return sorted([*_BUILDERS, "submit_tests", "inspect_survivors"])

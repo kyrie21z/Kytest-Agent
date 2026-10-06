@@ -1,0 +1,458 @@
+{
+  "instance_id": "HumanEval/154",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 20283,
+    "output_tokens": 5809,
+    "total_tokens": 26092,
+    "final_text": "All 6 candidate tests have been accepted. Here's a summary of the complete test suite:\n\n| Test | What it covers | Fault hypothesis |\n|------|---------------|-----------------|\n| `test_basic_substring_match` | Direct substring match (`\"hello\", \"ell\"`) | Only checking `a==b`, missing substrings |\n| `test_rotation_is_substring` | Rotation needed (`\"abab\", \"baa\"` → `\"aba\"` matches) | Missing rotation generation |\n| `test_no_match_or_rotation` | No match case (`\"abcd\", \"abd\"`) | Partial character overlap causing false positives |\n| `test_empty_b_returns_true` | Empty `b` edge case (`\"hello\", \"\"`) | Skipping empty-b guard clause |\n| `test_equal_strings_return_true` | Exact equality (`\"abc\", \"abc\"`) | Missing `a==b` shortcut path |\n| `test_b_longer_than_a_returns_false` | `len(b) > len(a)` (`\"hi\", \"world\"`) | Length mismatch / index errors |\n\n**Remaining limitations:**\n\n1. **No return-type assertions** — The tests verify boolean results via `is True`/`is False` but don't explicitly assert `isinstance(result, bool)`. A type regression would go undetected.\n2. **Single-char `b` not tested** — When `b` has length 1, there's only one rotation; this boundary isn't covered.\n3. **Both-empty strings (`\"\", \"\"`) not tested** — This exercises both the `a==b` and `b==\"\"` guards simultaneously.\n4. **Last rotation boundary** — The rotation loop uses `range(len(b))`; an off-by-one error (e.g., `range(len(b)-1)`) would miss the final rotation. Not directly tested.\n5. **No negative-input testing** — Non-string types (None, integers) aren't tested, though the contract doesn't specify behavior for invalid inputs.\n6. **Multi-character repeated patterns** — Cases like `\"himenss\", \"simen\"` from the docstring examples aren't included.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.038,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 21 行，显示第 1-21 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.034,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for solution.cycpattern_check.\"\"\"\n\nfrom solution import cycpattern…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（6559 字符，189 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.397,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_substring_match",
+              "code": "\"\"\"'ell' is directly a substring of 'hello'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='hello', b='ell' — standard non-empty words where b is an\nexact substring of a.\n\nExpected result: True, because 'ell' appears contiguously in 'hello' at\nindex 1. No rotation needed.\n\nFault hypothesis: A faulty implementation might only check exact equality\nbetween a and b, missing substring matches entirely.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_basic_substring_match():\n    assert cycpattern_check(\"hello\", \"ell\") is True",
+              "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+              "input_domain": "a='hello', b='ell'",
+              "oracle_reason": "'ell' is a contiguous substring of 'hello' at index 1; no rotation needed.",
+              "fault_hypothesis": "An implementation that only checks a==b would miss substring matches."
+            },
+            {
+              "name": "test_rotation_is_substring",
+              "code": "\"\"\"A rotation of 'baa' ('aba') is a substring of 'abab'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='abab', b='baa' — b is not a direct substring of a,\nbut one of its rotations is.\n\nExpected result: True. Rotations of 'baa': 'baa', 'aab', 'aba'. The\nrotation 'aba' is found in 'abab' (at index 0).\n\nFault hypothesis: An implementation that does not generate all rotations\nof b will miss this case and incorrectly return False.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_rotation_is_substring():\n    assert cycpattern_check(\"abab\", \"baa\") is True",
+              "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+              "input_domain": "a='abab', b='baa'",
+              "oracle_reason": "Rotation 'aba' of b='baa' is a substring of a='abab'.",
+              "fault_hypothesis": "Missing rotation generation leads to false negatives."
+            },
+            {
+              "name": "test_no_match_or_rotation",
+              "code": "\"\"\"Neither 'abd' nor any rotation of it is a substring of 'abcd'.\n\nContract quote: 'cycpattern_check(\"abcd\",\"abd\") => False'\n\nInput domain: a='abcd', b='abd' — neither b nor any cyclic shift of b\nappears in a.\n\nExpected result: False. Rotations of 'abd': 'abd', 'bda', 'dab'. None\nare substrings of 'abcd'.\n\nFault hypothesis: A buggy implementation might incorrectly report True\nwhen partial character overlap exists but no full rotation matches.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_no_match_or_rotation():\n    assert cycpattern_check(\"abcd\", \"abd\") is False",
+              "contract_quote": "cycpattern_check(\"abcd\",\"abd\") => False",
+              "input_domain": "a='abcd', b='abd'",
+              "oracle_reason": "None of the rotations of 'abd' ('abd', 'bda', 'dab') appear in 'abcd'.",
+              "fault_hypothesis": "Partial character overlap may cause incorrect true returns."
+            },
+            {
+              "name": "test_empty_b_returns_true",
+              "code": "\"\"\"Empty string b is considered a substring of any a.\n\nContract quote: lines 14-15 explicitly handle b == '' returning True.\n\nInput domain: a='hello', b='' — b is the empty string.\n\nExpected result: True, because the empty string is a substring of every\nstring (including itself).\n\nFault hypothesis: An implementation that skips the empty-b guard clause\nmay raise an error or return False incorrectly.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_empty_b_returns_true():\n    assert cycpattern_check(\"hello\", \"\") is True",
+              "contract_quote": "lines 14-15 explicitly handle b == '' returning True",
+              "input_domain": "a='hello', b=''",
+              "oracle_reason": "Empty string is a substring of every string by definition.",
+              "fault_hypothesis": "Skipping the empty-b guard causes errors or wrong results."
+            },
+            {
+              "name": "test_equal_strings_return_true",
+              "code": "\"\"\"When a equals b exactly, the function returns True.\n\nContract quote: lines 12-13 handle a == b returning True.\n\nInput domain: a='abc', b='abc' — both arguments are identical.\n\nExpected result: True, since b is trivially a substring of a.\n\nFault hypothesis: An implementation that relies solely on rotation logic\nwithout the explicit a==b shortcut might still work, but this test\nverifies the documented early-return path.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_equal_strings_return_true():\n    assert cycpattern_check(\"abc\", \"abc\") is True",
+              "contract_quote": "lines 12-13 handle a == b returning True",
+              "input_domain": "a='abc', b='abc'",
+              "oracle_reason": "a == b triggers the first guard clause returning True.",
+              "fault_hypothesis": "Missing the a==b shortcut could break edge-case handling."
+            },
+            {
+              "name": "test_b_longer_than_a_returns_false",
+              "code": "\"\"\"When b is longer than a, no rotation of b can fit inside a.\n\nContract quote: implied by substring semantics — a longer string cannot\nbe a substring of a shorter one.\n\nInput domain: a='hi', b='world' — len(b) > len(a).\n\nExpected result: False, because even the shortest rotation of b has\nlength 5, which exceeds len(a)=2.\n\nFault hypothesis: An implementation that doesn't account for length\ndifferences might produce incorrect results due to out-of-range indexing.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_b_longer_than_a_returns_false():\n    assert cycpattern_check(\"hi\", \"world\") is False",
+              "contract_quote": "implied by substring semantics",
+              "input_domain": "a='hi', b='world'",
+              "oracle_reason": "len(b)=5 > len(a)=2, so no rotation of b can be a substring of a.",
+              "fault_hypothesis": "Ignoring length differences may cause index errors or wrong results."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_substring_match\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"sta"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.393,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_b_returns_true",
+              "code": "\"\"\"Empty string b is considered a substring of any a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hello', b='' — b is the empty string.\n\nExpected result: True, because the empty string is a substring of every\nstring (including itself).\n\nFault hypothesis: An implementation that skips the empty-b guard clause\nmay raise an error or return False incorrectly.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_empty_b_returns_true():\n    assert cycpattern_check(\"hello\", \"\") is True",
+              "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+              "input_domain": "a='hello', b=''",
+              "oracle_reason": "Empty string is a substring of every string by definition.",
+              "fault_hypothesis": "Skipping the empty-b guard causes errors or wrong results."
+            },
+            {
+              "name": "test_equal_strings_return_true",
+              "code": "\"\"\"When a equals b exactly, the function returns True.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='abc', b='abc' — both arguments are identical.\n\nExpected result: True, since b is trivially a substring of a.\n\nFault hypothesis: An implementation that relies solely on rotation logic\nwithout the explicit a==b shortcut might still work, but this test\nverifies the documented early-return path.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_equal_strings_return_true():\n    assert cycpattern_check(\"abc\", \"abc\") is True",
+              "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+              "input_domain": "a='abc', b='abc'",
+              "oracle_reason": "a == b triggers the first guard clause returning True.",
+              "fault_hypothesis": "Missing the a==b shortcut could break edge-case handling."
+            },
+            {
+              "name": "test_b_longer_than_a_returns_false",
+              "code": "\"\"\"When b is longer than a, no rotation of b can fit inside a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hi', b='world' — len(b) > len(a).\n\nExpected result: False, because even the shortest rotation of b has\nlength 5, which exceeds len(a)=2.\n\nFault hypothesis: An implementation that doesn't account for length\ndifferences might produce incorrect results due to out-of-range indexing.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_b_longer_than_a_returns_false():\n    assert cycpattern_check(\"hi\", \"world\") is False",
+              "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+              "input_domain": "a='hi', b='world'",
+              "oracle_reason": "len(b)=5 > len(a)=2, so no rotation of b can be a substring of a.",
+              "fault_hypothesis": "Ignoring length differences may cause index errors or wrong results."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 15, \"results\": [{\"name\": \"test_empty_b_returns_true\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"stat"
+      }
+    ],
+    "generation_seconds": 50.349,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_basic_substring_match",
+          "code": "\"\"\"'ell' is directly a substring of 'hello'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='hello', b='ell' — standard non-empty words where b is an\nexact substring of a.\n\nExpected result: True, because 'ell' appears contiguously in 'hello' at\nindex 1. No rotation needed.\n\nFault hypothesis: A faulty implementation might only check exact equality\nbetween a and b, missing substring matches entirely.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_basic_substring_match():\n    assert cycpattern_check(\"hello\", \"ell\") is True",
+          "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+          "input_domain": "a='hello', b='ell'",
+          "oracle_reason": "'ell' is a contiguous substring of 'hello' at index 1; no rotation needed.",
+          "fault_hypothesis": "An implementation that only checks a==b would miss substring matches."
+        },
+        {
+          "name": "test_rotation_is_substring",
+          "code": "\"\"\"A rotation of 'baa' ('aba') is a substring of 'abab'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='abab', b='baa' — b is not a direct substring of a,\nbut one of its rotations is.\n\nExpected result: True. Rotations of 'baa': 'baa', 'aab', 'aba'. The\nrotation 'aba' is found in 'abab' (at index 0).\n\nFault hypothesis: An implementation that does not generate all rotations\nof b will miss this case and incorrectly return False.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_rotation_is_substring():\n    assert cycpattern_check(\"abab\", \"baa\") is True",
+          "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+          "input_domain": "a='abab', b='baa'",
+          "oracle_reason": "Rotation 'aba' of b='baa' is a substring of a='abab'.",
+          "fault_hypothesis": "Missing rotation generation leads to false negatives."
+        },
+        {
+          "name": "test_no_match_or_rotation",
+          "code": "\"\"\"Neither 'abd' nor any rotation of it is a substring of 'abcd'.\n\nContract quote: 'cycpattern_check(\"abcd\",\"abd\") => False'\n\nInput domain: a='abcd', b='abd' — neither b nor any cyclic shift of b\nappears in a.\n\nExpected result: False. Rotations of 'abd': 'abd', 'bda', 'dab'. None\nare substrings of 'abcd'.\n\nFault hypothesis: A buggy implementation might incorrectly report True\nwhen partial character overlap exists but no full rotation matches.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_no_match_or_rotation():\n    assert cycpattern_check(\"abcd\", \"abd\") is False",
+          "contract_quote": "cycpattern_check(\"abcd\",\"abd\") => False",
+          "input_domain": "a='abcd', b='abd'",
+          "oracle_reason": "None of the rotations of 'abd' ('abd', 'bda', 'dab') appear in 'abcd'.",
+          "fault_hypothesis": "Partial character overlap may cause incorrect true returns."
+        },
+        {
+          "name": "test_empty_b_returns_true",
+          "code": "\"\"\"Empty string b is considered a substring of any a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hello', b='' — b is the empty string.\n\nExpected result: True, because the empty string is a substring of every\nstring (including itself).\n\nFault hypothesis: An implementation that skips the empty-b guard clause\nmay raise an error or return False incorrectly.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_empty_b_returns_true():\n    assert cycpattern_check(\"hello\", \"\") is True",
+          "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+          "input_domain": "a='hello', b=''",
+          "oracle_reason": "Empty string is a substring of every string by definition.",
+          "fault_hypothesis": "Skipping the empty-b guard causes errors or wrong results."
+        },
+        {
+          "name": "test_equal_strings_return_true",
+          "code": "\"\"\"When a equals b exactly, the function returns True.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='abc', b='abc' — both arguments are identical.\n\nExpected result: True, since b is trivially a substring of a.\n\nFault hypothesis: An implementation that relies solely on rotation logic\nwithout the explicit a==b shortcut might still work, but this test\nverifies the documented early-return path.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_equal_strings_return_true():\n    assert cycpattern_check(\"abc\", \"abc\") is True",
+          "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+          "input_domain": "a='abc', b='abc'",
+          "oracle_reason": "a == b triggers the first guard clause returning True.",
+          "fault_hypothesis": "Missing the a==b shortcut could break edge-case handling."
+        },
+        {
+          "name": "test_b_longer_than_a_returns_false",
+          "code": "\"\"\"When b is longer than a, no rotation of b can fit inside a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hi', b='world' — len(b) > len(a).\n\nExpected result: False, because even the shortest rotation of b has\nlength 5, which exceeds len(a)=2.\n\nFault hypothesis: An implementation that doesn't account for length\ndifferences might produce incorrect results due to out-of-range indexing.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_b_longer_than_a_returns_false():\n    assert cycpattern_check(\"hi\", \"world\") is False",
+          "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+          "input_domain": "a='hi', b='world'",
+          "oracle_reason": "len(b)=5 > len(a)=2, so no rotation of b can be a substring of a.",
+          "fault_hypothesis": "Ignoring length differences may cause index errors or wrong results."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_basic_substring_match",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_rotation_is_substring",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_no_match_or_rotation",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_empty_b_returns_true",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_equal_strings_return_true",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_b_longer_than_a_returns_false",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_empty_b_returns_true",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_equal_strings_return_true",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.216,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_b_longer_than_a_returns_false",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.582
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.04s",
+    "line_coverage": 1.0,
+    "covered_lines": 9,
+    "executable_lines": 9,
+    "mutation_score": 1.0,
+    "mutants_total": 8,
+    "mutants_killed": 8,
+    "mutant_operators": {
+      "ROR": 2,
+      "RVR": 4,
+      "CRP": 1,
+      "AOR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 2,
+      "RVR": 4,
+      "CRP": 1,
+      "AOR": 1
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 4.629
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.038,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 21 行，显示第 1-21 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.034,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for solution.cycpattern_check.\"\"\"\n\nfrom solution import cycpattern…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（6559 字符，189 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.397,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_substring_match",
+            "code": "\"\"\"'ell' is directly a substring of 'hello'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='hello', b='ell' — standard non-empty words where b is an\nexact substring of a.\n\nExpected result: True, because 'ell' appears contiguously in 'hello' at\nindex 1. No rotation needed.\n\nFault hypothesis: A faulty implementation might only check exact equality\nbetween a and b, missing substring matches entirely.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_basic_substring_match():\n    assert cycpattern_check(\"hello\", \"ell\") is True",
+            "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+            "input_domain": "a='hello', b='ell'",
+            "oracle_reason": "'ell' is a contiguous substring of 'hello' at index 1; no rotation needed.",
+            "fault_hypothesis": "An implementation that only checks a==b would miss substring matches."
+          },
+          {
+            "name": "test_rotation_is_substring",
+            "code": "\"\"\"A rotation of 'baa' ('aba') is a substring of 'abab'.\n\nContract quote: 'You need to return True if the second word or any of its\nrotations is a substring in the first word'\n\nInput domain: a='abab', b='baa' — b is not a direct substring of a,\nbut one of its rotations is.\n\nExpected result: True. Rotations of 'baa': 'baa', 'aab', 'aba'. The\nrotation 'aba' is found in 'abab' (at index 0).\n\nFault hypothesis: An implementation that does not generate all rotations\nof b will miss this case and incorrectly return False.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_rotation_is_substring():\n    assert cycpattern_check(\"abab\", \"baa\") is True",
+            "contract_quote": "You need to return True if the second word or any of its rotations is a substring in the first word",
+            "input_domain": "a='abab', b='baa'",
+            "oracle_reason": "Rotation 'aba' of b='baa' is a substring of a='abab'.",
+            "fault_hypothesis": "Missing rotation generation leads to false negatives."
+          },
+          {
+            "name": "test_no_match_or_rotation",
+            "code": "\"\"\"Neither 'abd' nor any rotation of it is a substring of 'abcd'.\n\nContract quote: 'cycpattern_check(\"abcd\",\"abd\") => False'\n\nInput domain: a='abcd', b='abd' — neither b nor any cyclic shift of b\nappears in a.\n\nExpected result: False. Rotations of 'abd': 'abd', 'bda', 'dab'. None\nare substrings of 'abcd'.\n\nFault hypothesis: A buggy implementation might incorrectly report True\nwhen partial character overlap exists but no full rotation matches.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_no_match_or_rotation():\n    assert cycpattern_check(\"abcd\", \"abd\") is False",
+            "contract_quote": "cycpattern_check(\"abcd\",\"abd\") => False",
+            "input_domain": "a='abcd', b='abd'",
+            "oracle_reason": "None of the rotations of 'abd' ('abd', 'bda', 'dab') appear in 'abcd'.",
+            "fault_hypothesis": "Partial character overlap may cause incorrect true returns."
+          },
+          {
+            "name": "test_empty_b_returns_true",
+            "code": "\"\"\"Empty string b is considered a substring of any a.\n\nContract quote: lines 14-15 explicitly handle b == '' returning True.\n\nInput domain: a='hello', b='' — b is the empty string.\n\nExpected result: True, because the empty string is a substring of every\nstring (including itself).\n\nFault hypothesis: An implementation that skips the empty-b guard clause\nmay raise an error or return False incorrectly.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_empty_b_returns_true():\n    assert cycpattern_check(\"hello\", \"\") is True",
+            "contract_quote": "lines 14-15 explicitly handle b == '' returning True",
+            "input_domain": "a='hello', b=''",
+            "oracle_reason": "Empty string is a substring of every string by definition.",
+            "fault_hypothesis": "Skipping the empty-b guard causes errors or wrong results."
+          },
+          {
+            "name": "test_equal_strings_return_true",
+            "code": "\"\"\"When a equals b exactly, the function returns True.\n\nContract quote: lines 12-13 handle a == b returning True.\n\nInput domain: a='abc', b='abc' — both arguments are identical.\n\nExpected result: True, since b is trivially a substring of a.\n\nFault hypothesis: An implementation that relies solely on rotation logic\nwithout the explicit a==b shortcut might still work, but this test\nverifies the documented early-return path.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_equal_strings_return_true():\n    assert cycpattern_check(\"abc\", \"abc\") is True",
+            "contract_quote": "lines 12-13 handle a == b returning True",
+            "input_domain": "a='abc', b='abc'",
+            "oracle_reason": "a == b triggers the first guard clause returning True.",
+            "fault_hypothesis": "Missing the a==b shortcut could break edge-case handling."
+          },
+          {
+            "name": "test_b_longer_than_a_returns_false",
+            "code": "\"\"\"When b is longer than a, no rotation of b can fit inside a.\n\nContract quote: implied by substring semantics — a longer string cannot\nbe a substring of a shorter one.\n\nInput domain: a='hi', b='world' — len(b) > len(a).\n\nExpected result: False, because even the shortest rotation of b has\nlength 5, which exceeds len(a)=2.\n\nFault hypothesis: An implementation that doesn't account for length\ndifferences might produce incorrect results due to out-of-range indexing.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_b_longer_than_a_returns_false():\n    assert cycpattern_check(\"hi\", \"world\") is False",
+            "contract_quote": "implied by substring semantics",
+            "input_domain": "a='hi', b='world'",
+            "oracle_reason": "len(b)=5 > len(a)=2, so no rotation of b can be a substring of a.",
+            "fault_hypothesis": "Ignoring length differences may cause index errors or wrong results."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_substring_match\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"sta"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.393,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_b_returns_true",
+            "code": "\"\"\"Empty string b is considered a substring of any a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hello', b='' — b is the empty string.\n\nExpected result: True, because the empty string is a substring of every\nstring (including itself).\n\nFault hypothesis: An implementation that skips the empty-b guard clause\nmay raise an error or return False incorrectly.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_empty_b_returns_true():\n    assert cycpattern_check(\"hello\", \"\") is True",
+            "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+            "input_domain": "a='hello', b=''",
+            "oracle_reason": "Empty string is a substring of every string by definition.",
+            "fault_hypothesis": "Skipping the empty-b guard causes errors or wrong results."
+          },
+          {
+            "name": "test_equal_strings_return_true",
+            "code": "\"\"\"When a equals b exactly, the function returns True.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='abc', b='abc' — both arguments are identical.\n\nExpected result: True, since b is trivially a substring of a.\n\nFault hypothesis: An implementation that relies solely on rotation logic\nwithout the explicit a==b shortcut might still work, but this test\nverifies the documented early-return path.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_equal_strings_return_true():\n    assert cycpattern_check(\"abc\", \"abc\") is True",
+            "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+            "input_domain": "a='abc', b='abc'",
+            "oracle_reason": "a == b triggers the first guard clause returning True.",
+            "fault_hypothesis": "Missing the a==b shortcut could break edge-case handling."
+          },
+          {
+            "name": "test_b_longer_than_a_returns_false",
+            "code": "\"\"\"When b is longer than a, no rotation of b can fit inside a.\n\nContract quote: 'You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word'\n\nInput domain: a='hi', b='world' — len(b) > len(a).\n\nExpected result: False, because even the shortest rotation of b has\nlength 5, which exceeds len(a)=2.\n\nFault hypothesis: An implementation that doesn't account for length\ndifferences might produce incorrect results due to out-of-range indexing.\n\"\"\"\nfrom solution import cycpattern_check\n\ndef test_b_longer_than_a_returns_false():\n    assert cycpattern_check(\"hi\", \"world\") is False",
+            "contract_quote": "You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word",
+            "input_domain": "a='hi', b='world'",
+            "oracle_reason": "len(b)=5 > len(a)=2, so no rotation of b can be a substring of a.",
+            "fault_hypothesis": "Ignoring length differences may cause index errors or wrong results."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 15, \"results\": [{\"name\": \"test_empty_b_returns_true\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"stat"
+    }
+  ],
+  "started_at": 1791299973.8978832,
+  "duration_sec": 55.14,
+  "tests_chars": 3995
+}

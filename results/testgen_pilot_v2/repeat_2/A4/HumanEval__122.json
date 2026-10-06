@@ -1,0 +1,371 @@
+{
+  "instance_id": "HumanEval/122",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 4,
+    "llm_calls": 4,
+    "tool_calls": 3,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 14659,
+    "output_tokens": 5919,
+    "total_tokens": 20578,
+    "final_text": "All 6 candidate tests were **accepted**. Here is the final suite:\n\n## Accepted Test Suite\n\n| # | Test Name | What It Validates |\n|---|-----------|-------------------|\n| 1 | `test_docstring_example` | The exact example from the docstring: `[111,21,3,4000,...], k=4 → 24`. Verifies correct digit filtering and summing on mixed-digit inputs. |\n| 2 | `test_no_elements_qualify` | All elements have >2 digits (`[100,200,300]`). Ensures the function returns `0` for an empty filter result. |\n| 3 | `test_negative_numbers` | Negative integers (`[-5,-12,100]`). Tests that the sign character `'-'` is correctly excluded from digit count via the `digits()` helper. |\n| 4 | `test_boundary_2vs3_digits` | Boundary values (`[99,100,-99,-100]`). Confirms 2-digit numbers are included and 3-digit numbers are excluded, including negative boundaries. |\n| 5 | `test_k_scope_limitation` | Elements beyond index `k-1` must be ignored (`[1,2,3,4,500], k=3`). Detects if the function iterates over the full array instead of `arr[:k]`. |\n| 6 | `test_all_qualify_single_digit` | Every element qualifies (`[1,2,3]`). Guards against a bug where all elements might be incorrectly filtered out. |\n\n## Remaining Limitations\n\n1. **Return-type check not included**: No test asserts `isinstance(result, int)`. While the implementation always returns an `int`, this contract property isn't verified.\n2. **Zero handling not tested**: `0` has 1 digit and should qualify, but no test includes `0` in the input.\n3. **`k=1` edge case not covered**: Minimal valid `k` (selecting exactly one element) is untested, though it's implicitly covered by other tests.\n4. **Large arrays not tested**: Constraints allow `len(arr)` up to 100; no stress or boundary test with near-maximum sizes.\n5. **Mixed positive/negative with same magnitude** (e.g., `[-99, 99]`) only partially tested — the cancellation to zero in test 4 works, but asymmetric cases like `[-99, 98]` are not explicitly checked.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.08,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 22 行，显示第 1-22 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.052,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for solution.add_elements.\"\"\"\n\nfrom solution import add_elements\n\n…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（5432 字符，117 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.967,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "\"\"\"Test the exact example from the docstring.\"\"\"\nfrom solution import add_elements\n\ndef test_docstring_example():\n    \"\"\"Contract quote: 'Input: arr = [111,21,3,4000,5,6,7,8,9], k = 4, Output: 24 # sum of 21 + 3'\n    Input domain: arr is a list of ints with len >= 1, k=4 satisfies 1<=k<=len(arr).\n    Oracle: Among the first 4 elements [111, 21, 3, 4000], only 21 (2 digits) and 3 (1 digit)\n    have at most 2 digits. Sum = 21 + 3 = 24. 111 has 3 digits, 4000 has 4 digits — both excluded.\n    Fault hypothesis: Detects if the function incorrectly includes multi-digit (>2) numbers\n    or miscalculates the sum.\"\"\"\n    result = add_elements([111, 21, 3, 4000, 5, 6, 7, 8, 9], 4)\n    assert result == 24",
+              "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[111,21,3,4000,5,6,7,8,9], k=4; non-empty int list, 1<=k<=len(arr)",
+              "oracle_reason": "First k=4 elements are [111,21,3,4000]. 111 has 3 digits (excluded), 21 has 2 digits (included), 3 has 1 digit (included), 4000 has 4 digits (excluded). Sum = 21+3 = 24.",
+              "fault_hypothesis": "Function may include all elements regardless of digit count, or miscount digits."
+            },
+            {
+              "name": "test_no_elements_qualify",
+              "code": "\"\"\"Test when no elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_no_elements_qualify():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[100, 200, 300], k=3; all elements have 3 digits.\n    Oracle: No element in arr[:3] has <= 2 digits. Sum of empty set = 0.\n    Fault hypothesis: Detects if the function returns a non-zero value when no elements qualify.\"\"\"\n    result = add_elements([100, 200, 300], 3)\n    assert result == 0",
+              "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[100,200,300], k=3; all elements have 3 digits",
+              "oracle_reason": "All three elements (100, 200, 300) have 3 digits each, exceeding the 2-digit limit. filter returns empty iterable, sum([]) = 0.",
+              "fault_hypothesis": "Function might return incorrect non-zero value or fail on empty filter result."
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "\"\"\"Test digit counting for negative numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_negative_numbers():\n    \"\"\"Contract quote: 'elements with at most two digits' — negatives count digits excluding sign.\n    Input domain: arr=[-5, -12, 100], k=3.\n    Oracle: -5 has 1 digit, -12 has 2 digits, 100 has 3 digits. Qualifying: -5 + (-12) = -17.\n    Fault hypothesis: Detects incorrect digit counting for negative numbers (e.g., treating '-' as a digit).\"\"\"\n    result = add_elements([-5, -12, 100], 3)\n    assert result == -17",
+              "contract_quote": "Given a non-empty array of integers arr and an integer k, return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[-5,-12,100], k=3; contains negative and positive integers",
+              "oracle_reason": "Implementation uses str(x): '-5' has len 2, minus sign prefix → digits = 2-1=1. '-12' has len 3, minus prefix → digits = 3-1=2. '100' has len 3, no minus → digits = 3. Only -5 (1 digit) and -12 (2 digits) qualify. Sum = -5 + (-12) = -17.",
+              "fault_hypothesis": "Bug in digits() helper: could count '-' as a character, making -5 appear as 2 digits but -12 as 3 digits incorrectly, or mishandle the sign subtraction."
+            },
+            {
+              "name": "test_boundary_2vs3_digits",
+              "code": "\"\"\"Test boundary between 2-digit and 3-digit numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_boundary_2vs3_digits():\n    \"\"\"Contract quote: 'at most two digits' — boundary between qualifying and non-qualifying.\n    Input domain: arr=[99, 100, -99, -100], k=4.\n    Oracle: 99 has 2 digits (qualifies), 100 has 3 digits (excluded), -99 has 2 digits (qualifies),\n    -100 has 4 chars including '-' → 3 digits (excluded). Sum = 99 + (-99) = 0.\n    Fault hypothesis: Detects off-by-one errors at the 2/3 digit boundary.\"\"\"\n    result = add_elements([99, 100, -99, -100], 4)\n    assert result == 0",
+              "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[99,100,-99,-100], k=4; tests exact boundary values",
+              "oracle_reason": "str(99)='99', len=2, no minus → 2 digits (<=2, included). str(100)='100', len=3 → 3 digits (>2, excluded). str(-99)='-99', len=3, minus → 3-1=2 digits (included). str(-100)='-100', len=4, minus → 4-1=3 digits (excluded). Sum = 99 + (-99) = 0.",
+              "fault_hypothesis": "Off-by-one in digit comparison: using < 2 instead of <= 2 would exclude 2-digit numbers entirely."
+            },
+            {
+              "name": "test_k_scope_limitation",
+              "code": "\"\"\"Test that only the first k elements are considered.\"\"\"\nfrom solution import add_elements\n\ndef test_k_scope_limitation():\n    \"\"\"Contract quote: 'from the first k elements of arr' — elements beyond index k-1 must be ignored.\n    Input domain: arr=[1, 2, 3, 4, 500], k=3.\n    Oracle: First 3 elements are [1, 2, 3]; all have <= 2 digits. 500 is beyond k, ignored.\n    Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function considers elements beyond index k-1.\"\"\"\n    result = add_elements([1, 2, 3, 4, 500], 3)\n    assert result == 6",
+              "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[1,2,3,4,500], k=3; large element exists beyond k boundary",
+              "oracle_reason": "arr[:3] = [1, 2, 3]. All three have 1 digit each (<=2). Element 500 at index 4 is outside the first k=3 elements and must not be considered. Sum = 1+2+3 = 6.",
+              "fault_hypothesis": "Function might iterate over entire arr instead of arr[:k], causing 500 to potentially affect the result."
+            },
+            {
+              "name": "test_all_qualify_single_digit",
+              "code": "\"\"\"Test when all elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_all_qualify_single_digit():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[1, 2, 3], k=3; all elements are single-digit.\n    Oracle: Every element in arr[:3] has <= 2 digits. Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function fails when every element qualifies (e.g., returns 0).\"\"\"\n    result = add_elements([1, 2, 3], 3)\n    assert result == 6",
+              "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+              "input_domain": "arr=[1,2,3], k=3; all elements are single-digit positive integers",
+              "oracle_reason": "arr[:3] = [1, 2, 3]. Each has 1 digit (<=2). All qualify. Sum = 1+2+3 = 6.",
+              "fault_hypothesis": "Function might have a bug that filters out all elements or returns default 0 even when elements qualify."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 1, \"unchecked_calls\": 0, \"violations\": []}, \"status\""
+      }
+    ],
+    "generation_seconds": 51.382,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_docstring_example",
+          "code": "\"\"\"Test the exact example from the docstring.\"\"\"\nfrom solution import add_elements\n\ndef test_docstring_example():\n    \"\"\"Contract quote: 'Input: arr = [111,21,3,4000,5,6,7,8,9], k = 4, Output: 24 # sum of 21 + 3'\n    Input domain: arr is a list of ints with len >= 1, k=4 satisfies 1<=k<=len(arr).\n    Oracle: Among the first 4 elements [111, 21, 3, 4000], only 21 (2 digits) and 3 (1 digit)\n    have at most 2 digits. Sum = 21 + 3 = 24. 111 has 3 digits, 4000 has 4 digits — both excluded.\n    Fault hypothesis: Detects if the function incorrectly includes multi-digit (>2) numbers\n    or miscalculates the sum.\"\"\"\n    result = add_elements([111, 21, 3, 4000, 5, 6, 7, 8, 9], 4)\n    assert result == 24",
+          "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[111,21,3,4000,5,6,7,8,9], k=4; non-empty int list, 1<=k<=len(arr)",
+          "oracle_reason": "First k=4 elements are [111,21,3,4000]. 111 has 3 digits (excluded), 21 has 2 digits (included), 3 has 1 digit (included), 4000 has 4 digits (excluded). Sum = 21+3 = 24.",
+          "fault_hypothesis": "Function may include all elements regardless of digit count, or miscount digits."
+        },
+        {
+          "name": "test_no_elements_qualify",
+          "code": "\"\"\"Test when no elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_no_elements_qualify():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[100, 200, 300], k=3; all elements have 3 digits.\n    Oracle: No element in arr[:3] has <= 2 digits. Sum of empty set = 0.\n    Fault hypothesis: Detects if the function returns a non-zero value when no elements qualify.\"\"\"\n    result = add_elements([100, 200, 300], 3)\n    assert result == 0",
+          "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[100,200,300], k=3; all elements have 3 digits",
+          "oracle_reason": "All three elements (100, 200, 300) have 3 digits each, exceeding the 2-digit limit. filter returns empty iterable, sum([]) = 0.",
+          "fault_hypothesis": "Function might return incorrect non-zero value or fail on empty filter result."
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "\"\"\"Test digit counting for negative numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_negative_numbers():\n    \"\"\"Contract quote: 'elements with at most two digits' — negatives count digits excluding sign.\n    Input domain: arr=[-5, -12, 100], k=3.\n    Oracle: -5 has 1 digit, -12 has 2 digits, 100 has 3 digits. Qualifying: -5 + (-12) = -17.\n    Fault hypothesis: Detects incorrect digit counting for negative numbers (e.g., treating '-' as a digit).\"\"\"\n    result = add_elements([-5, -12, 100], 3)\n    assert result == -17",
+          "contract_quote": "Given a non-empty array of integers arr and an integer k, return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[-5,-12,100], k=3; contains negative and positive integers",
+          "oracle_reason": "Implementation uses str(x): '-5' has len 2, minus sign prefix → digits = 2-1=1. '-12' has len 3, minus prefix → digits = 3-1=2. '100' has len 3, no minus → digits = 3. Only -5 (1 digit) and -12 (2 digits) qualify. Sum = -5 + (-12) = -17.",
+          "fault_hypothesis": "Bug in digits() helper: could count '-' as a character, making -5 appear as 2 digits but -12 as 3 digits incorrectly, or mishandle the sign subtraction."
+        },
+        {
+          "name": "test_boundary_2vs3_digits",
+          "code": "\"\"\"Test boundary between 2-digit and 3-digit numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_boundary_2vs3_digits():\n    \"\"\"Contract quote: 'at most two digits' — boundary between qualifying and non-qualifying.\n    Input domain: arr=[99, 100, -99, -100], k=4.\n    Oracle: 99 has 2 digits (qualifies), 100 has 3 digits (excluded), -99 has 2 digits (qualifies),\n    -100 has 4 chars including '-' → 3 digits (excluded). Sum = 99 + (-99) = 0.\n    Fault hypothesis: Detects off-by-one errors at the 2/3 digit boundary.\"\"\"\n    result = add_elements([99, 100, -99, -100], 4)\n    assert result == 0",
+          "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[99,100,-99,-100], k=4; tests exact boundary values",
+          "oracle_reason": "str(99)='99', len=2, no minus → 2 digits (<=2, included). str(100)='100', len=3 → 3 digits (>2, excluded). str(-99)='-99', len=3, minus → 3-1=2 digits (included). str(-100)='-100', len=4, minus → 4-1=3 digits (excluded). Sum = 99 + (-99) = 0.",
+          "fault_hypothesis": "Off-by-one in digit comparison: using < 2 instead of <= 2 would exclude 2-digit numbers entirely."
+        },
+        {
+          "name": "test_k_scope_limitation",
+          "code": "\"\"\"Test that only the first k elements are considered.\"\"\"\nfrom solution import add_elements\n\ndef test_k_scope_limitation():\n    \"\"\"Contract quote: 'from the first k elements of arr' — elements beyond index k-1 must be ignored.\n    Input domain: arr=[1, 2, 3, 4, 500], k=3.\n    Oracle: First 3 elements are [1, 2, 3]; all have <= 2 digits. 500 is beyond k, ignored.\n    Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function considers elements beyond index k-1.\"\"\"\n    result = add_elements([1, 2, 3, 4, 500], 3)\n    assert result == 6",
+          "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[1,2,3,4,500], k=3; large element exists beyond k boundary",
+          "oracle_reason": "arr[:3] = [1, 2, 3]. All three have 1 digit each (<=2). Element 500 at index 4 is outside the first k=3 elements and must not be considered. Sum = 1+2+3 = 6.",
+          "fault_hypothesis": "Function might iterate over entire arr instead of arr[:k], causing 500 to potentially affect the result."
+        },
+        {
+          "name": "test_all_qualify_single_digit",
+          "code": "\"\"\"Test when all elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_all_qualify_single_digit():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[1, 2, 3], k=3; all elements are single-digit.\n    Oracle: Every element in arr[:3] has <= 2 digits. Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function fails when every element qualifies (e.g., returns 0).\"\"\"\n    result = add_elements([1, 2, 3], 3)\n    assert result == 6",
+          "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+          "input_domain": "arr=[1,2,3], k=3; all elements are single-digit positive integers",
+          "oracle_reason": "arr[:3] = [1, 2, 3]. Each has 1 digit (<=2). All qualify. Sum = 1+2+3 = 6.",
+          "fault_hypothesis": "Function might have a bug that filters out all elements or returns default 0 even when elements qualify."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_docstring_example",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.216,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_no_elements_qualify",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_boundary_2vs3_digits",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.254,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_k_scope_limitation",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_all_qualify_single_digit",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 1,
+            "unchecked_calls": 0,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.842
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.04s",
+    "line_coverage": 1.0,
+    "covered_lines": 5,
+    "executable_lines": 5,
+    "mutation_score": 1.0,
+    "mutants_total": 5,
+    "mutants_killed": 5,
+    "mutant_operators": {
+      "AOR": 1,
+      "CRP": 2,
+      "ROR": 2
+    },
+    "killed_by_operator": {
+      "AOR": 1,
+      "CRP": 2,
+      "ROR": 2
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 4.279
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.08,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 22 行，显示第 1-22 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.052,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for solution.add_elements.\"\"\"\n\nfrom solution import add_elements\n\n…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（5432 字符，117 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.967,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "\"\"\"Test the exact example from the docstring.\"\"\"\nfrom solution import add_elements\n\ndef test_docstring_example():\n    \"\"\"Contract quote: 'Input: arr = [111,21,3,4000,5,6,7,8,9], k = 4, Output: 24 # sum of 21 + 3'\n    Input domain: arr is a list of ints with len >= 1, k=4 satisfies 1<=k<=len(arr).\n    Oracle: Among the first 4 elements [111, 21, 3, 4000], only 21 (2 digits) and 3 (1 digit)\n    have at most 2 digits. Sum = 21 + 3 = 24. 111 has 3 digits, 4000 has 4 digits — both excluded.\n    Fault hypothesis: Detects if the function incorrectly includes multi-digit (>2) numbers\n    or miscalculates the sum.\"\"\"\n    result = add_elements([111, 21, 3, 4000, 5, 6, 7, 8, 9], 4)\n    assert result == 24",
+            "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[111,21,3,4000,5,6,7,8,9], k=4; non-empty int list, 1<=k<=len(arr)",
+            "oracle_reason": "First k=4 elements are [111,21,3,4000]. 111 has 3 digits (excluded), 21 has 2 digits (included), 3 has 1 digit (included), 4000 has 4 digits (excluded). Sum = 21+3 = 24.",
+            "fault_hypothesis": "Function may include all elements regardless of digit count, or miscount digits."
+          },
+          {
+            "name": "test_no_elements_qualify",
+            "code": "\"\"\"Test when no elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_no_elements_qualify():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[100, 200, 300], k=3; all elements have 3 digits.\n    Oracle: No element in arr[:3] has <= 2 digits. Sum of empty set = 0.\n    Fault hypothesis: Detects if the function returns a non-zero value when no elements qualify.\"\"\"\n    result = add_elements([100, 200, 300], 3)\n    assert result == 0",
+            "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[100,200,300], k=3; all elements have 3 digits",
+            "oracle_reason": "All three elements (100, 200, 300) have 3 digits each, exceeding the 2-digit limit. filter returns empty iterable, sum([]) = 0.",
+            "fault_hypothesis": "Function might return incorrect non-zero value or fail on empty filter result."
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "\"\"\"Test digit counting for negative numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_negative_numbers():\n    \"\"\"Contract quote: 'elements with at most two digits' — negatives count digits excluding sign.\n    Input domain: arr=[-5, -12, 100], k=3.\n    Oracle: -5 has 1 digit, -12 has 2 digits, 100 has 3 digits. Qualifying: -5 + (-12) = -17.\n    Fault hypothesis: Detects incorrect digit counting for negative numbers (e.g., treating '-' as a digit).\"\"\"\n    result = add_elements([-5, -12, 100], 3)\n    assert result == -17",
+            "contract_quote": "Given a non-empty array of integers arr and an integer k, return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[-5,-12,100], k=3; contains negative and positive integers",
+            "oracle_reason": "Implementation uses str(x): '-5' has len 2, minus sign prefix → digits = 2-1=1. '-12' has len 3, minus prefix → digits = 3-1=2. '100' has len 3, no minus → digits = 3. Only -5 (1 digit) and -12 (2 digits) qualify. Sum = -5 + (-12) = -17.",
+            "fault_hypothesis": "Bug in digits() helper: could count '-' as a character, making -5 appear as 2 digits but -12 as 3 digits incorrectly, or mishandle the sign subtraction."
+          },
+          {
+            "name": "test_boundary_2vs3_digits",
+            "code": "\"\"\"Test boundary between 2-digit and 3-digit numbers.\"\"\"\nfrom solution import add_elements\n\ndef test_boundary_2vs3_digits():\n    \"\"\"Contract quote: 'at most two digits' — boundary between qualifying and non-qualifying.\n    Input domain: arr=[99, 100, -99, -100], k=4.\n    Oracle: 99 has 2 digits (qualifies), 100 has 3 digits (excluded), -99 has 2 digits (qualifies),\n    -100 has 4 chars including '-' → 3 digits (excluded). Sum = 99 + (-99) = 0.\n    Fault hypothesis: Detects off-by-one errors at the 2/3 digit boundary.\"\"\"\n    result = add_elements([99, 100, -99, -100], 4)\n    assert result == 0",
+            "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[99,100,-99,-100], k=4; tests exact boundary values",
+            "oracle_reason": "str(99)='99', len=2, no minus → 2 digits (<=2, included). str(100)='100', len=3 → 3 digits (>2, excluded). str(-99)='-99', len=3, minus → 3-1=2 digits (included). str(-100)='-100', len=4, minus → 4-1=3 digits (excluded). Sum = 99 + (-99) = 0.",
+            "fault_hypothesis": "Off-by-one in digit comparison: using < 2 instead of <= 2 would exclude 2-digit numbers entirely."
+          },
+          {
+            "name": "test_k_scope_limitation",
+            "code": "\"\"\"Test that only the first k elements are considered.\"\"\"\nfrom solution import add_elements\n\ndef test_k_scope_limitation():\n    \"\"\"Contract quote: 'from the first k elements of arr' — elements beyond index k-1 must be ignored.\n    Input domain: arr=[1, 2, 3, 4, 500], k=3.\n    Oracle: First 3 elements are [1, 2, 3]; all have <= 2 digits. 500 is beyond k, ignored.\n    Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function considers elements beyond index k-1.\"\"\"\n    result = add_elements([1, 2, 3, 4, 500], 3)\n    assert result == 6",
+            "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[1,2,3,4,500], k=3; large element exists beyond k boundary",
+            "oracle_reason": "arr[:3] = [1, 2, 3]. All three have 1 digit each (<=2). Element 500 at index 4 is outside the first k=3 elements and must not be considered. Sum = 1+2+3 = 6.",
+            "fault_hypothesis": "Function might iterate over entire arr instead of arr[:k], causing 500 to potentially affect the result."
+          },
+          {
+            "name": "test_all_qualify_single_digit",
+            "code": "\"\"\"Test when all elements in the first k have at most 2 digits.\"\"\"\nfrom solution import add_elements\n\ndef test_all_qualify_single_digit():\n    \"\"\"Contract quote: 'return the sum of the elements with at most two digits from the first k elements'\n    Input domain: arr=[1, 2, 3], k=3; all elements are single-digit.\n    Oracle: Every element in arr[:3] has <= 2 digits. Sum = 1 + 2 + 3 = 6.\n    Fault hypothesis: Detects if the function fails when every element qualifies (e.g., returns 0).\"\"\"\n    result = add_elements([1, 2, 3], 3)\n    assert result == 6",
+            "contract_quote": "return the sum of the elements with at most two digits from the first k elements of arr.",
+            "input_domain": "arr=[1,2,3], k=3; all elements are single-digit positive integers",
+            "oracle_reason": "arr[:3] = [1, 2, 3]. Each has 1 digit (<=2). All qualify. Sum = 1+2+3 = 6.",
+            "fault_hypothesis": "Function might have a bug that filters out all elements or returns default 0 even when elements qualify."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 1, \"unchecked_calls\": 0, \"violations\": []}, \"status\""
+    }
+  ],
+  "started_at": 1791301297.8283627,
+  "duration_sec": 55.856,
+  "tests_chars": 3740
+}

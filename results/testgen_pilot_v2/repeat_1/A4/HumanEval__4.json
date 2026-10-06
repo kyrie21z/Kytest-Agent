@@ -1,0 +1,417 @@
+{
+  "instance_id": "HumanEval/4",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 19332,
+    "output_tokens": 6188,
+    "total_tokens": 25520,
+    "final_text": "## Accepted Test Suite (6 tests)\n\n| # | Test Name | What It Covers |\n|---|-----------|---------------|\n| 1 | `test_docstring_example` | The doctest example: `[1.0, 2.0, 3.0, 4.0] → 1.0` |\n| 2 | `test_single_element` | Boundary: single-element list `[5.0] → 0.0` |\n| 3 | `test_all_identical` | Zero-spread case: `[3.0, 3.0, 3.0, 3.0] → 0.0` |\n| 4 | `test_negative_numbers` | Mixed signs: `[-1.0, 0.0, 1.0] → 2/3` |\n| 5 | `test_symmetric_list` | Symmetric negatives/positives: `[-2.0, -1.0, 1.0, 2.0] → 1.5` |\n| 6 | `test_return_type_float` | Return-type check: result is `float` |\n\n### Limitations of the Current Suite\n\n1. **Empty list not tested** — The function has no documented behavior for an empty list (`[]`). Calling it would raise `ZeroDivisionError`. The contract does not specify whether this should be handled or rejected; a test could be added once the expected behavior is clarified.\n\n2. **Non-float inputs not tested** — Integers, strings, or other types are not exercised. The type hint says `List[float]`, but Python won't enforce it at runtime. Tests with integer lists (e.g., `[1, 2, 3, 4]`) could verify compatibility.\n\n3. **Large lists not stress-tested** — Only small representative lists (1–4 elements) are used. Edge cases with very large values, very small values, or many elements are untested.\n\n4. **NaN / infinity not tested** — Inputs containing `float('nan')` or `float('inf')` could produce unexpected results; these are not covered.\n\n5. **Precision edge cases** — While `pytest.approx` handles floating-point tolerance, there's no explicit test verifying that MAD is always non-negative (a mathematical property of absolute deviation).",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.037,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 16 行，显示第 1-16 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.046,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for mean_absolute_deviation.\"\"\"\n\nimport pytest\nfrom solution impor…"
+        },
+        "first_line": "已写入 `test_solution.py`（3376 字符，87 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.921,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "\"\"\"Test the doctest example from the docstring.\"\"\"\nfrom solution import mean_absolute_deviation\n\ndef test_docstring_example():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    # mean = (1+2+3+4)/4 = 2.5\n    # deviations = |1-2.5|+|2-2.5|+|3-2.5|+|4-2.5| = 1.5+0.5+0.5+1.5 = 4.0\n    # MAD = 4.0/4 = 1.0\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == pytest.approx(1.0)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "List of 4 positive floats [1.0, 2.0, 3.0, 4.0]",
+              "oracle_reason": "Manual calculation: mean=(1+2+3+4)/4=2.5; sum of abs deviations=|1-2.5|+|2-2.5|+|3-2.5|+|4-2.5|=4.0; MAD=4.0/4=1.0",
+              "fault_hypothesis": "Incorrect mean computation or wrong MAD formula would produce a value different from 1.0"
+            },
+            {
+              "name": "test_single_element",
+              "code": "\"\"\"Test that a single-element list yields MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_single_element():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # A single element has mean equal to itself, so every |x-mean|=0.\n    # MAD = 0/1 = 0.0\n    result = mean_absolute_deviation([5.0])\n    assert result == pytest.approx(0.0)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "List with exactly one float [5.0]",
+              "oracle_reason": "With one element, mean=x, so |x-mean|=0 for all x; MAD=0/n=0.0",
+              "fault_hypothesis": "Function might return non-zero or crash on single-element input"
+            },
+            {
+              "name": "test_all_identical",
+              "code": "\"\"\"Test that all-identical elements yield MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_all_identical():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # All elements equal the mean, so every |x-mean|=0.\n    # MAD = 0/n = 0.0\n    result = mean_absolute_deviation([3.0, 3.0, 3.0, 3.0])\n    assert result == pytest.approx(0.0)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "List of 4 identical floats [3.0, 3.0, 3.0, 3.0]",
+              "oracle_reason": "When all elements are equal, mean equals that value, so all deviations are 0; MAD=0",
+              "fault_hypothesis": "Non-zero MAD returned despite zero spread in data"
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "\"\"\"Test MAD with negative, zero, and positive values.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_negative_numbers():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-1+0+1)/3 = 0\n    # deviations = |-1-0|+|0-0|+|1-0| = 1+0+1 = 2\n    # MAD = 2/3 ≈ 0.6667\n    result = mean_absolute_deviation([-1.0, 0.0, 1.0])\n    assert result == pytest.approx(2.0 / 3.0)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "List containing negative, zero, and positive floats [-1.0, 0.0, 1.0]",
+              "oracle_reason": "mean=(-1+0+1)/3=0; sum of abs deviations=|-1|+|0|+|1|=2; MAD=2/3",
+              "fault_hypothesis": "Sign errors in computing deviations or mean would give wrong MAD"
+            },
+            {
+              "name": "test_symmetric_list",
+              "code": "\"\"\"Test MAD with symmetric negative-positive list.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_symmetric_list():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-2+-1+1+2)/4 = 0\n    # deviations = |-2|+|-1|+|1|+|2| = 2+1+1+2 = 6\n    # MAD = 6/4 = 1.5\n    result = mean_absolute_deviation([-2.0, -1.0, 1.0, 2.0])\n    assert result == pytest.approx(1.5)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "Symmetric list of 4 floats [-2.0, -1.0, 1.0, 2.0]",
+              "oracle_reason": "mean=0 due to symmetry; sum of abs deviations=6; MAD=6/4=1.5",
+              "fault_hypothesis": "Incorrect handling of negatives or wrong averaging would deviate from 1.5"
+            },
+            {
+              "name": "test_return_type_float",
+              "code": "\"\"\"Test that the return type is float as annotated.\"\"\"\nfrom solution import mean_absolute_deviation\n\ndef test_return_type_float():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # The signature specifies -> float; verify actual return is float.\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert isinstance(result, float)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "Any valid non-empty list of floats, e.g. [1.0, 2.0, 3.0, 4.0]",
+              "oracle_reason": "Type annotation declares return type as float; the function uses division which produces float in Python 3.",
+              "fault_hypothesis": "Function might accidentally return an int (e.g., via integer division or early return of int literal)"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.695,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "\"\"\"Test the doctest example from the docstring.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_docstring_example():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    # mean = (1+2+3+4)/4 = 2.5\n    # deviations = |1-2.5|+|2-2.5|+|3-2.5|+|4-2.5| = 1.5+0.5+0.5+1.5 = 4.0\n    # MAD = 4.0/4 = 1.0\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == pytest.approx(1.0)\n",
+              "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+              "input_domain": "List of 4 positive floats [1.0, 2.0, 3.0, 4.0]",
+              "oracle_reason": "Manual calculation: mean=(1+2+3+4)/4=2.5; sum of abs deviations=|1-2.5|+|2-2.5|+|3-2.5|+|4-2.5|=4.0; MAD=4.0/4=1.0",
+              "fault_hypothesis": "Incorrect mean computation or wrong MAD formula would produce a value different from 1.0"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+      }
+    ],
+    "generation_seconds": 52.218,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_single_element",
+          "code": "\"\"\"Test that a single-element list yields MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_single_element():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # A single element has mean equal to itself, so every |x-mean|=0.\n    # MAD = 0/1 = 0.0\n    result = mean_absolute_deviation([5.0])\n    assert result == pytest.approx(0.0)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "List with exactly one float [5.0]",
+          "oracle_reason": "With one element, mean=x, so |x-mean|=0 for all x; MAD=0/n=0.0",
+          "fault_hypothesis": "Function might return non-zero or crash on single-element input"
+        },
+        {
+          "name": "test_all_identical",
+          "code": "\"\"\"Test that all-identical elements yield MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_all_identical():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # All elements equal the mean, so every |x-mean|=0.\n    # MAD = 0/n = 0.0\n    result = mean_absolute_deviation([3.0, 3.0, 3.0, 3.0])\n    assert result == pytest.approx(0.0)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "List of 4 identical floats [3.0, 3.0, 3.0, 3.0]",
+          "oracle_reason": "When all elements are equal, mean equals that value, so all deviations are 0; MAD=0",
+          "fault_hypothesis": "Non-zero MAD returned despite zero spread in data"
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "\"\"\"Test MAD with negative, zero, and positive values.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_negative_numbers():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-1+0+1)/3 = 0\n    # deviations = |-1-0|+|0-0|+|1-0| = 1+0+1 = 2\n    # MAD = 2/3 ≈ 0.6667\n    result = mean_absolute_deviation([-1.0, 0.0, 1.0])\n    assert result == pytest.approx(2.0 / 3.0)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "List containing negative, zero, and positive floats [-1.0, 0.0, 1.0]",
+          "oracle_reason": "mean=(-1+0+1)/3=0; sum of abs deviations=|-1|+|0|+|1|=2; MAD=2/3",
+          "fault_hypothesis": "Sign errors in computing deviations or mean would give wrong MAD"
+        },
+        {
+          "name": "test_symmetric_list",
+          "code": "\"\"\"Test MAD with symmetric negative-positive list.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_symmetric_list():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-2+-1+1+2)/4 = 0\n    # deviations = |-2|+|-1|+|1|+|2| = 2+1+1+2 = 6\n    # MAD = 6/4 = 1.5\n    result = mean_absolute_deviation([-2.0, -1.0, 1.0, 2.0])\n    assert result == pytest.approx(1.5)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "Symmetric list of 4 floats [-2.0, -1.0, 1.0, 2.0]",
+          "oracle_reason": "mean=0 due to symmetry; sum of abs deviations=6; MAD=6/4=1.5",
+          "fault_hypothesis": "Incorrect handling of negatives or wrong averaging would deviate from 1.5"
+        },
+        {
+          "name": "test_return_type_float",
+          "code": "\"\"\"Test that the return type is float as annotated.\"\"\"\nfrom solution import mean_absolute_deviation\n\ndef test_return_type_float():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # The signature specifies -> float; verify actual return is float.\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert isinstance(result, float)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "Any valid non-empty list of floats, e.g. [1.0, 2.0, 3.0, 4.0]",
+          "oracle_reason": "Type annotation declares return type as float; the function uses division which produces float in Python 3.",
+          "fault_hypothesis": "Function might accidentally return an int (e.g., via integer division or early return of int literal)"
+        },
+        {
+          "name": "test_docstring_example",
+          "code": "\"\"\"Test the doctest example from the docstring.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_docstring_example():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    # mean = (1+2+3+4)/4 = 2.5\n    # deviations = |1-2.5|+|2-2.5|+|3-2.5|+|4-2.5| = 1.5+0.5+0.5+1.5 = 4.0\n    # MAD = 4.0/4 = 1.0\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == pytest.approx(1.0)\n",
+          "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+          "input_domain": "List of 4 positive floats [1.0, 2.0, 3.0, 4.0]",
+          "oracle_reason": "Manual calculation: mean=(1+2+3+4)/4=2.5; sum of abs deviations=|1-2.5|+|2-2.5|+|3-2.5|+|4-2.5|=4.0; MAD=4.0/4=1.0",
+          "fault_hypothesis": "Incorrect mean computation or wrong MAD formula would produce a value different from 1.0"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_docstring_example",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.251,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n____________________________ test_docstring_example ____________________________\ntest_solution.py:17: in test_docstring_example\n    assert result == pytest.approx(1.0)\n                     ^^^^^^\nE   NameError: name 'pytest' is not defined\n=========================== short test summary info ============================\nFAILED test_solution.py::test_docstring_example - NameError: name 'pytest' is...\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_all_identical",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_symmetric_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_return_type_float",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_docstring_example",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.283,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 13,
+      "validation_seconds": 3.351
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.04s",
+    "line_coverage": 1.0,
+    "covered_lines": 4,
+    "executable_lines": 4,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutant_operators": {
+      "AOR": 3
+    },
+    "killed_by_operator": {
+      "AOR": 3
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.782
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.037,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 16 行，显示第 1-16 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.046,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for mean_absolute_deviation.\"\"\"\n\nimport pytest\nfrom solution impor…"
+      },
+      "first_line": "已写入 `test_solution.py`（3376 字符，87 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.921,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "\"\"\"Test the doctest example from the docstring.\"\"\"\nfrom solution import mean_absolute_deviation\n\ndef test_docstring_example():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    # mean = (1+2+3+4)/4 = 2.5\n    # deviations = |1-2.5|+|2-2.5|+|3-2.5|+|4-2.5| = 1.5+0.5+0.5+1.5 = 4.0\n    # MAD = 4.0/4 = 1.0\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == pytest.approx(1.0)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "List of 4 positive floats [1.0, 2.0, 3.0, 4.0]",
+            "oracle_reason": "Manual calculation: mean=(1+2+3+4)/4=2.5; sum of abs deviations=|1-2.5|+|2-2.5|+|3-2.5|+|4-2.5|=4.0; MAD=4.0/4=1.0",
+            "fault_hypothesis": "Incorrect mean computation or wrong MAD formula would produce a value different from 1.0"
+          },
+          {
+            "name": "test_single_element",
+            "code": "\"\"\"Test that a single-element list yields MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_single_element():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # A single element has mean equal to itself, so every |x-mean|=0.\n    # MAD = 0/1 = 0.0\n    result = mean_absolute_deviation([5.0])\n    assert result == pytest.approx(0.0)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "List with exactly one float [5.0]",
+            "oracle_reason": "With one element, mean=x, so |x-mean|=0 for all x; MAD=0/n=0.0",
+            "fault_hypothesis": "Function might return non-zero or crash on single-element input"
+          },
+          {
+            "name": "test_all_identical",
+            "code": "\"\"\"Test that all-identical elements yield MAD of 0.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_all_identical():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # All elements equal the mean, so every |x-mean|=0.\n    # MAD = 0/n = 0.0\n    result = mean_absolute_deviation([3.0, 3.0, 3.0, 3.0])\n    assert result == pytest.approx(0.0)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "List of 4 identical floats [3.0, 3.0, 3.0, 3.0]",
+            "oracle_reason": "When all elements are equal, mean equals that value, so all deviations are 0; MAD=0",
+            "fault_hypothesis": "Non-zero MAD returned despite zero spread in data"
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "\"\"\"Test MAD with negative, zero, and positive values.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_negative_numbers():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-1+0+1)/3 = 0\n    # deviations = |-1-0|+|0-0|+|1-0| = 1+0+1 = 2\n    # MAD = 2/3 ≈ 0.6667\n    result = mean_absolute_deviation([-1.0, 0.0, 1.0])\n    assert result == pytest.approx(2.0 / 3.0)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "List containing negative, zero, and positive floats [-1.0, 0.0, 1.0]",
+            "oracle_reason": "mean=(-1+0+1)/3=0; sum of abs deviations=|-1|+|0|+|1|=2; MAD=2/3",
+            "fault_hypothesis": "Sign errors in computing deviations or mean would give wrong MAD"
+          },
+          {
+            "name": "test_symmetric_list",
+            "code": "\"\"\"Test MAD with symmetric negative-positive list.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_symmetric_list():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # mean = (-2+-1+1+2)/4 = 0\n    # deviations = |-2|+|-1|+|1|+|2| = 2+1+1+2 = 6\n    # MAD = 6/4 = 1.5\n    result = mean_absolute_deviation([-2.0, -1.0, 1.0, 2.0])\n    assert result == pytest.approx(1.5)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "Symmetric list of 4 floats [-2.0, -1.0, 1.0, 2.0]",
+            "oracle_reason": "mean=0 due to symmetry; sum of abs deviations=6; MAD=6/4=1.5",
+            "fault_hypothesis": "Incorrect handling of negatives or wrong averaging would deviate from 1.5"
+          },
+          {
+            "name": "test_return_type_float",
+            "code": "\"\"\"Test that the return type is float as annotated.\"\"\"\nfrom solution import mean_absolute_deviation\n\ndef test_return_type_float():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    \"\"\"\n    # The signature specifies -> float; verify actual return is float.\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert isinstance(result, float)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "Any valid non-empty list of floats, e.g. [1.0, 2.0, 3.0, 4.0]",
+            "oracle_reason": "Type annotation declares return type as float; the function uses division which produces float in Python 3.",
+            "fault_hypothesis": "Function might accidentally return an int (e.g., via integer division or early return of int literal)"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.695,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "\"\"\"Test the doctest example from the docstring.\"\"\"\nimport pytest\nfrom solution import mean_absolute_deviation\n\ndef test_docstring_example():\n    \"\"\"For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    # mean = (1+2+3+4)/4 = 2.5\n    # deviations = |1-2.5|+|2-2.5|+|3-2.5|+|4-2.5| = 1.5+0.5+0.5+1.5 = 4.0\n    # MAD = 4.0/4 = 1.0\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == pytest.approx(1.0)\n",
+            "contract_quote": "For a given list of input numbers, calculate Mean Absolute Deviation around the mean of this dataset. Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case): MAD = average | x - x_mean |",
+            "input_domain": "List of 4 positive floats [1.0, 2.0, 3.0, 4.0]",
+            "oracle_reason": "Manual calculation: mean=(1+2+3+4)/4=2.5; sum of abs deviations=|1-2.5|+|2-2.5|+|3-2.5|+|4-2.5|=4.0; MAD=4.0/4=1.0",
+            "fault_hypothesis": "Incorrect mean computation or wrong MAD formula would produce a value different from 1.0"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+    }
+  ],
+  "started_at": 1791300871.5836475,
+  "duration_sec": 55.177,
+  "tests_chars": 3607
+}

@@ -277,6 +277,13 @@ def write_report(
 ) -> Path:
     """写出 markdown 报告 + 机器可读的汇总 JSON + 逐实例 CSV。"""
     output_dir = Path(output_dir)
+    from .mutation import default_operators
+    pools = {tuple(sorted(o.environment.get("mutation_operators") or default_operators())) for o in outcomes}
+    if len(pools) > 1:
+        raise ValueError("Cannot compare results from different scoring pools")
+    restricted = bool(pools and next(iter(pools)) != tuple(sorted(default_operators())))
+    if restricted and official is not None:
+        raise ValueError("Restricted scoring needs a matching official baseline receipt")
     variants = sorted({outcome.variant for outcome in outcomes})
     summaries = [
         summarize_variant(variant, [o for o in outcomes if o.variant == variant])
@@ -293,6 +300,8 @@ def write_report(
     }
 
     sections: List[str] = [f"# {title}", ""]
+    if restricted:
+        sections += ["评分家族：" + ", ".join(next(iter(pools))) + "；不可与历史全家族分数直接比较。", ""]
     sections.append("## 主表")
     sections.append("")
     sections.append(render_main_table(summaries, official))
@@ -334,6 +343,7 @@ def write_report(
                 "curves": curves_by_variant,
                 "failures": failures,
                 "checkpoints": list(CHECKPOINTS),
+                "mutation_operators": list(next(iter(pools))) if pools else [],
             },
             ensure_ascii=False,
             indent=2,

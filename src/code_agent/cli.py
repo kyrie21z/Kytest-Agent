@@ -26,7 +26,7 @@ if __package__ in (None, ""):  # pragma: no cover - 仅脚本运行路径
 
 from .agent import Agent, RunResult
 from .config import Settings
-from .errors import ConfigError
+from .errors import ConfigError, ToolError
 from .render import EventRenderer, JsonRenderer
 from .session import SessionStore
 from .tools.factories import available_tool_names, build_registry
@@ -63,6 +63,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-t", "--tools", default=None,
                         help=f"逗号分隔的工具白名单，可用：{', '.join(available_tool_names())}")
     parser.add_argument("--mock", action="store_true", help="强制使用离线 Mock，不发起网络请求")
+    parser.add_argument("--test-generation", action="store_true",
+                        help="为 solution.py 启用契约依据、逐条验证和增量保留测试（需要 pytest）")
+    parser.add_argument("--fault-feedback", action="store_true",
+                        help="在测试生成模式追加开发故障反馈（实验功能，评分故障独立保留）")
     parser.add_argument("--execution-mode", choices=("sandbox", "trusted", "disabled"),
                         default=None, help="命令策略：默认 sandbox；trusted 仅用于受信本机代码")
     parser.add_argument("--no-session", action="store_true", help="不写会话轨迹文件")
@@ -147,7 +151,26 @@ def build_agent(
     session_enabled: bool = True,
 ) -> tuple[Agent, Optional[SessionStore], str]:
     llm, description = build_llm(settings, args.mock)
-    registry = build_registry(settings, resolve_tools(args))
+    names = resolve_tools(args)
+    if names and "inspect_survivors" in names and "submit_tests" not in names:
+        raise ConfigError("inspect_survivors requires submit_tests in --tools")
+    registry = build_registry(settings, names)
+    finish_hook = None
+    prompt = interactive_system_prompt(settings.workspace)
+    if getattr(args, "fault_feedback", False):
+        args.test_generation = True
+    if getattr(args, "test_generation", False):
+        from .testgen import TESTGEN_PROMPT, SubmitTestsTool, make_testgen_hook
+        if not settings.allow_write or not settings.allow_code_execution or settings.execution_mode == "disabled":
+            raise ConfigError("--test-generation requires writing and code execution")
+        tool = registry.get("submit_tests") or registry.register(SubmitTestsTool(settings))
+        finish_hook = make_testgen_hook(tool)
+        prompt = TESTGEN_PROMPT
+        if getattr(args, "fault_feedback", False):
+            from .fault_feedback import FAULT_PROMPT, InspectSurvivorsTool
+            inspector = registry.get("inspect_survivors") or registry.register(InspectSurvivorsTool(settings))
+            inspector.submitter = tool
+            prompt += FAULT_PROMPT
 
     store: Optional[SessionStore] = None
     if session_enabled and settings.session_dir is not None:
@@ -174,11 +197,12 @@ def build_agent(
     agent = Agent(
         llm=llm,
         tools=registry,
-        system_prompt=interactive_system_prompt(settings.workspace),
+        system_prompt=prompt,
         max_turns=settings.max_steps,
         max_total_tokens=settings.max_total_tokens,
         max_context_chars=settings.max_context_chars,
         on_event=handle_event,
+        finish_turn=finish_hook,
     )
     return agent, store, description
 
@@ -247,13 +271,18 @@ def run_print(args: argparse.Namespace, settings: Settings) -> int:
         store.record_result(result)
 
     if args.mode == "json":
-        return _exit_code(result)
+        submitter = agent.tools.get("submit_tests")
+        return EXIT_FAILED if args.test_generation and not submitter.accepted else _exit_code(result)
 
     if result.final_text:
         print(result.final_text)
     elif result.error:
         print(f"运行失败：{result.error}", file=sys.stderr)
     _print_summary(result)
+    submitter = agent.tools.get("submit_tests")
+    if args.test_generation and not submitter.accepted:
+        print("未生成通过逐条验证的测试；诊断见 testgen_report.json。", file=sys.stderr)
+        return EXIT_FAILED
     return _exit_code(result)
 
 
@@ -356,7 +385,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     try:
         settings = resolve_settings(args)
-    except ConfigError as exc:
+    except (ConfigError, ToolError, OSError, SyntaxError) as exc:
         print(f"配置错误：{exc}", file=sys.stderr)
         return EXIT_USAGE
 
@@ -368,7 +397,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.print_mode or args.mode == "json":
             return run_print(args, settings)
         return run_interactive(args, settings)
-    except ConfigError as exc:
+    except (ConfigError, ToolError, OSError, SyntaxError) as exc:
         print(f"配置错误：{exc}", file=sys.stderr)
         return EXIT_USAGE
     except KeyboardInterrupt:

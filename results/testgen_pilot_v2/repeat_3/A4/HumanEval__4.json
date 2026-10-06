@@ -1,0 +1,430 @@
+{
+  "instance_id": "HumanEval/4",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 22094,
+    "output_tokens": 6443,
+    "total_tokens": 28537,
+    "final_text": "All 6 candidates were accepted. Here's the final suite:\n\n## Accepted Test Suite\n\n| # | Test Name | What It Checks |\n|---|-----------|---------------|\n| 1 | `test_docstring_example` | Verifies the exact docstring example `[1.0, 2.0, 3.0, 4.0] → 1.0` |\n| 2 | `test_single_element_returns_zero` | Singleton list returns `0.0` (trivial deviation) |\n| 3 | `test_two_elements_symmetric` | Symmetric pair `[-3.0, 3.0] → 3.0` (even-length mean) |\n| 4 | `test_all_identical_values` | Uniform dataset `[7.0, 7.0, 7.0, 7.0] → 0.0` |\n| 5 | `test_negative_numbers` | Mixed-sign list `[-2.0, 0.0, 2.0] → 4/3` (sign handling) |\n| 6 | `test_return_type_is_float` | Return value is `float` instance (type contract) |\n\n## Remaining Limitations\n\n1. **Empty list not tested**: The function has no guard against `[]`, which would raise `ZeroDivisionError`. The contract doesn't specify behavior for empty input, so this is an untested edge case — a caller could crash on empty lists.\n\n2. **Non-numeric elements not tested**: The type hint says `List[float]`, but Python won't enforce it at runtime. Passing strings or mixed types isn't checked.\n\n3. **Large lists / precision**: No test with many elements to catch floating-point accumulation errors or overflow.\n\n4. **Very small values near zero**: No test with values like `[1e-15, -1e-15]` to check relative precision under cancellation.\n\n5. **Only one non-trivial length per pattern**: Each structural case (singleton, pair, uniform, etc.) uses only one concrete size. Larger variants of each pattern remain untested.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.046,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 16 行，显示第 1-16 行："
+      },
+      {
+        "turn": 2,
+        "name": "list_files",
+        "is_error": false,
+        "duration_sec": 0.053,
+        "arguments": {
+          "path": "."
+        },
+        "first_line": "目录 `.` 共列出 2 项："
+      },
+      {
+        "turn": 3,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.071,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "import math\n\n\ndef test_docstring_example():\n    \"\"\"Verify the exact example from…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（4472 字符，119 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.557,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_docstring_example",
+              "code": "import math\n\ndef test_docstring_example():\n    \"\"\"Verify the exact example from the docstring: [1.0, 2.0, 3.0, 4.0] -> 1.0.\n    \n    Contract quote: \">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\\n    1.0\"\n    \n    Input domain: A list of four consecutive integers starting at 1.\n    \n    Expected result derivation:\n      mean = (1+2+3+4)/4 = 2.5\n      deviations = |1-2.5| + |2-2.5| + |3-2.5| + |4-2.5| = 1.5 + 0.5 + 0.5 + 1.5 = 4.0\n      MAD = 4.0 / 4 = 1.0\n    \n    Faulty behavior detected: Incorrect mean calculation, wrong MAD formula,\n    or any arithmetic error producing a non-1.0 result.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == 1.0",
+              "contract_quote": ">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0",
+              "input_domain": "A list of four consecutive floats [1.0, 2.0, 3.0, 4.0]",
+              "oracle_reason": "mean=2.5, sum of abs deviations=4.0, MAD=4.0/4=1.0",
+              "fault_hypothesis": "Incorrect mean calculation, wrong MAD formula, or arithmetic error producing non-1.0"
+            },
+            {
+              "name": "test_single_element_returns_zero",
+              "code": "def test_single_element_returns_zero():\n    \"\"\"A single-element list has zero deviation because the element equals the mean.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case)\"\n    \n    Input domain: A list containing exactly one numeric value.\n    \n    Expected result derivation:\n      For [x], mean = x, so |x - x| = 0, and MAD = 0 / 1 = 0.0.\n    \n    Faulty behavior detected: Division-by-zero crash, or returning a non-zero value\n    for a singleton list where all deviations are trivially zero.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([42.0])\n    assert result == 0.0",
+              "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case)",
+              "input_domain": "A list with exactly one float, e.g., [42.0]",
+              "oracle_reason": "mean=42.0, |42-42|=0, MAD=0/1=0.0",
+              "fault_hypothesis": "Division-by-zero crash or non-zero return for singleton"
+            },
+            {
+              "name": "test_two_elements_symmetric",
+              "code": "def test_two_elements_symmetric():\n    \"\"\"Two elements equidistant from their mean yield MAD equal to half their distance.\n    \n    Contract quote: \"MAD = average | x - x_mean |\"\n    \n    Input domain: A list of two numbers symmetric around their midpoint, e.g., [-3.0, 3.0].\n    \n    Expected result derivation:\n      mean = (-3 + 3) / 2 = 0.0\n      deviations = |-3 - 0| + |3 - 0| = 3 + 3 = 6\n      MAD = 6 / 2 = 3.0\n    \n    Faulty behavior detected: Wrong mean computation for even-length lists,\n    or incorrect absolute-difference summation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-3.0, 3.0])\n    assert result == 3.0",
+              "contract_quote": "MAD = average | x - x_mean |",
+              "input_domain": "A list of two symmetric floats [-3.0, 3.0]",
+              "oracle_reason": "mean=0.0, sum abs devs=6.0, MAD=6/2=3.0",
+              "fault_hypothesis": "Wrong mean for even-length lists or incorrect abs-deviation sum"
+            },
+            {
+              "name": "test_all_identical_values",
+              "code": "def test_all_identical_values():\n    \"\"\"When every element is the same, MAD must be exactly zero.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list where all elements share the same value, e.g., [7.0, 7.0, 7.0, 7.0].\n    \n    Expected result derivation:\n      mean = 7.0, every |x - mean| = 0, so MAD = 0 / 4 = 0.0.\n    \n    Faulty behavior detected: Failure to handle uniform datasets; any non-zero result\n    indicates a bug in the absolute-difference loop or mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([7.0, 7.0, 7.0, 7.0])\n    assert result == 0.0",
+              "contract_quote": "average absolute difference between each element and a centerpoint",
+              "input_domain": "A list of identical floats [7.0, 7.0, 7.0, 7.0]",
+              "oracle_reason": "mean=7.0, all deviations=0, MAD=0/4=0.0",
+              "fault_hypothesis": "Non-zero result for uniform dataset due to abs-deviation or mean bug"
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "import math\n\ndef test_negative_numbers():\n    \"\"\"MAD should be unaffected by negative values; absolute differences handle signs.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list with mixed-sign values, e.g., [-2.0, 0.0, 2.0].\n    \n    Expected result derivation:\n      mean = (-2 + 0 + 2) / 3 = 0.0\n      deviations = |-2 - 0| + |0 - 0| + |2 - 0| = 2 + 0 + 2 = 4\n      MAD = 4 / 3 ≈ 1.3333...\n    \n    Faulty behavior detected: Sign errors in subtraction before abs(), or incorrect\n    handling of negative operands in the mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-2.0, 0.0, 2.0])\n    expected = 4.0 / 3.0\n    assert math.isclose(result, expected, rel_tol=1e-9)",
+              "contract_quote": "average absolute difference between each element and a centerpoint",
+              "input_domain": "A list with mixed-sign floats [-2.0, 0.0, 2.0]",
+              "oracle_reason": "mean=0.0, sum abs devs=4.0, MAD=4/3≈1.3333",
+              "fault_hypothesis": "Sign errors in subtraction before abs() or negative operand mishandling"
+            },
+            {
+              "name": "test_return_type_is_float",
+              "code": "def test_return_type_is_float():\n    \"\"\"The function must return a float, not an int, per its signature.\n    \n    Contract quote: \"def mean_absolute_deviation(numbers: List[float]) -> float:\"\n    \n    Input domain: Any valid non-empty list of floats, e.g., [1.0, 2.0].\n    \n    Expected result derivation:\n      The return annotation specifies float. Even when the mathematical result\n      is an integer (like 0.5 rounded), Python's division always produces float.\n      We verify the returned object is an instance of float.\n    \n    Faulty behavior detected: Returning an int (e.g., via integer division // or\n    explicit int() cast), which would violate the type contract.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0])\n    assert isinstance(result, float)",
+              "contract_quote": "def mean_absolute_deviation(numbers: List[float]) -> float:",
+              "input_domain": "Any valid non-empty list of floats, e.g., [1.0, 2.0]",
+              "oracle_reason": "Return annotation specifies float; Python division yields float",
+              "fault_hypothesis": "Returning int via integer division // or explicit int() cast"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.577,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_return_type_is_float",
+              "code": "def test_return_type_is_float():\n    \"\"\"The function must return a float, not an int, per its signature.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case):\"\n    \n    Input domain: Any valid non-empty list of floats, e.g., [1.0, 2.0].\n    \n    Expected result derivation:\n      The return annotation specifies float. Even when the mathematical result\n      is an integer (like 0.5 rounded), Python's division always produces float.\n      We verify the returned object is an instance of float.\n    \n    Faulty behavior detected: Returning an int (e.g., via integer division // or\n    explicit int() cast), which would violate the type contract.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0])\n    assert isinstance(result, float)",
+              "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case):",
+              "input_domain": "Any valid non-empty list of floats, e.g., [1.0, 2.0]",
+              "oracle_reason": "Return annotation specifies float; Python division yields float",
+              "fault_hypothesis": "Returning int via integer division // or explicit int() cast"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_return_type_is_float\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"stat"
+      }
+    ],
+    "generation_seconds": 57.984,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_docstring_example",
+          "code": "import math\n\ndef test_docstring_example():\n    \"\"\"Verify the exact example from the docstring: [1.0, 2.0, 3.0, 4.0] -> 1.0.\n    \n    Contract quote: \">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\\n    1.0\"\n    \n    Input domain: A list of four consecutive integers starting at 1.\n    \n    Expected result derivation:\n      mean = (1+2+3+4)/4 = 2.5\n      deviations = |1-2.5| + |2-2.5| + |3-2.5| + |4-2.5| = 1.5 + 0.5 + 0.5 + 1.5 = 4.0\n      MAD = 4.0 / 4 = 1.0\n    \n    Faulty behavior detected: Incorrect mean calculation, wrong MAD formula,\n    or any arithmetic error producing a non-1.0 result.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == 1.0",
+          "contract_quote": ">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0",
+          "input_domain": "A list of four consecutive floats [1.0, 2.0, 3.0, 4.0]",
+          "oracle_reason": "mean=2.5, sum of abs deviations=4.0, MAD=4.0/4=1.0",
+          "fault_hypothesis": "Incorrect mean calculation, wrong MAD formula, or arithmetic error producing non-1.0"
+        },
+        {
+          "name": "test_single_element_returns_zero",
+          "code": "def test_single_element_returns_zero():\n    \"\"\"A single-element list has zero deviation because the element equals the mean.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case)\"\n    \n    Input domain: A list containing exactly one numeric value.\n    \n    Expected result derivation:\n      For [x], mean = x, so |x - x| = 0, and MAD = 0 / 1 = 0.0.\n    \n    Faulty behavior detected: Division-by-zero crash, or returning a non-zero value\n    for a singleton list where all deviations are trivially zero.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([42.0])\n    assert result == 0.0",
+          "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case)",
+          "input_domain": "A list with exactly one float, e.g., [42.0]",
+          "oracle_reason": "mean=42.0, |42-42|=0, MAD=0/1=0.0",
+          "fault_hypothesis": "Division-by-zero crash or non-zero return for singleton"
+        },
+        {
+          "name": "test_two_elements_symmetric",
+          "code": "def test_two_elements_symmetric():\n    \"\"\"Two elements equidistant from their mean yield MAD equal to half their distance.\n    \n    Contract quote: \"MAD = average | x - x_mean |\"\n    \n    Input domain: A list of two numbers symmetric around their midpoint, e.g., [-3.0, 3.0].\n    \n    Expected result derivation:\n      mean = (-3 + 3) / 2 = 0.0\n      deviations = |-3 - 0| + |3 - 0| = 3 + 3 = 6\n      MAD = 6 / 2 = 3.0\n    \n    Faulty behavior detected: Wrong mean computation for even-length lists,\n    or incorrect absolute-difference summation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-3.0, 3.0])\n    assert result == 3.0",
+          "contract_quote": "MAD = average | x - x_mean |",
+          "input_domain": "A list of two symmetric floats [-3.0, 3.0]",
+          "oracle_reason": "mean=0.0, sum abs devs=6.0, MAD=6/2=3.0",
+          "fault_hypothesis": "Wrong mean for even-length lists or incorrect abs-deviation sum"
+        },
+        {
+          "name": "test_all_identical_values",
+          "code": "def test_all_identical_values():\n    \"\"\"When every element is the same, MAD must be exactly zero.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list where all elements share the same value, e.g., [7.0, 7.0, 7.0, 7.0].\n    \n    Expected result derivation:\n      mean = 7.0, every |x - mean| = 0, so MAD = 0 / 4 = 0.0.\n    \n    Faulty behavior detected: Failure to handle uniform datasets; any non-zero result\n    indicates a bug in the absolute-difference loop or mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([7.0, 7.0, 7.0, 7.0])\n    assert result == 0.0",
+          "contract_quote": "average absolute difference between each element and a centerpoint",
+          "input_domain": "A list of identical floats [7.0, 7.0, 7.0, 7.0]",
+          "oracle_reason": "mean=7.0, all deviations=0, MAD=0/4=0.0",
+          "fault_hypothesis": "Non-zero result for uniform dataset due to abs-deviation or mean bug"
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "import math\n\ndef test_negative_numbers():\n    \"\"\"MAD should be unaffected by negative values; absolute differences handle signs.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list with mixed-sign values, e.g., [-2.0, 0.0, 2.0].\n    \n    Expected result derivation:\n      mean = (-2 + 0 + 2) / 3 = 0.0\n      deviations = |-2 - 0| + |0 - 0| + |2 - 0| = 2 + 0 + 2 = 4\n      MAD = 4 / 3 ≈ 1.3333...\n    \n    Faulty behavior detected: Sign errors in subtraction before abs(), or incorrect\n    handling of negative operands in the mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-2.0, 0.0, 2.0])\n    expected = 4.0 / 3.0\n    assert math.isclose(result, expected, rel_tol=1e-9)",
+          "contract_quote": "average absolute difference between each element and a centerpoint",
+          "input_domain": "A list with mixed-sign floats [-2.0, 0.0, 2.0]",
+          "oracle_reason": "mean=0.0, sum abs devs=4.0, MAD=4/3≈1.3333",
+          "fault_hypothesis": "Sign errors in subtraction before abs() or negative operand mishandling"
+        },
+        {
+          "name": "test_return_type_is_float",
+          "code": "def test_return_type_is_float():\n    \"\"\"The function must return a float, not an int, per its signature.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case):\"\n    \n    Input domain: Any valid non-empty list of floats, e.g., [1.0, 2.0].\n    \n    Expected result derivation:\n      The return annotation specifies float. Even when the mathematical result\n      is an integer (like 0.5 rounded), Python's division always produces float.\n      We verify the returned object is an instance of float.\n    \n    Faulty behavior detected: Returning an int (e.g., via integer division // or\n    explicit int() cast), which would violate the type contract.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0])\n    assert isinstance(result, float)",
+          "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case):",
+          "input_domain": "Any valid non-empty list of floats, e.g., [1.0, 2.0]",
+          "oracle_reason": "Return annotation specifies float; Python division yields float",
+          "fault_hypothesis": "Returning int via integer division // or explicit int() cast"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_docstring_example",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_single_element_returns_zero",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_two_elements_symmetric",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_all_identical_values",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.251,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_return_type_is_float",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_return_type_is_float",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.905
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.07s",
+    "line_coverage": 1.0,
+    "covered_lines": 4,
+    "executable_lines": 4,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutant_operators": {
+      "AOR": 3
+    },
+    "killed_by_operator": {
+      "AOR": 3
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 3.452
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.046,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 16 行，显示第 1-16 行："
+    },
+    {
+      "turn": 2,
+      "name": "list_files",
+      "is_error": false,
+      "duration_sec": 0.053,
+      "arguments": {
+        "path": "."
+      },
+      "first_line": "目录 `.` 共列出 2 项："
+    },
+    {
+      "turn": 3,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.071,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "import math\n\n\ndef test_docstring_example():\n    \"\"\"Verify the exact example from…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（4472 字符，119 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.557,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_docstring_example",
+            "code": "import math\n\ndef test_docstring_example():\n    \"\"\"Verify the exact example from the docstring: [1.0, 2.0, 3.0, 4.0] -> 1.0.\n    \n    Contract quote: \">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\\n    1.0\"\n    \n    Input domain: A list of four consecutive integers starting at 1.\n    \n    Expected result derivation:\n      mean = (1+2+3+4)/4 = 2.5\n      deviations = |1-2.5| + |2-2.5| + |3-2.5| + |4-2.5| = 1.5 + 0.5 + 0.5 + 1.5 = 4.0\n      MAD = 4.0 / 4 = 1.0\n    \n    Faulty behavior detected: Incorrect mean calculation, wrong MAD formula,\n    or any arithmetic error producing a non-1.0 result.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    assert result == 1.0",
+            "contract_quote": ">>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0",
+            "input_domain": "A list of four consecutive floats [1.0, 2.0, 3.0, 4.0]",
+            "oracle_reason": "mean=2.5, sum of abs deviations=4.0, MAD=4.0/4=1.0",
+            "fault_hypothesis": "Incorrect mean calculation, wrong MAD formula, or arithmetic error producing non-1.0"
+          },
+          {
+            "name": "test_single_element_returns_zero",
+            "code": "def test_single_element_returns_zero():\n    \"\"\"A single-element list has zero deviation because the element equals the mean.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case)\"\n    \n    Input domain: A list containing exactly one numeric value.\n    \n    Expected result derivation:\n      For [x], mean = x, so |x - x| = 0, and MAD = 0 / 1 = 0.0.\n    \n    Faulty behavior detected: Division-by-zero crash, or returning a non-zero value\n    for a singleton list where all deviations are trivially zero.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([42.0])\n    assert result == 0.0",
+            "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case)",
+            "input_domain": "A list with exactly one float, e.g., [42.0]",
+            "oracle_reason": "mean=42.0, |42-42|=0, MAD=0/1=0.0",
+            "fault_hypothesis": "Division-by-zero crash or non-zero return for singleton"
+          },
+          {
+            "name": "test_two_elements_symmetric",
+            "code": "def test_two_elements_symmetric():\n    \"\"\"Two elements equidistant from their mean yield MAD equal to half their distance.\n    \n    Contract quote: \"MAD = average | x - x_mean |\"\n    \n    Input domain: A list of two numbers symmetric around their midpoint, e.g., [-3.0, 3.0].\n    \n    Expected result derivation:\n      mean = (-3 + 3) / 2 = 0.0\n      deviations = |-3 - 0| + |3 - 0| = 3 + 3 = 6\n      MAD = 6 / 2 = 3.0\n    \n    Faulty behavior detected: Wrong mean computation for even-length lists,\n    or incorrect absolute-difference summation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-3.0, 3.0])\n    assert result == 3.0",
+            "contract_quote": "MAD = average | x - x_mean |",
+            "input_domain": "A list of two symmetric floats [-3.0, 3.0]",
+            "oracle_reason": "mean=0.0, sum abs devs=6.0, MAD=6/2=3.0",
+            "fault_hypothesis": "Wrong mean for even-length lists or incorrect abs-deviation sum"
+          },
+          {
+            "name": "test_all_identical_values",
+            "code": "def test_all_identical_values():\n    \"\"\"When every element is the same, MAD must be exactly zero.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list where all elements share the same value, e.g., [7.0, 7.0, 7.0, 7.0].\n    \n    Expected result derivation:\n      mean = 7.0, every |x - mean| = 0, so MAD = 0 / 4 = 0.0.\n    \n    Faulty behavior detected: Failure to handle uniform datasets; any non-zero result\n    indicates a bug in the absolute-difference loop or mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([7.0, 7.0, 7.0, 7.0])\n    assert result == 0.0",
+            "contract_quote": "average absolute difference between each element and a centerpoint",
+            "input_domain": "A list of identical floats [7.0, 7.0, 7.0, 7.0]",
+            "oracle_reason": "mean=7.0, all deviations=0, MAD=0/4=0.0",
+            "fault_hypothesis": "Non-zero result for uniform dataset due to abs-deviation or mean bug"
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "import math\n\ndef test_negative_numbers():\n    \"\"\"MAD should be unaffected by negative values; absolute differences handle signs.\n    \n    Contract quote: \"average absolute difference between each element and a centerpoint\"\n    \n    Input domain: A list with mixed-sign values, e.g., [-2.0, 0.0, 2.0].\n    \n    Expected result derivation:\n      mean = (-2 + 0 + 2) / 3 = 0.0\n      deviations = |-2 - 0| + |0 - 0| + |2 - 0| = 2 + 0 + 2 = 4\n      MAD = 4 / 3 ≈ 1.3333...\n    \n    Faulty behavior detected: Sign errors in subtraction before abs(), or incorrect\n    handling of negative operands in the mean calculation.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([-2.0, 0.0, 2.0])\n    expected = 4.0 / 3.0\n    assert math.isclose(result, expected, rel_tol=1e-9)",
+            "contract_quote": "average absolute difference between each element and a centerpoint",
+            "input_domain": "A list with mixed-sign floats [-2.0, 0.0, 2.0]",
+            "oracle_reason": "mean=0.0, sum abs devs=4.0, MAD=4/3≈1.3333",
+            "fault_hypothesis": "Sign errors in subtraction before abs() or negative operand mishandling"
+          },
+          {
+            "name": "test_return_type_is_float",
+            "code": "def test_return_type_is_float():\n    \"\"\"The function must return a float, not an int, per its signature.\n    \n    Contract quote: \"def mean_absolute_deviation(numbers: List[float]) -> float:\"\n    \n    Input domain: Any valid non-empty list of floats, e.g., [1.0, 2.0].\n    \n    Expected result derivation:\n      The return annotation specifies float. Even when the mathematical result\n      is an integer (like 0.5 rounded), Python's division always produces float.\n      We verify the returned object is an instance of float.\n    \n    Faulty behavior detected: Returning an int (e.g., via integer division // or\n    explicit int() cast), which would violate the type contract.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0])\n    assert isinstance(result, float)",
+            "contract_quote": "def mean_absolute_deviation(numbers: List[float]) -> float:",
+            "input_domain": "Any valid non-empty list of floats, e.g., [1.0, 2.0]",
+            "oracle_reason": "Return annotation specifies float; Python division yields float",
+            "fault_hypothesis": "Returning int via integer division // or explicit int() cast"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_docstring_example\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\""
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.577,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_return_type_is_float",
+            "code": "def test_return_type_is_float():\n    \"\"\"The function must return a float, not an int, per its signature.\n    \n    Contract quote: \"Mean Absolute Deviation is the average absolute difference between\n    each element and a centerpoint (mean in this case):\"\n    \n    Input domain: Any valid non-empty list of floats, e.g., [1.0, 2.0].\n    \n    Expected result derivation:\n      The return annotation specifies float. Even when the mathematical result\n      is an integer (like 0.5 rounded), Python's division always produces float.\n      We verify the returned object is an instance of float.\n    \n    Faulty behavior detected: Returning an int (e.g., via integer division // or\n    explicit int() cast), which would violate the type contract.\n    \"\"\"\n    from solution import mean_absolute_deviation\n    result = mean_absolute_deviation([1.0, 2.0])\n    assert isinstance(result, float)",
+            "contract_quote": "Mean Absolute Deviation is the average absolute difference between each element and a centerpoint (mean in this case):",
+            "input_domain": "Any valid non-empty list of floats, e.g., [1.0, 2.0]",
+            "oracle_reason": "Return annotation specifies float; Python division yields float",
+            "fault_hypothesis": "Returning int via integer division // or explicit int() cast"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_return_type_is_float\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"stat"
+    }
+  ],
+  "started_at": 1791300809.7024035,
+  "duration_sec": 61.861,
+  "tests_chars": 4645
+}

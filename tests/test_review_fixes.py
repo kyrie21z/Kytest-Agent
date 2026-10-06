@@ -238,7 +238,7 @@ def test_sandbox_blocks_network_and_secret_environment(sandbox_workspace, monkey
 def test_sandbox_unavailable_fails_closed(tmp_path, monkeypatch):
     from code_agent import sandbox
     original = sandbox.shutil.which
-    monkeypatch.setattr(sandbox.shutil, "which", lambda name: None if name == "bwrap" else original(name))
+    monkeypatch.setattr(sandbox.shutil, "which", lambda name, **kwargs: None if name == "bwrap" else original(name, **kwargs))
     result = RunCommandTool(Settings(workspace=tmp_path)).run("python -c pass")
     assert not result.ok and "命令隔离不可用" in result.content
     assert not (tmp_path / "result").exists()
