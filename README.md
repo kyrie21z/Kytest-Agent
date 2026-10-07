@@ -10,6 +10,9 @@ A4 token约增加0.4%、生成时间约增加51%，未显示质量收益，因�
 正式20例的新A0/A4对照已完成：A4通过率100%（A0为90%），有效杀伤率69.27%
 （A0为66.44%），差2.83个百分点未检出显著性；token增加15.8%，生成时间增加52.2%。
 结果见 [正式20例报告](results/testgen_formal_v1/report.md)，新旧A0分数不混入配对。
+A1–A3补测60次已完成，连同重用A0/A4共100份新版记录。A1/A2/A3通过率为
+75%/90%/95%，有效杀伤率57.72%/64.17%/67.51%；三项配对Holm校正均未显著。
+A3的19次覆盖率检查全部为全覆盖，未触发定向补测。见 [新版五条件对照](results/testgen_supplement_v1/report.md)。
 A0–A3 的80份记录属于历史版本（v2 难例集20例），历史结论不自动适用于修复后实现。结论与数据见
 [Design.md](Design.md) 与 [results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)。
 
@@ -107,6 +110,38 @@ python scripts/run_testgen_formal.py --output results/testgen_formal_new
 协议见 [docs/testgen-formal.md](docs/testgen-formal.md)，逐实例解释见
 [CASE_ANALYSIS.md](results/testgen_formal_v1/CASE_ANALYSIS.md)。测试262项通过、4项Windows
 检查跳过。该集已有历史评测和失败分析，不能称为全新未见保留集。
+
+### A1–A3正式20例补测
+
+策略保持不变，继承本轮A0/A4的模型、预算、环境和评分池，只新增60次采样。
+A0/A4先前已运行，因此五条件对照分属两个批次，不能当作同期随机实验。
+唯一共享引擎变化是延后评分包装层透传日志state，恢复系统动作记录，不改变策略。
+
+| 条件 | 全部通过 | 有效杀伤率 | 平均token | 生成秒数 |
+|---|---:|---:|---:|---:|
+| A0（重用） | 90% | 66.44% | 22784 | 32.7 |
+| A1 | 75% | 57.72% | 31328 | 56.0 |
+| A2 | 90% | 64.17% | 14982 | 46.2 |
+| A3 | 95% | 67.51% | 13532 | 46.8 |
+| A4（重用） | 100% | 69.27% | 26382 | 49.7 |
+
+A2相对A1的token降低52.2%；时间和质量分别报告，不将更少token当作更快或质量等价。
+A3没有激活未覆盖行补测，不能把平均分变化归因于该机制。每条件每例仅一次采样，
+三项配对的Holm校正p均大于0.05。软件检查268项通过、4项Windows专属跳过。
+独立重放的60份有效主分数全部一致，原始变异计数59份一致；prime_fib的一份
+失败套件受随机判素数与超时影响，主分数仍为0。详见 [机制与失败分析](results/testgen_supplement_v1/CASE_ANALYSIS.md)
+和 [验收记录](verification/testgen-supplement-v1/README.md)。
+
+```bash
+# 只生成五条件报告，不调用模型；A0/A4原件校验后重用
+python scripts/run_testgen_supplement.py --report-only
+
+# 独立离线重放补测的60份套件及全部评分变异体
+python scripts/verify_testgen_supplement.py --receipt /tmp/supplement-replay.json
+```
+
+冻结协议见 [docs/testgen-supplement.md](docs/testgen-supplement.md)，详细记录见
+[results/testgen_supplement_v1](results/testgen_supplement_v1)。历史80份结果原样保留。
 
 ### 独立开发故障反馈（A5）
 
@@ -338,5 +373,5 @@ token 数量不代表实际费用。原始记录、旧 CSV/summary/report 保留
 | 2 | `run_command` 工具与执行沙箱 | ✅ 完成 |
 | 3 | CLI（三种模式）+ 轨迹落盘 + 离线 Mock | ✅ 完成 |
 | 4a | 评测层：数据集、指标、变异引擎、编排钩子、runner、报告 + 仪器校准 | ✅ 完成 |
-| 4b | A0–A3 历史消融与派生重算；修复后版本尚未重新采样 | 历史结果保留 |
+| 4b | 历史80份消融保留；新版A0–A4共100份记录分两批采样 | 已完成 |
 | 5 | 文档收尾（Design.md / README / 选型与修订记录） | ✅ 完成 |
