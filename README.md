@@ -2,6 +2,8 @@
 
 给定 Python 函数源码和任务，Kytest Agent 通过语言模型与文件、执行工具的循环生成 pytest 测试，并依据反馈修正。项目提供 CLI 和 Web 交互；Web 支持同一输入并行比较通用生成与契约候选验证，展示实际工具记录、测试质量和运行成本。
 
+GitHub 仓库：[kyrie21z/Kytest-Agent](https://github.com/kyrie21z/Kytest-Agent)
+
 [快速开始](#快速开始) · [使用方式](#使用方式) · [结果与验证](#结果与验证) · [设计说明](Design.md) · [57秒演示视频](docs/demo.mp4)
 
 ![同一输入下的 A0 / A4 真实结果对比](docs/demo-overview.png)
@@ -11,6 +13,8 @@
 ## 快速开始
 
 推荐 **Ubuntu 或 Ubuntu WSL、Python ≥3.9**。以下命令在包含 `main.py`、`web.py` 和 `requirements.txt` 的项目根目录执行。首次体验无需模型密钥。
+
+从提交包根目录开始时，先进入 `code-agent/`。根目录的 `demo.mp4` 可直接播放。
 
 Ubuntu/WSL 首次使用时安装虚拟环境与命令隔离组件：
 

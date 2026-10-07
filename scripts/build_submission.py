@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import zipfile
 
@@ -65,14 +66,20 @@ def archive_links(text,relative_path,chosen):
 def build(output,zip_path):
     spec = json.loads((ROOT/"submission/spec.json").read_text())
     selected = selected_files(spec)
+    root_copies = spec["root_copies"]
+    for name,source in root_copies.items():
+        if not name or name in {".","..","code-agent"} or Path(name).name != name or source not in selected:
+            raise ValueError("Invalid root copy: "+name)
     if output.exists() or zip_path.exists():
         raise ValueError("Use a new output directory and ZIP; completed artifacts are not overwritten")
     revision,dirty = source_state(selected)
     output.mkdir(parents=True,exist_ok=False)
+    code_output = output/"code-agent"
+    code_output.mkdir()
     manifest = {"schema":spec["schema"],"source_commit":revision,"source_worktree_dirty":dirty,
         "profile":"coursework: runnable code, unchanged core regression subset, concise docs and derived evidence",
         "archive":"https://github.com/kyrie21z/Kytest-Agent/tree/e34bb5c8770f85815612e5669a50a02a0c5f5532",
-        "fixture_reason":spec["fixture_reason"],"files":{}}
+        "fixture_reason":spec["fixture_reason"],"files":{},"root_copies":{}}
     for name,source in sorted(selected.items()):
         original = source.read_bytes()
         data = original
@@ -81,20 +88,24 @@ def build(output,zip_path):
             data = archive_links(original.decode(),name,selected).encode()
             if data!=original:
                 transformation = "Excluded research links redirected to their pinned archive; no behavior change"
-        destination = output/name
+        destination = code_output/name
         destination.parent.mkdir(parents=True,exist_ok=True)
         destination.write_bytes(data)
         manifest["files"][name] = {"bytes":len(data),"sha256":digest(data),
             "source_path":str(source.relative_to(ROOT)),"source_sha256":digest(original),
             "transformation":transformation}
     manifest["content_files"] = len(selected)
-    (output/"SUBMISSION_MANIFEST.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n")
+    for name,source in root_copies.items():
+        data = (code_output/source).read_bytes()
+        shutil.copyfile(code_output/source,output/name)
+        manifest["root_copies"][name] = {"code_path":source,"bytes":len(data),"sha256":digest(data)}
+    (code_output/"SUBMISSION_MANIFEST.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n")
     zip_path.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(zip_path,"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
         archive.comment = revision.encode()
         for path in sorted(output.rglob("*")):
             if path.is_file():
-                info = zipfile.ZipInfo("code-agent/"+str(path.relative_to(output)),date_time=(2026,10,7,0,0,0))
+                info = zipfile.ZipInfo(str(path.relative_to(output)),date_time=(2026,10,7,0,0,0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o100644 << 16
                 archive.writestr(info,path.read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
@@ -102,18 +113,23 @@ def build(output,zip_path):
         if archive.testzip() is not None:
             raise ValueError("ZIP integrity failure")
         expected = {"code-agent/"+name for name in selected}|{"code-agent/SUBMISSION_MANIFEST.json"}
+        expected.update(root_copies)
         if len(archive.namelist())!=len(expected) or set(archive.namelist())!=expected:
             raise ValueError("ZIP member matrix differs")
         for name,entry in manifest["files"].items():
             if digest(archive.read("code-agent/"+name))!=entry["sha256"]:
                 raise ValueError("ZIP content changed: "+name)
-    print(json.dumps({"output":str(output),"zip":str(zip_path),"files":len(selected)+1,
+        for name,entry in manifest["root_copies"].items():
+            data = archive.read(name)
+            if digest(data)!=entry["sha256"] or data!=archive.read("code-agent/"+entry["code_path"]):
+                raise ValueError("ZIP root copy differs: "+name)
+    print(json.dumps({"output":str(output),"zip":str(zip_path),"files":len(expected),
         "bytes":zip_path.stat().st_size,"sha256":digest(zip_path.read_bytes()),
         "source_commit":revision,"source_worktree_dirty":dirty},ensure_ascii=False,indent=2))
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output",required=True,type=Path)
+    parser.add_argument("--output",required=True,type=Path,help="New submission root containing code-agent/, documents and video")
     parser.add_argument("--zip",type=Path)
     args = parser.parse_args()
     output = args.output.resolve()

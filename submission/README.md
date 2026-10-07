@@ -2,6 +2,8 @@
 
 给定 Python 函数源码和任务，Kytest Agent 通过语言模型与文件、执行工具的循环生成 pytest 测试，并依据反馈修正。项目提供 CLI 和 Web 交互；Web 支持同一输入并行比较通用生成与契约候选验证，展示实际工具记录、测试质量和运行成本。
 
+GitHub 仓库：[kyrie21z/Kytest-Agent](https://github.com/kyrie21z/Kytest-Agent)
+
 [快速开始](#快速开始) · [使用方式](#使用方式) · [结果与验证](#结果与验证) · [设计说明](Design.md) · [57秒演示视频](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.mp4)
 
 ![同一输入下的 A0 / A4 真实结果对比](https://raw.githubusercontent.com/kyrie21z/Kytest-Agent/main/docs/demo-overview.png)
@@ -11,6 +13,8 @@
 ## 快速开始
 
 推荐 **Ubuntu 或 Ubuntu WSL、Python ≥3.9**。以下命令在包含 `main.py`、`web.py` 和 `requirements.txt` 的项目根目录执行。首次体验无需模型密钥。
+
+从提交包根目录开始时，先进入 `code-agent/`。根目录的 `demo.mp4` 可直接播放。
 
 Ubuntu/WSL 首次使用时安装虚拟环境与命令隔离组件：
 
@@ -130,7 +134,7 @@ python scripts/demo_offline.py
 
 ### 实验结论
 
-在 MBPP 的20题、每配置三次对照中，A0 有效产出49/60，A4 与 A5 各59/60；A4 确认独立检出率为74.94%，A0 为68.81%。观察差值未通过预设统计验收，尚不能认定总体质量优势，因此默认保留通用 Agent，A4/A5 为可选机制。完整配置、结果与证据边界见 [实验摘要](EXPERIMENTS.md)。
+在 MBPP 的20题、每配置三次对照中，A0 有效产出49/60，A4 与 A5 各59/60；A4 确认独立检出率为74.94%，A0 为68.81%。观察差值未通过预设统计验收，尚不能认定总体质量优势，因此默认保留通用 Agent，A4/A5 为可选机制。完整配置、结果与证据边界见 [实验摘要](https://github.com/kyrie21z/Kytest-Agent/blob/main/submission/EXPERIMENTS.md)。
 
 ## 常见问题与范围
 
@@ -144,4 +148,4 @@ python scripts/demo_offline.py
 
 项目支持自包含的 Python 函数测试，不自动处理任意仓库的依赖、服务与集成环境。候选验证限制测试形式；复杂契约和预期值仍需审核。总体质量判断依据完整实验，展示样例只代表对应运行。
 
-[Design.md](Design.md)说明架构、机制和设计取舍；[实验摘要](EXPERIMENTS.md)报告 A0～A5 配置与实验依据；[操作说明](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.md)提供详细页面操作和评价口径。
+[Design.md](Design.md)说明架构、机制和设计取舍；[实验摘要](https://github.com/kyrie21z/Kytest-Agent/blob/main/submission/EXPERIMENTS.md)报告 A0～A5 配置与实验依据；[操作说明](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.md)提供详细页面操作和评价口径。
