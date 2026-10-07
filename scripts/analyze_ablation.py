@@ -318,7 +318,6 @@ def sync_document_tables(tables: dict[str, str]) -> None:
     updated = {}
     for path, names in (
         (REPO_ROOT / "README.md", ("main",)),
-        (REPO_ROOT / "Design.md", ("main", "paired", "cost")),
         (REPO_ROOT / "results/v2_ablation/ANALYSIS.md", ("main", "paired", "cost", "curves")),
     ):
         text = path.read_text(encoding="utf-8")

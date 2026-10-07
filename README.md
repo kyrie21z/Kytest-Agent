@@ -49,7 +49,7 @@ A1–A3补测60次已完成，连同重用A0/A4共100份新版记录。A1/A2/A3�
 75%/90%/95%，有效杀伤率57.72%/64.17%/67.51%；三项配对Holm校正均未显著。
 A3的19次覆盖率检查全部为全覆盖，未触发定向补测。见 [新版五条件对照](results/testgen_supplement_v1/report.md)。
 A0–A3 的80份记录属于历史版本（v2 难例集20例），历史结论不自动适用于修复后实现。结论与数据见
-[Design.md](Design.md) 与 [results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)。
+[results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)，系统设计见 [Design.md](Design.md)。
 
 ## 快速开始
 
