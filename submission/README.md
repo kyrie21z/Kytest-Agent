@@ -64,7 +64,7 @@ python scripts/reproduce_submission.py
 
 前者验证提交包内的核心回归子集；完整研究回归保留在仓库。后者从280行派生
 记录重算两组实验均值和配对统计，不请求模型、不重写历史记录。
-已从ZIP独立解压验证：293项通过、4项Windows专用检查跳过；环境为Python
+已从ZIP独立解压验证：296项通过、4项Windows专用检查跳过；环境为Python
 3.13.13、pytest 9.1.1、SciPy 1.18.1。回执见`submission/evidence/acceptance.json`。
 真实模型工具闭环样例见`submission/evidence/real_run/`，为明确标注的展示样例。
 
@@ -77,8 +77,10 @@ A4 额外展示候选依据与拒绝记录。共同评价展示通过情况、�
 真实模式分别请求同一模型；脚本模式两组最终测试相同，A4 含刻意错误候选，
 只用于演示验证机制。停止与刷新支持整个对比。
 
-[具体操作与录制流程](docs/demo.md)；[一分钟真实结果回顾](docs/demo-parallel.webm)。
+[具体操作与录制流程](docs/demo.md)；[一分钟真实结果回顾](docs/demo-rotation.webm)。
 视频展示录制前已完成的真实运行、原始工具记录和质量评价。
+推荐点击“查看已保存差异案例”：A0有6项失败，A4全部通过、检出3/4个故障；
+[旋转数组案例](docs/rotation-example.md)保留完整口径与选例说明，新运行可能不同。
 
 ## 4. 设计与实验结论
 

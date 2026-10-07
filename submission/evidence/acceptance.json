@@ -4,7 +4,7 @@
   "pytest": "9.1.1",
   "scipy": "1.18.1",
   "core_regression": {
-    "passed": 293,
+    "passed": 296,
     "skipped": 4,
     "skip_reason": "Windows-specific process parsing checks",
     "command": "python -m pytest tests/ -q",
@@ -28,8 +28,8 @@
       "test_testgen.py": "5684495a7c4c3094e49c455370abc5c223dee06b3ebbdca9b4986476e6d038ec"
     },
     "environment": "Linux filesystem; interpreter path without spaces",
-    "web_test_file_sha256": "e6c74a51633eb025b775aa3b8ae5ab4a05157e5fba7f30f723228b395ee9d33a",
-    "package_bytes_verified": "97 selected files in standalone build matched the independently extracted ZIP before browser acceptance."
+    "web_test_file_sha256": "04e6a0bfd51efe30447b6c30414250abf47108f17e0de1663483994c32bc5723",
+    "package_bytes_verified": "Regression and browser acceptance executed from independently extracted ZIP; all final code files checked for equality."
   },
   "offline_tool_loop": {
     "script": "scripts/demo_offline.py",
@@ -60,7 +60,7 @@
     "research_runtime_data_files_unchanged": 2205,
     "paired_v2_frozen_inputs_unchanged": 45
   },
-  "new_model_calls": 9,
+  "new_model_calls": 12,
   "historic_full_replay": {
     "scores_match": 180,
     "reference_status_match": 179,
@@ -69,10 +69,10 @@
     "original_zero_score_preserved": true
   },
   "web_interface": {
-    "regression_cases": 35,
-    "video_seconds": 52.16,
+    "regression_cases": 38,
+    "video_seconds": 52.2,
     "browser_checks_passed": true,
-    "receipt": "submission/evidence/ui-parallel.json",
+    "receipt": "submission/evidence/ui-rotation.json",
     "historic_real_receipt": "submission/evidence/ui-acceptance.json",
     "execution": "parallel",
     "architecture_diagram": true,
@@ -89,69 +89,36 @@
     },
     "real_pair_summary": {
       "A0": {
-        "turns": 5,
-        "tool_calls": 4,
-        "input_tokens": 10198,
-        "output_tokens": 1870,
-        "total_tokens": 12068,
+        "turns": 6,
+        "tool_calls": 7,
+        "total_tokens": 34028,
         "validation_counts": {
-          "passed": 23,
-          "failed": 0,
+          "passed": 18,
+          "failed": 6,
           "errors": 0,
           "skipped": 0
         },
-        "coverage": {
-          "status": "measured",
-          "statements": 6,
-          "covered_statements": 6,
-          "line_percent": 100.0,
-          "branches": 4,
-          "covered_branches": 4,
-          "branch_percent": 100.0,
-          "missing_lines": [],
-          "missing_branches": []
-        },
-        "fault_detection": {
-          "status": "measured",
-          "total": 5,
-          "confirmed_killed": 5,
-          "uncertain": 0,
-          "percent": 100.0
-        }
+        "faults_killed": 0,
+        "faults_total": 4,
+        "fault_percent": null
       },
       "A4": {
         "turns": 4,
         "tool_calls": 3,
-        "input_tokens": 12185,
-        "output_tokens": 3038,
-        "total_tokens": 15223,
+        "total_tokens": 23104,
         "validation_counts": {
           "passed": 6,
           "failed": 0,
           "errors": 0,
           "skipped": 0
         },
-        "coverage": {
-          "status": "measured",
-          "statements": 6,
-          "covered_statements": 6,
-          "line_percent": 100.0,
-          "branches": 4,
-          "covered_branches": 4,
-          "branch_percent": 100.0,
-          "missing_lines": [],
-          "missing_branches": []
-        },
-        "fault_detection": {
-          "status": "measured",
-          "total": 5,
-          "confirmed_killed": 5,
-          "uncertain": 0,
-          "percent": 100.0
-        }
+        "faults_killed": 3,
+        "faults_total": 4,
+        "fault_percent": 75.0
       }
-    }
+    },
+    "prior_parallel_receipt": "submission/evidence/ui-parallel.json"
   },
-  "new_model_calls_note": "Nine successful real Agent LLM calls in this paired UI functionality demonstration (A0: 5, A4: 4). No new formal A0-A5 experiment runs.",
-  "prior_ui_model_calls": 9
+  "new_model_calls_note": "12 successful Agent LLM calls in this UI update: two in the timeout attempt plus ten in the completed fresh paired generation. HTTP retries are not successful Agent calls. No new formal benchmark runs.",
+  "prior_ui_model_calls": 18
 }

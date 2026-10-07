@@ -332,3 +332,48 @@ def test_quality_does_not_score_timeout_or_abnormal_exit_with_failure_output(tmp
         assert faults['confirmed_killed']==0 and faults['uncertain']==5
         assert faults['percent'] is None
         assert all(item['status']=='UNCERTAIN' for item in faults['results'])
+
+
+def test_rotation_quality_reproduces_saved_real_suite_and_keeps_full_pool(tmp_path):
+    from code_agent.web.examples import ROTATION_SOURCE
+    receipt=json.loads((Path(web.__file__).resolve().parents[3]/'submission/evidence/ui-rotation.json').read_text())
+    saved=receipt['comparison']['runs'][1]
+    report=evaluate_quality(Settings(workspace=tmp_path),ROTATION_SOURCE,
+        lambda _:saved['saved_tests'],{'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)
+    faults=report['fault_detection']
+    assert faults['profile']=='mbpp-304-ror-lcr-bcr-v2' and faults['total']==4
+    assert faults['confirmed_killed']==3 and faults['percent']==75
+    assert faults['uncertain']==0 and faults['results'][2]['status']=='SURVIVED'
+    assert report['test_sha256']==saved['result']['quality']['test_sha256']
+
+
+def test_saved_real_case_is_available_without_key_and_does_not_start_agents(http):
+    import hashlib
+    url,application=http
+    _,body=request(url+'/api/config');config=json.loads(body)
+    assert [e['id'] for e in config['examples']]==['rotation','classify']
+    status,body=request(url+'/api/examples/rotation-record');saved=json.loads(body)
+    assert status==200 and saved['origin']['kind']=='saved_real' and saved['done']
+    a0,a4=saved['runs']
+    assert a0['result']['validation']['counts']['failed']==6
+    assert a4['result']['validation']['passed'] and a4['result']['quality']['fault_detection']['percent']==75
+    assert a0['source_sha256']==a4['source_sha256'] and a0['task']==a4['task']
+    assert hashlib.sha256(a4['saved_tests'].encode()).hexdigest()==a4['result']['quality']['test_sha256']
+    assert not application.runs
+
+
+def test_web_preserves_configured_model_request_timeout(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setattr('sys.argv',['web.py'])
+    settings=Settings(workspace=tmp_path,request_timeout=87)
+    monkeypatch.setattr(web.Settings,'from_env',lambda **kwargs:settings)
+    captured=[]
+    def interrupted():raise KeyboardInterrupt
+    def factory(chosen,port):
+        captured.append(chosen)
+        return SimpleNamespace(server_address=('127.0.0.1',port),serve_forever=interrupted,
+                               app=SimpleNamespace(close=lambda:None),server_close=lambda:None)
+    monkeypatch.setattr(web,'create_server',factory)
+    web.main()
+    assert captured[0].request_timeout==87
+    assert captured[0].max_steps==12 and captured[0].max_total_tokens==30000

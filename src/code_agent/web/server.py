@@ -19,6 +19,7 @@ from ..session import redact_text
 from ..tools.base import resolve_workspace_path
 from ..tools.shell_tools import RunCommandTool
 from .demo import DemoLLM, SOURCE, TASK
+from .examples import ROTATION_SOURCE, ROTATION_TASK
 from .quality import evaluate_quality, pytest_counts
 
 FILES = {"solution.py", "test_solution.py", "testgen_report.json", "fault_feedback.json", "quality_report.json"}
@@ -88,6 +89,7 @@ class Run:
                     "timing":{"started_unix":self.started_wall,"finished_unix":self.finished_wall},
                     "source_sha256":hashlib.sha256(self.source.encode()).hexdigest(),
                     "budget":{"turns":self.settings.max_steps,"tokens":self.settings.max_total_tokens,
+                              "request_seconds":self.settings.request_timeout,
                               "command_seconds":self.settings.max_exec_timeout},
                     "elapsed_sec":0 if self.phase=="queued" else round((self.finished or time.monotonic())-self.started,1)}
 
@@ -333,8 +335,26 @@ class Handler(BaseHTTPRequestHandler):
                     latest=next(reversed(app.runs),None)
                     comparison_id=app.runs[latest].comparison_id if latest else None
                 return self.send(200,{"source":SOURCE,"task":TASK,"real_configured":app.settings.is_llm_configured,
+                    "examples":[{"id":"rotation","name":"区间旋转 · MBPP/304（差异案例）","source":ROTATION_SOURCE,"task":ROTATION_TASK,
+                                 "note":"从已有真实实验筛选：A0三次有两次参考测试失败，A4三次全部通过。新运行结果可能不同。"},
+                                {"id":"classify","name":"区间分类（机制入门）","source":SOURCE,"task":TASK,
+                                 "note":"短小示例用于观察工具与候选验证；两组通常都能覆盖完整行为。"}],
                     "model":redact_text(app.settings.model,[app.settings.api_key]),"execution_mode":app.settings.execution_mode,
                     "latest_run":latest,"latest_comparison":comparison_id})
+            if method=="GET" and url.path=="/api/examples/rotation-record":
+                path=Path(__file__).resolve().parents[3]/"submission/evidence/ui-rotation.json"
+                try:
+                    receipt=json.loads(path.read_text())
+                    comparison=receipt["comparison"]
+                except (OSError,ValueError,KeyError) as exc:
+                    raise RequestError("已保存案例不可用",404) from exc
+                origin={"kind":"saved_real","label":"MBPP/304 · 已保存真实并行运行",
+                        "model":receipt["model"],"scope":receipt["scope"],
+                        "note":"从既有实验筛选，再以当前界面重新运行。此视图读取保存记录，不调用模型；新运行可能不同。"}
+                comparison["origin"]=origin
+                for run in comparison["runs"]:
+                    run["origin"]=origin
+                return self.send(200,json.loads(redact_text(json.dumps(comparison,ensure_ascii=False),[app.settings.api_key])))
             parts = url.path.strip("/").split("/")
             if method=="GET" and len(parts)==3 and parts[:2]==["api","comparisons"]:
                 query = parse_qs(url.query)
@@ -397,7 +417,7 @@ def main():
     root=Path(__file__).resolve().parents[3]
     settings=Settings.from_env(env_file=root/".env",workspace=root)
     settings=replace(settings,max_steps=12,max_total_tokens=30000,llm_max_tokens=4096,
-                     request_timeout=20,max_retries=1,exec_timeout=15,max_exec_timeout=15)
+                     max_retries=1,exec_timeout=15,max_exec_timeout=15)
     server=create_server(settings,args.port)
     print(f"Code Agent UI: http://127.0.0.1:{server.server_address[1]}  (Ctrl-C to stop)",flush=True)
     try:

@@ -9,6 +9,7 @@ import time
 
 from ..tools.shell_tools import RunCommandTool
 from .demo import SOURCE
+from .examples import ROTATION_SOURCE, ROTATION_FAULTS
 
 FAULTS = (
     ('lower_inclusive', '下边界错误排除', SOURCE.replace('value < low', 'value <= low'), (2, 2, 8), 0),
@@ -31,9 +32,16 @@ def pytest_counts(content):
 
 def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
     started = time.monotonic()
+    if source.strip()==SOURCE.strip():
+        profile,entry_point,pool='classify-five-v1','classify',FAULTS
+    elif source.strip()==ROTATION_SOURCE.strip():
+        profile,entry_point,pool='mbpp-304-ror-lcr-bcr-v2','find_Element',ROTATION_FAULTS
+    else:
+        profile,entry_point,pool=None,None,()
+    total=len(pool) if pool else None
     report = {'schema':'ui-quality-v1', 'status':'blocked', 'coverage':{'status':'not_measured'},
-              'fault_detection':{'status':'not_measured', 'profile':'classify-five-v1', 'total':5,
-                                 'confirmed_killed':0, 'survived':0, 'uncertain':5, 'percent':None, 'results':[]},
+              'fault_detection':{'status':'not_measured', 'profile':profile, 'total':total,
+                                 'confirmed_killed':0, 'survived':0, 'uncertain':total, 'percent':None, 'results':[]},
               'limits':{'command_seconds':15, 'fault_seconds':5},
               'scope':'This run only. Coverage is execution reach; fixed sample faults measure detection, not general superiority.'}
     def finish(status):
@@ -84,24 +92,24 @@ def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
                 report['coverage'] = {'status':'unavailable','diagnostic':checked.content,
                                       'reason':'覆盖率依赖、执行或报告不可用；未将缺失值当成0。'}
             faults = report['fault_detection']
-            if source.strip()!=SOURCE.strip():
+            if not pool:
                 faults.update(status='not_applicable',total=None,uncertain=None,
-                              reason='固定五故障集仅适用于内置classify示例，自定义源码未配置故障集。')
+                              reason='仅内置区间分类与旋转数组样例配置固定故障集；当前源码未配置。')
                 return finish('measured' if reference_valid else 'unavailable')
             if not reference_valid:
                 faults['reason']='覆盖率运行中的参考复验未通过，故障检出未计分。'
                 return finish('unavailable')
-            faults.update(status='measuring', results=[{'id':key,'label':label,'status':'NOT_RUN'} for key,label,*_ in FAULTS])
-            for index,(key,label,mutant,witness,expected) in enumerate(FAULTS):
+            faults.update(status='measuring', results=[{'id':key,'label':label,'status':'NOT_RUN'} for key,label,*_ in pool])
+            for index,(key,label,mutant,witness,expected) in enumerate(pool):
                 if cancelled.is_set():
                     faults['status']='cancelled'
                     return finish('cancelled')
                 # These modules are our fixed, constant fixture, never user/model code.
                 namespace={};exec(compile(mutant,'<fixed-ui-fault>','exec'),namespace)
-                observed=namespace['classify'](*witness)
+                observed=namespace[entry_point](*witness)
                 assert observed!=expected, 'Fixed fault witness must expose a real semantic difference'
                 source_path.write_bytes(mutant.encode())
-                emit({'type':'evaluation_progress','stage':'fault','index':index+1,'total':5,'message':label})
+                emit({'type':'evaluation_progress','stage':'fault','index':index+1,'total':total,'message':label})
                 outcome=tool.run(command='python -m pytest test_solution.py -q',timeout=5)
                 counts=pytest_counts(outcome.content)
                 unchanged=intact(mutant)
@@ -113,11 +121,11 @@ def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
                     'diagnostic':outcome.content}
                 faults['confirmed_killed']=sum(item['status']=='KILLED' for item in faults['results'])
                 faults['survived']=sum(item['status']=='SURVIVED' for item in faults['results'])
-                faults['uncertain']=5-faults['confirmed_killed']-faults['survived']
+                faults['uncertain']=total-faults['confirmed_killed']-faults['survived']
                 source_path.write_bytes(source.encode());tests_path.write_bytes(tests.encode())
             faults['status']='measured' if not faults['uncertain'] else 'partial'
-            faults['percent']=round(100*faults['confirmed_killed']/5,1) if not faults['uncertain'] else None
-            faults['confirmed_lower_percent']=round(100*faults['confirmed_killed']/5,1)
+            faults['percent']=round(100*faults['confirmed_killed']/total,1) if not faults['uncertain'] else None
+            faults['confirmed_lower_percent']=round(100*faults['confirmed_killed']/total,1)
             return finish('measured')
     except Exception as exc:
         report['reason'] = '质量评测未完成：'+str(exc)
