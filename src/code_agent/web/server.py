@@ -1,5 +1,6 @@
 """Loopback-only stdlib HTTP adapter; Agent policies stay in the existing CLI factory."""
 import argparse
+import hashlib
 from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -45,6 +46,9 @@ class Run:
         self.started = time.monotonic()
         self.finished = None
         self.thread = None
+        self.comparison_id = None
+        self.report = None
+        self.phase = "queued"
 
     def clean(self, value):
         return json.loads(redact_text(json.dumps(value, ensure_ascii=False), [self.settings.api_key]))
@@ -74,7 +78,28 @@ class Run:
             return {"id":self.id, "events":self.events[after:], "next":len(self.events),
                     "done":self.done, "result":self.result, "mode":self.mode,
                     "variant":self.variant, "source":self.clean(self.source),
-                    "task":self.clean(self.task), "elapsed_sec":round((self.finished or time.monotonic())-self.started,1)}
+                    "task":self.clean(self.task), "comparison_id":self.comparison_id,
+                    "phase":self.phase, "report":self.report,
+                    "source_sha256":hashlib.sha256(self.source.encode()).hexdigest(),
+                    "budget":{"turns":self.settings.max_steps,"tokens":self.settings.max_total_tokens,
+                              "command_seconds":self.settings.max_exec_timeout},
+                    "elapsed_sec":0 if self.phase=="queued" else round((self.finished or time.monotonic())-self.started,1)}
+
+    def refresh_report(self):
+        if self.variant != "A4":
+            return
+        try:
+            report = json.loads(self.file("testgen_report.json"))
+        except (RequestError, ValueError):
+            return
+        with self.lock:
+            self.report = report
+
+    def handle_event(self, event):
+        data = event.to_dict()
+        self.emit(data)
+        if data["type"]=="tool_call_end" and data["name"]=="submit_tests":
+            self.refresh_report()
 
     def source_intact(self):
         source = self.workspace/"solution.py"
@@ -90,20 +115,24 @@ class Run:
         source.write_bytes(self.source.encode("utf-8"))
 
     def execute(self):
+        with self.lock:
+            self.started = time.monotonic()
+            self.phase = "running"
         try:
             args = SimpleNamespace(mock=False, tools=None, test_generation=self.variant=="A4",
                                    fault_feedback=False)
-            agent, _, _ = build_agent(args, self.settings, lambda e:self.emit(e.to_dict()),
+            agent, _, _ = build_agent(args, self.settings, self.handle_event,
                                       session_enabled=False)
             self.agent = agent
             if self.mode == "demo":
-                agent.llm = DemoLLM()
+                agent.llm = DemoLLM(variant=self.variant)
             def before_turn(current, state):
                 if self.cancelled.is_set() or time.monotonic()-self.started > 300:
                     current.abort()
             agent.before_turn = before_turn
             agent.state.add_user(self.task)
             result = agent.run().to_dict()
+            self.refresh_report()
             # Final verification is visible and separate from the model's own tool calls.
             unchanged = self.source_intact()
             validation = {"passed":False,"content":"运行已停止，未进行最终复验。","source_unchanged":unchanged}
@@ -140,6 +169,7 @@ class Run:
             with self.lock:
                 self.finished = time.monotonic()
                 self.done = True
+                self.phase = "done"
 
 
 class Application:
@@ -147,8 +177,9 @@ class Application:
         self.settings = settings
         self.lock = threading.Lock()
         self.runs = {}
+        self.comparisons = {}
 
-    def start(self, data):
+    def validate(self, data):
         source, task = data.get("source"), data.get("task")
         mode, variant = data.get("mode"), data.get("variant", "A0")
         if not isinstance(source,str) or not source.strip() or len(source)>32_000:
@@ -157,21 +188,62 @@ class Application:
             raise RequestError("请提供不超过4000字符的任务")
         if mode not in {"demo","real"} or variant not in {"A0","A4"}:
             raise RequestError("请选择有效的模型模式和Agent策略")
-        if mode=="demo" and (source.strip()!=SOURCE.strip() or task.strip()!=TASK or variant!="A0"):
+        if mode=="demo" and (source.strip()!=SOURCE.strip() or task.strip()!=TASK):
             raise RequestError("离线模式仅演示固定示例和任务；编辑源码或任务请选择真实模型")
         if mode=="real" and not self.settings.is_llm_configured:
             raise RequestError("真实模型未配置。请在项目.env填写LLM_API_KEY、LLM_BASE_URL、LLM_MODEL并重启UI")
+        return source, task, mode, variant
+
+    def admit(self, count):
+        if any(not run.done for run in self.runs.values()):
+            raise RequestError("已有任务在运行，请等待完成或先停止", 409)
+        while len(self.runs)+count>8:
+            oldest = next(iter(self.runs))
+            self.runs.pop(oldest).directory.cleanup()
+        self.comparisons = {key:ids for key,ids in self.comparisons.items()
+                            if all(run_id in self.runs for run_id in ids)}
+
+    def start(self, data):
+        source,task,mode,variant = self.validate(data)
         with self.lock:
-            if any(not run.done for run in self.runs.values()):
-                raise RequestError("已有任务在运行，请等待完成或先停止", 409)
-            while len(self.runs)>=8:
-                oldest = next(iter(self.runs))
-                self.runs.pop(oldest).directory.cleanup()
+            self.admit(1)
             run = Run(self.settings, source, task, mode, variant)
             self.runs[run.id] = run
             run.thread=threading.Thread(target=run.execute, daemon=True)
             run.thread.start()
             return run
+
+    def compare(self, data):
+        source,task,mode,_ = self.validate(data)
+        with self.lock:
+            self.admit(2)
+            comparison_id = uuid.uuid4().hex
+            pair = [Run(self.settings,source,task,mode,variant) for variant in ("A0","A4")]
+            for run in pair:
+                run.comparison_id = comparison_id
+                self.runs[run.id] = run
+            self.comparisons[comparison_id] = [run.id for run in pair]
+            def execute_pair():
+                for run in pair:
+                    run.execute()
+            thread = threading.Thread(target=execute_pair,daemon=True)
+            for run in pair:
+                run.thread = thread
+            thread.start()
+            return comparison_id
+
+    def comparison(self, comparison_id, after_a0=0, after_a4=0):
+        with self.lock:
+            ids = self.comparisons.get(comparison_id)
+            if ids is None:
+                raise RequestError("对比记录不存在或已清理",404)
+            snapshots = [self.runs[run_id].snapshot(after) for run_id,after in zip(ids,(after_a0,after_a4))]
+        return {"id":comparison_id,"runs":snapshots,"done":all(run["done"] for run in snapshots)}
+
+    def stop_comparison(self, comparison_id):
+        snapshot = self.comparison(comparison_id)
+        for run in snapshot["runs"]:
+            self.get(run["id"]).cancel()
 
     def get(self, run_id):
         with self.lock:
@@ -222,10 +294,17 @@ class Handler(BaseHTTPRequestHandler):
             if method=="GET" and url.path=="/api/config":
                 with app.lock:
                     latest=next(reversed(app.runs),None)
+                    comparison_id=app.runs[latest].comparison_id if latest else None
                 return self.send(200,{"source":SOURCE,"task":TASK,"real_configured":app.settings.is_llm_configured,
                     "model":redact_text(app.settings.model,[app.settings.api_key]),"execution_mode":app.settings.execution_mode,
-                    "latest_run":latest})
+                    "latest_run":latest,"latest_comparison":comparison_id})
             parts = url.path.strip("/").split("/")
+            if method=="GET" and len(parts)==3 and parts[:2]==["api","comparisons"]:
+                query = parse_qs(url.query)
+                after_a0,after_a4 = (int(query.get(key,["0"])[0]) for key in ("after_a0","after_a4"))
+                if min(after_a0,after_a4)<0:
+                    raise RequestError("无效的事件位置")
+                return self.send(200,app.comparison(parts[2],after_a0,after_a4))
             if method=="GET" and len(parts)==3 and parts[:2]==["api","runs"]:
                 after = int(parse_qs(url.query).get("after",["0"])[0])
                 if after<0:
@@ -245,6 +324,11 @@ class Handler(BaseHTTPRequestHandler):
                     raise RequestError("请求必须为JSON对象")
                 if url.path=="/api/runs":
                     return self.send(202,{"id":app.start(data).id})
+                if url.path=="/api/comparisons":
+                    return self.send(202,{"id":app.compare(data)})
+                if len(parts)==4 and parts[:2]==["api","comparisons"] and parts[3]=="stop":
+                    app.stop_comparison(parts[2])
+                    return self.send(202,{"stopping":True})
                 if len(parts)==4 and parts[:2]==["api","runs"] and parts[3]=="stop":
                     app.get(parts[2]).cancel()
                     return self.send(202,{"stopping":True})

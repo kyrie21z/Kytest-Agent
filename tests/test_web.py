@@ -29,7 +29,7 @@ def payload(**overrides):
 
 @pytest.fixture
 def app(tmp_path,monkeypatch):
-    monkeypatch.setattr(web,"DemoLLM",lambda:DemoLLM(delay=0))
+    monkeypatch.setattr(web,"DemoLLM",lambda variant="A0":DemoLLM(delay=0,variant=variant))
     application=web.Application(Settings(workspace=tmp_path))
     yield application
     application.close()
@@ -50,7 +50,7 @@ def test_demo_runs_real_tools_and_final_verification(app):
 
 
 @pytest.mark.parametrize('changes',[
-    {'source':SOURCE+'# edited'}, {'task':'another task'}, {'variant':'A4'},
+    {'source':SOURCE+'# edited'}, {'task':'another task'}, {'variant':'A5'},
     {'mode':'invalid'}, {'source':32_001*'x'}, {'task':4_001*'x'},
 ])
 def test_invalid_or_custom_scripted_requests_rejected(app,changes):
@@ -110,7 +110,7 @@ def test_busy_run_and_cooperative_stop(app,monkeypatch):
         def chat(self,messages,tools=None):
             entered.set();assert release.wait(5)
             return LLMResponse(content='finished request')
-    monkeypatch.setattr(web,'DemoLLM',Blocking)
+    monkeypatch.setattr(web,'DemoLLM',lambda **kwargs:Blocking())
     run=app.start(payload())
     try:
         assert entered.wait(3)
@@ -187,3 +187,86 @@ def test_http_rejects_cross_site_and_malformed_requests(http,path,body,headers,e
     url,_=http
     status,result=request(url+path,body,headers)
     assert status==expected and 'error' in json.loads(result)
+
+
+def test_a4_uses_actual_candidate_validator_and_same_final_cases(app):
+    run=app.start(payload(variant='A4'));data=wait(run)
+    assert data['result']['validation']['passed']
+    assert '5 passed' in data['result']['validation']['content']
+    assert data['result']['turns']==5 and data['result']['tool_calls']==4
+    report=data['report']
+    assert len(report['accepted'])==5 and len(report['attempts'])==7
+    assert [a['status'] for a in report['attempts']]==['ACCEPTED']*3+['FAIL','REJECTED','ACCEPTED','ACCEPTED']
+    assert 'contract_quote' in report['attempts'][4]['diagnostic']
+    assert 'submit_tests' in next(e for e in data['events'] if e['type']=='run_start')['tools']
+    assert 'test_single_point_interval' in run.file('test_solution.py')
+    assert run.file('solution.py')==SOURCE
+
+
+def wait_comparison(app,comparison_id):
+    for run_id in app.comparisons[comparison_id]:
+        wait(app.get(run_id))
+    return app.comparison(comparison_id)
+
+
+def test_comparison_freezes_identical_input_and_separate_workspaces(app):
+    comparison_id=app.compare(payload())
+    pair=wait_comparison(app,comparison_id)['runs']
+    a0,a4=pair
+    assert a0['variant']=='A0' and a4['variant']=='A4'
+    assert a0['source_sha256']==a4['source_sha256']
+    assert a0['source']==a4['source']==SOURCE and a0['task']==a4['task']==TASK
+    assert a0['mode']==a4['mode']=='demo'
+    assert a0['report'] is None and len(a4['report']['accepted'])==5
+    assert all(run['result']['validation']['passed'] for run in pair)
+    assert app.get(a0['id']).workspace!=app.get(a4['id']).workspace
+    assert app.get(a0['id']).finished <= app.get(a4['id']).started
+    assert all(app.get(run['id']).settings.max_steps==app.settings.max_steps for run in pair)
+    assert app.comparison(comparison_id,a0['next'],a4['next'])['runs'][0]['events']==[]
+
+
+def test_comparison_stop_cancels_queued_a4_without_model_call(app,monkeypatch):
+    entered,release=threading.Event(),threading.Event();calls=[]
+    class Blocking:
+        def __init__(self,variant):self.variant=variant
+        def chat(self,messages,tools=None):
+            calls.append(self.variant);entered.set();assert release.wait(5)
+            return LLMResponse(content='finished request')
+    monkeypatch.setattr(web,'DemoLLM',Blocking)
+    comparison_id=app.compare(payload())
+    try:
+        assert entered.wait(3)
+        pending=app.comparison(comparison_id)['runs'][1]
+        assert pending['phase']=='queued' and pending['elapsed_sec']==0
+        with pytest.raises(web.RequestError):app.start(payload())
+        with pytest.raises(web.RequestError):app.compare(payload())
+        app.stop_comparison(comparison_id)
+    finally:release.set()
+    pair=wait_comparison(app,comparison_id)['runs']
+    assert all(run['result']['status']=='aborted' for run in pair)
+    assert calls==['A0']
+
+
+def test_http_comparison_resume_download_and_bad_cursor(http):
+    url,app=http
+    status,body=request(url+'/api/comparisons',json.dumps(payload()).encode(),{'Content-Type':'application/json'})
+    assert status==202
+    comparison_id=json.loads(body)['id'];pair=wait_comparison(app,comparison_id)['runs']
+    _,body=request(url+'/api/config');assert json.loads(body)['latest_comparison']==comparison_id
+    status,body=request(url+'/api/comparisons/'+comparison_id)
+    assert status==200 and json.loads(body)['done']
+    assert json.loads(body)['runs'][1]['report']['attempts'][4]['status']=='REJECTED'
+    status,body=request(url+'/api/runs/'+pair[1]['id']+'/files/testgen_report.json')
+    assert status==200 and len(json.loads(body)['accepted'])==5
+    assert request(url+'/api/comparisons/'+comparison_id+'?after_a0=-1')[0]==400
+    assert request(url+'/api/comparisons/unknown')[0]==404
+
+
+def test_pruning_does_not_leave_partial_comparison(app,monkeypatch):
+    def fast(self):
+        self.done=True;self.phase='done';self.finished=time.monotonic()
+    monkeypatch.setattr(web.Run,'execute',fast)
+    comparison_id=app.compare(payload());wait_comparison(app,comparison_id)
+    for _ in range(7):wait(app.start(payload()))
+    with pytest.raises(web.RequestError):app.comparison(comparison_id)
+    assert len(app.runs)==8

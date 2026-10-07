@@ -12,3 +12,8 @@ real_run/保留MBPP/127 repeat_2 A5的完整请求/响应、工具事件、原�
 唯一差异是A0/MBPP/71 repeat_1的随机大列表揭示上游参考排序缺陷，原始0分保留。
 完整原件、严格失败回执和固定种子诊断见精简前Git版本，不能把派生统计重现
 称为全部程序重放成功。
+
+ui-comparison.json保存新版A0/A4界面的脚本机制演示与浏览器验收。
+两组最终测试相同；A4含刻意错误候选，真实验证器记录失败、拒绝和修正。
+ui-run.json、ui-acceptance.json保留上一版真实模型展示回执，其旧视频和截图可在
+[a7f07fc归档](https://github.com/kyrie21z/Kytest-Agent/tree/a7f07fc1eae646f9a81583187c58eff7cafe57ef/docs)核对。
