@@ -13,7 +13,12 @@ real_run/保留MBPP/127 repeat_2 A5的完整请求/响应、工具事件、原�
 完整原件、严格失败回执和固定种子诊断见精简前Git版本，不能把派生统计重现
 称为全部程序重放成功。
 
-ui-comparison.json保存新版A0/A4界面的脚本机制演示与浏览器验收。
-两组最终测试相同；A4含刻意错误候选，真实验证器记录失败、拒绝和修正。
+ui-parallel.json保存当前A0/A4真实并行展示、共同质量评价、浏览器验收与素材哈希。
+本次A0通过23项、A4通过6项，两者分支覆盖率100%、固定示例故障检出5/5。
+它是单例功能展示，不替代正式实验；视频为已完成真实运行的结果回顾。
+
+ui-comparison.json保留上一版脚本机制演示与浏览器验收。
+两组最终测试相同；A4含刻意错误候选，真实验证器记录失败、拒绝和修正。旧素材见
+[1d28567归档](https://github.com/kyrie21z/Kytest-Agent/tree/1d2856762d09281d6cd4bad157a421a78c02f8d9/docs)。
 ui-run.json、ui-acceptance.json保留上一版真实模型展示回执，其旧视频和截图可在
 [a7f07fc归档](https://github.com/kyrie21z/Kytest-Agent/tree/a7f07fc1eae646f9a81583187c58eff7cafe57ef/docs)核对。

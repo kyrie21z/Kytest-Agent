@@ -19,8 +19,9 @@ from ..session import redact_text
 from ..tools.base import resolve_workspace_path
 from ..tools.shell_tools import RunCommandTool
 from .demo import DemoLLM, SOURCE, TASK
+from .quality import evaluate_quality, pytest_counts
 
-FILES = {"solution.py", "test_solution.py", "testgen_report.json", "fault_feedback.json"}
+FILES = {"solution.py", "test_solution.py", "testgen_report.json", "fault_feedback.json", "quality_report.json"}
 
 
 class RequestError(Exception):
@@ -49,13 +50,16 @@ class Run:
         self.comparison_id = None
         self.report = None
         self.phase = "queued"
+        self.generation_finished = None
+        self.started_wall = None
+        self.finished_wall = None
 
     def clean(self, value):
         return json.loads(redact_text(json.dumps(value, ensure_ascii=False), [self.settings.api_key]))
 
     def emit(self, value):
         with self.lock:
-            self.events.append(self.clean(value))
+            self.events.append(self.clean({**value,"elapsed_sec":round(time.monotonic()-self.started,3)}))
 
     def cancel(self):
         self.cancelled.set()
@@ -80,6 +84,8 @@ class Run:
                     "variant":self.variant, "source":self.clean(self.source),
                     "task":self.clean(self.task), "comparison_id":self.comparison_id,
                     "phase":self.phase, "report":self.report,
+                    "generation_sec":None if self.generation_finished is None else round(self.generation_finished-self.started,3),
+                    "timing":{"started_unix":self.started_wall,"finished_unix":self.finished_wall},
                     "source_sha256":hashlib.sha256(self.source.encode()).hexdigest(),
                     "budget":{"turns":self.settings.max_steps,"tokens":self.settings.max_total_tokens,
                               "command_seconds":self.settings.max_exec_timeout},
@@ -117,6 +123,7 @@ class Run:
     def execute(self):
         with self.lock:
             self.started = time.monotonic()
+            self.started_wall = time.time()
             self.phase = "running"
         try:
             args = SimpleNamespace(mock=False, tools=None, test_generation=self.variant=="A4",
@@ -126,12 +133,22 @@ class Run:
             self.agent = agent
             if self.mode == "demo":
                 agent.llm = DemoLLM(variant=self.variant)
+            policy_position = 1  # The first user message is the submitted task.
             def before_turn(current, state):
+                nonlocal policy_position
+                for message in state.messages[policy_position:]:
+                    text = message.get("content", "")
+                    if self.variant=="A4" and message.get("role")=="user" and isinstance(text,str) and text.startswith("[System]"):
+                        self.emit({"type":"policy_feedback","message":text})
+                policy_position = len(state.messages)
                 if self.cancelled.is_set() or time.monotonic()-self.started > 300:
                     current.abort()
             agent.before_turn = before_turn
             agent.state.add_user(self.task)
             result = agent.run().to_dict()
+            with self.lock:
+                self.generation_finished = time.monotonic()
+                self.phase = "validating"
             self.refresh_report()
             # Final verification is visible and separate from the model's own tool calls.
             unchanged = self.source_intact()
@@ -148,7 +165,9 @@ class Run:
                 else:
                     checked = RunCommandTool(self.settings).run(
                         command="python -m pytest test_solution.py -q", timeout=15)
-                    validation.update(passed=checked.ok, content=checked.content)
+                    counts = pytest_counts(checked.content)
+                    validation.update(passed=checked.ok and counts["passed"]>0 and not counts["failed"] and not counts["errors"],
+                                      content=checked.content,counts=counts)
                     if not self.source_intact():
                         self.restore_source()
                         validation.update(passed=False,source_unchanged=False,
@@ -156,8 +175,24 @@ class Run:
             if self.cancelled.is_set():
                 result["status"]="aborted"
                 validation["passed"]=False
-            result["validation"] = validation
             self.emit({"type":"validation_end", **validation})
+            with self.lock:
+                self.phase = "evaluating"
+            self.emit({"type":"evaluation_start"})
+            quality = evaluate_quality(self.settings,self.source,self.file,validation,self.cancelled,self.emit)
+            if not self.source_intact():
+                self.restore_source()
+                validation.update(passed=False,source_unchanged=False,
+                                  content="质量评测后源码检查未通过，已恢复；本次产出无效。")
+            if self.cancelled.is_set():
+                result["status"]="aborted"
+            result["validation"] = validation
+            result["quality"] = quality
+            quality_path = self.workspace/"quality_report.json"
+            if quality_path.is_symlink():
+                quality_path.unlink()
+            quality_path.write_text(json.dumps(self.clean(quality),ensure_ascii=False,indent=2))
+            self.emit({"type":"evaluation_end", "quality":quality})
             with self.lock:
                 self.result = self.clean(result)
         except Exception as exc:
@@ -168,6 +203,7 @@ class Run:
         finally:
             with self.lock:
                 self.finished = time.monotonic()
+                self.finished_wall = time.time()
                 self.done = True
                 self.phase = "done"
 
@@ -223,13 +259,14 @@ class Application:
                 run.comparison_id = comparison_id
                 self.runs[run.id] = run
             self.comparisons[comparison_id] = [run.id for run in pair]
-            def execute_pair():
-                for run in pair:
-                    run.execute()
-            thread = threading.Thread(target=execute_pair,daemon=True)
+            gate = threading.Event()
+            def execute_one(run):
+                gate.wait()
+                run.execute()
             for run in pair:
-                run.thread = thread
-            thread.start()
+                run.thread = threading.Thread(target=execute_one,args=(run,),daemon=True)
+                run.thread.start()
+            gate.set()
             return comparison_id
 
     def comparison(self, comparison_id, after_a0=0, after_a4=0):
@@ -238,7 +275,7 @@ class Application:
             if ids is None:
                 raise RequestError("对比记录不存在或已清理",404)
             snapshots = [self.runs[run_id].snapshot(after) for run_id,after in zip(ids,(after_a0,after_a4))]
-        return {"id":comparison_id,"runs":snapshots,"done":all(run["done"] for run in snapshots)}
+        return {"id":comparison_id,"execution":"parallel","runs":snapshots,"done":all(run["done"] for run in snapshots)}
 
     def stop_comparison(self, comparison_id):
         snapshot = self.comparison(comparison_id)

@@ -11,7 +11,8 @@ import pytest
 from code_agent.config import Settings
 from code_agent.llm import LLMResponse
 from code_agent.web import server as web
-from code_agent.web.demo import DemoLLM, SOURCE, TASK
+from code_agent.web.demo import DemoLLM, SOURCE, TASK, TESTS
+from code_agent.web.quality import evaluate_quality, pytest_counts
 from tests.helpers import ScriptedLLM, text_response, tool_response
 
 
@@ -30,6 +31,7 @@ def payload(**overrides):
 @pytest.fixture
 def app(tmp_path,monkeypatch):
     monkeypatch.setattr(web,"DemoLLM",lambda variant="A0":DemoLLM(delay=0,variant=variant))
+    monkeypatch.setattr(web,"evaluate_quality",lambda *args:{"status":"not_measured","reason":"Lifecycle test"})
     application=web.Application(Settings(workspace=tmp_path))
     yield application
     application.close()
@@ -43,7 +45,7 @@ def test_demo_runs_real_tools_and_final_verification(app):
     assert run.file('solution.py')==SOURCE
     assert 'test_single_point_interval' in run.file('test_solution.py')
     assert [e['name'] for e in data['events'] if e['type']=='tool_call_start']==['read_file','write_file','run_command']
-    assert data['events'][-1]['type']=='validation_end'
+    assert data['events'][-1]['type']=='evaluation_end'
     assert run.snapshot(data['next'])['events']==[]
     time.sleep(.02)
     assert run.snapshot()['elapsed_sec']==data['elapsed_sec']
@@ -220,31 +222,34 @@ def test_comparison_freezes_identical_input_and_separate_workspaces(app):
     assert a0['report'] is None and len(a4['report']['accepted'])==5
     assert all(run['result']['validation']['passed'] for run in pair)
     assert app.get(a0['id']).workspace!=app.get(a4['id']).workspace
-    assert app.get(a0['id']).finished <= app.get(a4['id']).started
+    assert app.get(a0['id']).started < app.get(a4['id']).finished
+    assert app.get(a4['id']).started < app.get(a0['id']).finished
     assert all(app.get(run['id']).settings.max_steps==app.settings.max_steps for run in pair)
     assert app.comparison(comparison_id,a0['next'],a4['next'])['runs'][0]['events']==[]
 
 
-def test_comparison_stop_cancels_queued_a4_without_model_call(app,monkeypatch):
-    entered,release=threading.Event(),threading.Event();calls=[]
+def test_comparison_requests_overlap_and_stop_cancels_both(app,monkeypatch):
+    both_entered,release=threading.Event(),threading.Event();calls=[];lock=threading.Lock()
     class Blocking:
         def __init__(self,variant):self.variant=variant
         def chat(self,messages,tools=None):
-            calls.append(self.variant);entered.set();assert release.wait(5)
+            with lock:
+                calls.append(self.variant)
+                if len(calls)==2:both_entered.set()
+            assert release.wait(5)
             return LLMResponse(content='finished request')
     monkeypatch.setattr(web,'DemoLLM',Blocking)
     comparison_id=app.compare(payload())
     try:
-        assert entered.wait(3)
-        pending=app.comparison(comparison_id)['runs'][1]
-        assert pending['phase']=='queued' and pending['elapsed_sec']==0
+        assert both_entered.wait(3),'A4 must enter its request before A0 is released'
+        assert all(run['phase']=='running' for run in app.comparison(comparison_id)['runs'])
         with pytest.raises(web.RequestError):app.start(payload())
         with pytest.raises(web.RequestError):app.compare(payload())
         app.stop_comparison(comparison_id)
     finally:release.set()
     pair=wait_comparison(app,comparison_id)['runs']
     assert all(run['result']['status']=='aborted' for run in pair)
-    assert calls==['A0']
+    assert set(calls)=={'A0','A4'} and len(calls)==2
 
 
 def test_http_comparison_resume_download_and_bad_cursor(http):
@@ -270,3 +275,60 @@ def test_pruning_does_not_leave_partial_comparison(app,monkeypatch):
     for _ in range(7):wait(app.start(payload()))
     with pytest.raises(web.RequestError):app.comparison(comparison_id)
     assert len(app.runs)==8
+
+
+@pytest.mark.parametrize('test_code,killed',[
+    ('from solution import classify\ndef test_inside_only():\n    assert classify(5, 2, 8) == 0\n',1),
+    (TESTS,5),
+])
+def test_quality_distinguishes_weak_and_strong_passing_suites(tmp_path,test_code,killed):
+    report=evaluate_quality(Settings(workspace=tmp_path,max_exec_timeout=15),SOURCE,
+        lambda _:test_code,{'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)
+    assert report['status']=='measured',report
+    faults=report['fault_detection'];assert faults['total']==5 and faults['confirmed_killed']==killed
+    assert faults['percent']==20*killed and faults['uncertain']==0
+    assert report['coverage']['status']=='measured'
+    assert report['coverage']['branch_percent']==(50 if killed==1 else 100)
+    assert sum(item['status']=='SURVIVED' for item in faults['results'])==5-killed
+
+
+def test_failed_reference_blocks_quality_and_custom_source_has_no_fault_score(tmp_path):
+    report=evaluate_quality(Settings(workspace=tmp_path),'def f():\n    return 1\n',
+        lambda _: 'def test_ok():\n    from solution import f\n    assert f()==1\n',
+        {'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)
+    assert report['coverage']['line_percent']==100
+    assert report['fault_detection']['status']=='not_applicable'
+    assert report['fault_detection']['percent'] is None and report['fault_detection']['total'] is None
+    blocked=evaluate_quality(Settings(workspace=tmp_path),SOURCE,lambda _:pytest.fail('Must not read or execute'),
+        {'passed':False,'source_unchanged':True},threading.Event(),lambda _:None)
+    assert blocked['status']=='blocked' and blocked['fault_detection']['percent'] is None
+
+
+def test_only_skipped_tests_are_not_a_valid_suite(app,monkeypatch):
+    code='import pytest\n@pytest.mark.skip(reason="no executed assertion")\ndef test_skip():\n    assert True\n'
+    scripted_real(app,monkeypatch,[tool_response(('write_file',{'path':'test_solution.py','content':code})),text_response('done')])
+    result=wait(app.start(payload(mode='real')))['result']
+    assert not result['validation']['passed'] and result['validation']['counts']['skipped']==1
+
+
+def test_pytest_counts_use_final_summary_instead_of_model_claims():
+    assert pytest_counts('Claims: 90 passed\n1 failed, 2 passed in 0.01s\n')['failed']==1
+    assert pytest_counts('5 skipped in 0.02s')['passed']==0
+
+
+def test_quality_does_not_score_timeout_or_abnormal_exit_with_failure_output(tmp_path,monkeypatch):
+    from code_agent.tools.base import ToolResult
+    from code_agent.web import quality
+    original=quality.RunCommandTool.run
+    for header in ('已超时并被终止','退出码 2'):
+        def interrupted(tool,command,**kwargs):
+            if command=='python -m pytest test_solution.py -q':
+                return ToolResult.failure('$ '+command+'\n['+header+'｜耗时 5s｜超时上限 5s]\n1 failed in 0.01s')
+            return original(tool,command,**kwargs)
+        monkeypatch.setattr(quality.RunCommandTool,'run',interrupted)
+        report=quality.evaluate_quality(Settings(workspace=tmp_path),SOURCE,lambda _:TESTS,
+            {'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)
+        faults=report['fault_detection']
+        assert faults['confirmed_killed']==0 and faults['uncertain']==5
+        assert faults['percent'] is None
+        assert all(item['status']=='UNCERTAIN' for item in faults['results'])
