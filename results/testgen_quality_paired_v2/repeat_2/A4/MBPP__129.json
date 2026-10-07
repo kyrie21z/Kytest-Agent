@@ -1,0 +1,764 @@
+{
+  "instance_id": "MBPP/129",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 24219,
+    "output_tokens": 6375,
+    "total_tokens": 30594,
+    "final_text": "All 10 tests passed. Here is the accepted test suite:\n\n| # | Test Name | What It Checks |\n|---|-----------|----------------|\n| 1 | `test_valid_3x3_magic_square` | Classic Lo Shu magic square (sum=15) → True |\n| 2 | `test_not_a_magic_square_row_sums_differ` | Sequential 1–9 matrix with unequal row sums → False |\n| 3 | `test_single_element_matrix` | 1×1 matrix trivially passes → True |\n| 4 | `test_diagonal_mismatch` | All-zeros matrix (all sums = 0) → True |\n| 5 | `test_return_type_is_boolean` | Verifies return type is `bool`, not `None` or other |\n| 6 | `test_larger_magic_square_4x4` | Known 4×4 magic square (sum=34) → True |\n| 7 | `test_negative_numbers_in_matrix` | Mixed-sign matrix with unequal row sums → False |\n| 8 | `test_zero_values_in_matrix` | All-zero 3×3 matrix → True |\n| 9 | `test_column_sums_differ_from_row_sums` | Uniform rows but differing column sums → False |\n| 10 | `test_2x2_all_same_values` | 2×2 uniform matrix (all sums = 10) → True |\n\n**Remaining limitations:**\n\n- **Empty input**: The function crashes on `[]` or `[[]]` (no precondition documented). No test asserts this since the contract doesn't promise a specific behavior for empty inputs.\n- **Non-square rectangular matrices** (more rows than columns): These also crash with `IndexError`. We tested one direction (more cols than rows) which crashed, so we didn't include it.\n- **Distinctness / range checks**: A true mathematical magic square requires distinct positive integers from 1 to n². This implementation does not enforce that — it only checks sum equality. Tests like `[[5,5],[5,5]]` correctly return True under the implemented contract but would be rejected by a stricter definition.\n- **Floating-point values**: Not tested; the algorithm uses `sum()` which works with floats, but no edge cases around precision were covered.\n- **Very large matrices**: Only up to 4×4 tested; performance or overflow issues on larger inputs are untested.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.03,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 20 行，显示第 1-20 行："
+      },
+      {
+        "turn": 2,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.03,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 20 行，显示第 1-20 行："
+      },
+      {
+        "turn": 3,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.026,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "import pytest\nfrom solution import magic_square_test\n\n\ndef test_valid_3x3_magic_…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（3597 字符，133 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.235,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_valid_3x3_magic_square",
+              "code": "from solution import magic_square_test\n\ndef test_valid_3x3_magic_square():\n    '''A classic 3x3 magic square where every row, column, and diagonal sums to 15.'''\n    my_matrix = [\n        [8, 1, 6],\n        [3, 5, 7],\n        [4, 9, 2]\n    ]\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 integer matrix with values 1-9 arranged as a known magic square",
+              "oracle_reason": "Row sums: 15, 15, 15; Column sums: 15, 15, 15; Main diag: 8+5+2=15; Anti-diag: 6+5+4=15. All sums equal 15, so function should return True.",
+              "fault_hypothesis": "Function incorrectly returns False for valid magic squares due to off-by-one in diagonal traversal or incorrect sum accumulation."
+            },
+            {
+              "name": "test_not_a_magic_square_row_sums_differ",
+              "code": "from solution import magic_square_test\n\ndef test_not_a_magic_square_row_sums_differ():\n    '''Rows have different sums, so it cannot be a magic square.'''\n    my_matrix = [\n        [1, 2, 3],\n        [4, 5, 6],\n        [7, 8, 9]\n    ]\n    assert magic_square_test(my_matrix) is False",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 integer matrix with sequential values 1-9",
+              "oracle_reason": "Row sums are 6, 15, 24 which are not equal. Since at least two sums differ, the function must return False.",
+              "fault_hypothesis": "Function ignores row sums and only checks columns or diagonals, causing false positives."
+            },
+            {
+              "name": "test_single_element_matrix",
+              "code": "from solution import magic_square_test\n\ndef test_single_element_matrix():\n    '''A 1x1 matrix trivially satisfies the magic square property since there is only one sum.'''\n    my_matrix = [[42]]\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "1x1 matrix containing any single integer value",
+              "oracle_reason": "With one element, there is exactly one row sum (42), one column sum (42), one main diagonal sum (42), and one anti-diagonal sum (42). All four sums are identical, so the set has length 1 and the function returns True.",
+              "fault_hypothesis": "Function crashes on 1x1 matrices due to index errors or assumes minimum size of 2x2."
+            },
+            {
+              "name": "test_diagonal_mismatch",
+              "code": "from solution import magic_square_test\n\ndef test_diagonal_mismatch():\n    '''All rows and columns sum equally but diagonals do not match.'''\n    my_matrix = [\n        [2, 2, 2],\n        [2, 2, 2],\n        [2, 2, 2]\n    ]\n    # This actually IS a magic square by the algorithm (all sums = 6)\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 matrix where all elements are identical",
+              "oracle_reason": "Row sums: 6, 6, 6; Column sums: 6, 6, 6; Main diag: 2+2+2=6; Anti-diag: 2+2+2=6. All sums equal 6, so function returns True.",
+              "fault_hypothesis": "Function incorrectly rejects uniform matrices because it expects distinct values (a stricter definition than what the code implements)."
+            },
+            {
+              "name": "test_rectangular_matrix_more_cols_than_rows",
+              "code": "from solution import magic_square_test\n\ndef test_rectangular_matrix_more_cols_than_rows():\n    '''A non-square matrix (more columns than rows) — algorithm still runs without validation.'''\n    my_matrix = [\n        [1, 2, 3],\n        [4, 5, 6]\n    ]\n    # iSize = 3 (len of first row), but only 2 rows\n    # Row sums: 6, 15 -> unequal, so False\n    assert magic_square_test(my_matrix) is False",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "2x3 rectangular matrix (non-square)",
+              "oracle_reason": "Row sums are 6 and 15, which differ. The function should return False regardless of whether it validates squareness.",
+              "fault_hypothesis": "Function crashes with IndexError when accessing my_matrix[i][i] for i >= number of rows, instead of returning False."
+            },
+            {
+              "name": "test_return_type_is_boolean",
+              "code": "from solution import magic_square_test\n\ndef test_return_type_is_boolean():\n    '''The function must always return a boolean value, never None or other types.'''\n    result_true = magic_square_test([[1]])\n    result_false = magic_square_test([[1, 2], [3, 4]])\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "Two small matrices: one that should pass and one that should fail",
+              "oracle_reason": "The function's contract implies it returns a boolean indicating whether the matrix is a magic square. Both inputs produce deterministic results that can be verified independently.",
+              "fault_hypothesis": "Function returns None, an integer, or some other non-boolean type due to missing return statement or incorrect logic path."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_valid_3x3_magic_square\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"ass"
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.769,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_larger_magic_square_4x4",
+              "code": "from solution import magic_square_test\n\ndef test_larger_magic_square_4x4():\n    '''A known 4x4 magic square where all lines sum to 34.'''\n    my_matrix = [\n        [1, 15, 14, 4],\n        [12, 6, 7, 9],\n        [8, 10, 11, 5],\n        [13, 3, 2, 16]\n    ]\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "4x4 integer matrix forming a known magic square with magic constant 34",
+              "oracle_reason": "Row sums: 34, 34, 34, 34; Column sums: 34, 34, 34, 34; Main diag: 1+6+11+16=34; Anti-diag: 4+7+10+13=34. All eight sums equal 34, so set has length 1 and function returns True.",
+              "fault_hypothesis": "Function fails on larger matrices due to incorrect diagonal indexing or off-by-one errors in loop bounds."
+            },
+            {
+              "name": "test_negative_numbers_in_matrix",
+              "code": "from solution import magic_square_test\n\ndef test_negative_numbers_in_matrix():\n    '''Matrix containing negative numbers — algorithm does not restrict signs.'''\n    my_matrix = [\n        [-1, 5, -2],\n        [3, 1, -1],\n        [1, -3, 5]\n    ]\n    # Row sums: 2, 3, 3 -> unequal, so False\n    assert magic_square_test(my_matrix) is False",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 integer matrix with mixed positive and negative values",
+              "oracle_reason": "Row sums are 2, 3, and 3 which are not all equal. Since at least two row sums differ, the function must return False.",
+              "fault_hypothesis": "Function incorrectly handles negative numbers by taking absolute values or skipping them during summation."
+            },
+            {
+              "name": "test_zero_values_in_matrix",
+              "code": "from solution import magic_square_test\n\ndef test_zero_values_in_matrix():\n    '''All-zero matrix — all sums are zero, so they are equal.'''\n    my_matrix = [\n        [0, 0, 0],\n        [0, 0, 0],\n        [0, 0, 0]\n    ]\n    # All row/col/diag sums are 0, set has length 1\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 matrix filled entirely with zeros",
+              "oracle_reason": "Every row sum is 0, every column sum is 0, both diagonals sum to 0. The set of all sums is {0} with length 1, so the function returns True.",
+              "fault_hypothesis": "Function treats zero-sum as invalid or skips zero elements, causing incorrect results."
+            },
+            {
+              "name": "test_column_sums_differ_from_row_sums",
+              "code": "from solution import magic_square_test\n\ndef test_column_sums_differ_from_row_sums():\n    '''Rows sum equally but columns do not match row sums.'''\n    my_matrix = [\n        [1, 2, 3],\n        [1, 2, 3],\n        [1, 2, 3]\n    ]\n    # Row sums: 6, 6, 6; Col sums: 3, 6, 9 -> col sums differ from row sums\n    assert magic_square_test(my_matrix) is False",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "3x3 matrix where each row is identical [1, 2, 3]",
+              "oracle_reason": "Row sums are all 6, but column sums are 3, 6, 9. Since column sums differ from row sums (and from each other), the set of all sums has more than one element, so function returns False.",
+              "fault_hypothesis": "Function only checks row sums and ignores column sums, producing false positives for matrices with uniform rows."
+            },
+            {
+              "name": "test_2x2_all_same_values",
+              "code": "from solution import magic_square_test\n\ndef test_2x2_all_same_values():\n    '''A 2x2 matrix where all values are identical — all sums are equal.'''\n    my_matrix = [\n        [5, 5],\n        [5, 5]\n    ]\n    # Rows: 10, 10; Cols: 10, 10; Diag1: 5+5=10; Diag2: 5+5=10\n    assert magic_square_test(my_matrix) is True",
+              "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+              "input_domain": "2x2 matrix with all elements equal to 5",
+              "oracle_reason": "Row sums: 10, 10; Column sums: 10, 10; Main diagonal: 5+5=10; Anti-diagonal: 5+5=10. All four sums equal 10, so set has length 1 and function returns True.",
+              "fault_hypothesis": "Function assumes minimum size of 3x3 and crashes or misbehaves on 2x2 matrices."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 10, \"attempts_remaining\": 13, \"results\": [{\"name\": \"test_larger_magic_square_4x4\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"a"
+      }
+    ],
+    "generation_seconds": 62.852,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_valid_3x3_magic_square",
+          "code": "from solution import magic_square_test\n\ndef test_valid_3x3_magic_square():\n    '''A classic 3x3 magic square where every row, column, and diagonal sums to 15.'''\n    my_matrix = [\n        [8, 1, 6],\n        [3, 5, 7],\n        [4, 9, 2]\n    ]\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 integer matrix with values 1-9 arranged as a known magic square",
+          "oracle_reason": "Row sums: 15, 15, 15; Column sums: 15, 15, 15; Main diag: 8+5+2=15; Anti-diag: 6+5+4=15. All sums equal 15, so function should return True.",
+          "fault_hypothesis": "Function incorrectly returns False for valid magic squares due to off-by-one in diagonal traversal or incorrect sum accumulation."
+        },
+        {
+          "name": "test_not_a_magic_square_row_sums_differ",
+          "code": "from solution import magic_square_test\n\ndef test_not_a_magic_square_row_sums_differ():\n    '''Rows have different sums, so it cannot be a magic square.'''\n    my_matrix = [\n        [1, 2, 3],\n        [4, 5, 6],\n        [7, 8, 9]\n    ]\n    assert magic_square_test(my_matrix) is False",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 integer matrix with sequential values 1-9",
+          "oracle_reason": "Row sums are 6, 15, 24 which are not equal. Since at least two sums differ, the function must return False.",
+          "fault_hypothesis": "Function ignores row sums and only checks columns or diagonals, causing false positives."
+        },
+        {
+          "name": "test_single_element_matrix",
+          "code": "from solution import magic_square_test\n\ndef test_single_element_matrix():\n    '''A 1x1 matrix trivially satisfies the magic square property since there is only one sum.'''\n    my_matrix = [[42]]\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "1x1 matrix containing any single integer value",
+          "oracle_reason": "With one element, there is exactly one row sum (42), one column sum (42), one main diagonal sum (42), and one anti-diagonal sum (42). All four sums are identical, so the set has length 1 and the function returns True.",
+          "fault_hypothesis": "Function crashes on 1x1 matrices due to index errors or assumes minimum size of 2x2."
+        },
+        {
+          "name": "test_diagonal_mismatch",
+          "code": "from solution import magic_square_test\n\ndef test_diagonal_mismatch():\n    '''All rows and columns sum equally but diagonals do not match.'''\n    my_matrix = [\n        [2, 2, 2],\n        [2, 2, 2],\n        [2, 2, 2]\n    ]\n    # This actually IS a magic square by the algorithm (all sums = 6)\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 matrix where all elements are identical",
+          "oracle_reason": "Row sums: 6, 6, 6; Column sums: 6, 6, 6; Main diag: 2+2+2=6; Anti-diag: 2+2+2=6. All sums equal 6, so function returns True.",
+          "fault_hypothesis": "Function incorrectly rejects uniform matrices because it expects distinct values (a stricter definition than what the code implements)."
+        },
+        {
+          "name": "test_return_type_is_boolean",
+          "code": "from solution import magic_square_test\n\ndef test_return_type_is_boolean():\n    '''The function must always return a boolean value, never None or other types.'''\n    result_true = magic_square_test([[1]])\n    result_false = magic_square_test([[1, 2], [3, 4]])\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "Two small matrices: one that should pass and one that should fail",
+          "oracle_reason": "The function's contract implies it returns a boolean indicating whether the matrix is a magic square. Both inputs produce deterministic results that can be verified independently.",
+          "fault_hypothesis": "Function returns None, an integer, or some other non-boolean type due to missing return statement or incorrect logic path."
+        },
+        {
+          "name": "test_larger_magic_square_4x4",
+          "code": "from solution import magic_square_test\n\ndef test_larger_magic_square_4x4():\n    '''A known 4x4 magic square where all lines sum to 34.'''\n    my_matrix = [\n        [1, 15, 14, 4],\n        [12, 6, 7, 9],\n        [8, 10, 11, 5],\n        [13, 3, 2, 16]\n    ]\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "4x4 integer matrix forming a known magic square with magic constant 34",
+          "oracle_reason": "Row sums: 34, 34, 34, 34; Column sums: 34, 34, 34, 34; Main diag: 1+6+11+16=34; Anti-diag: 4+7+10+13=34. All eight sums equal 34, so set has length 1 and function returns True.",
+          "fault_hypothesis": "Function fails on larger matrices due to incorrect diagonal indexing or off-by-one errors in loop bounds."
+        },
+        {
+          "name": "test_negative_numbers_in_matrix",
+          "code": "from solution import magic_square_test\n\ndef test_negative_numbers_in_matrix():\n    '''Matrix containing negative numbers — algorithm does not restrict signs.'''\n    my_matrix = [\n        [-1, 5, -2],\n        [3, 1, -1],\n        [1, -3, 5]\n    ]\n    # Row sums: 2, 3, 3 -> unequal, so False\n    assert magic_square_test(my_matrix) is False",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 integer matrix with mixed positive and negative values",
+          "oracle_reason": "Row sums are 2, 3, and 3 which are not all equal. Since at least two row sums differ, the function must return False.",
+          "fault_hypothesis": "Function incorrectly handles negative numbers by taking absolute values or skipping them during summation."
+        },
+        {
+          "name": "test_zero_values_in_matrix",
+          "code": "from solution import magic_square_test\n\ndef test_zero_values_in_matrix():\n    '''All-zero matrix — all sums are zero, so they are equal.'''\n    my_matrix = [\n        [0, 0, 0],\n        [0, 0, 0],\n        [0, 0, 0]\n    ]\n    # All row/col/diag sums are 0, set has length 1\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 matrix filled entirely with zeros",
+          "oracle_reason": "Every row sum is 0, every column sum is 0, both diagonals sum to 0. The set of all sums is {0} with length 1, so the function returns True.",
+          "fault_hypothesis": "Function treats zero-sum as invalid or skips zero elements, causing incorrect results."
+        },
+        {
+          "name": "test_column_sums_differ_from_row_sums",
+          "code": "from solution import magic_square_test\n\ndef test_column_sums_differ_from_row_sums():\n    '''Rows sum equally but columns do not match row sums.'''\n    my_matrix = [\n        [1, 2, 3],\n        [1, 2, 3],\n        [1, 2, 3]\n    ]\n    # Row sums: 6, 6, 6; Col sums: 3, 6, 9 -> col sums differ from row sums\n    assert magic_square_test(my_matrix) is False",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "3x3 matrix where each row is identical [1, 2, 3]",
+          "oracle_reason": "Row sums are all 6, but column sums are 3, 6, 9. Since column sums differ from row sums (and from each other), the set of all sums has more than one element, so function returns False.",
+          "fault_hypothesis": "Function only checks row sums and ignores column sums, producing false positives for matrices with uniform rows."
+        },
+        {
+          "name": "test_2x2_all_same_values",
+          "code": "from solution import magic_square_test\n\ndef test_2x2_all_same_values():\n    '''A 2x2 matrix where all values are identical — all sums are equal.'''\n    my_matrix = [\n        [5, 5],\n        [5, 5]\n    ]\n    # Rows: 10, 10; Cols: 10, 10; Diag1: 5+5=10; Diag2: 5+5=10\n    assert magic_square_test(my_matrix) is True",
+          "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+          "input_domain": "2x2 matrix with all elements equal to 5",
+          "oracle_reason": "Row sums: 10, 10; Column sums: 10, 10; Main diagonal: 5+5=10; Anti-diagonal: 5+5=10. All four sums equal 10, so set has length 1 and function returns True.",
+          "fault_hypothesis": "Function assumes minimum size of 3x3 and crashes or misbehaves on 2x2 matrices."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_valid_3x3_magic_square",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_not_a_magic_square_row_sums_differ",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.216,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element_matrix",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_diagonal_mismatch",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_rectangular_matrix_more_cols_than_rows",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.215,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________ test_rectangular_matrix_more_cols_than_rows __________________\ntest_solution.py:11: in test_rectangular_matrix_more_cols_than_rows\n    assert magic_square_test(my_matrix) is False\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in magic_square_test\n    result1 +=my_matrix[i][i]\n              ^^^^^^^^^^^^\nE   IndexError: list index out of range\n=========================== short test summary info ============================\nFAILED test_solution.py::test_rectangular_matrix_more_cols_than_rows - IndexE...\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_is_boolean",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_larger_magic_square_4x4",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_negative_numbers_in_matrix",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_values_in_matrix",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_column_sums_differ_from_row_sums",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_2x2_all_same_values",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 21,
+      "validation_seconds": 3.769,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_2/A4/MBPP__129.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 10,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "10 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 17,
+    "executable_lines": 17,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 17,
+        "column": 7,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_valid_3x3_magic_square",
+          "test_solution.py::test_single_element_matrix",
+          "test_solution.py::test_diagonal_mismatch",
+          "test_solution.py::test_return_type_is_boolean",
+          "test_solution.py::test_larger_magic_square_4x4",
+          "test_solution.py::test_zero_values_in_matrix",
+          "test_solution.py::test_2x2_all_same_values"
+        ],
+        "duration_sec": 0.26780576797318645,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 7,
+        "errors": 0,
+        "summary": "7 failed, 3 passed in 0.07s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "BCR",
+        "line": 18,
+        "column": 15,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_not_a_magic_square_row_sums_differ",
+          "test_solution.py::test_return_type_is_boolean",
+          "test_solution.py::test_negative_numbers_in_matrix",
+          "test_solution.py::test_column_sums_differ_from_row_sums"
+        ],
+        "duration_sec": 0.2522900460171513,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 6,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 6 passed in 0.06s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "BCR",
+        "line": 19,
+        "column": 11,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_valid_3x3_magic_square",
+          "test_solution.py::test_single_element_matrix",
+          "test_solution.py::test_diagonal_mismatch",
+          "test_solution.py::test_return_type_is_boolean",
+          "test_solution.py::test_larger_magic_square_4x4",
+          "test_solution.py::test_zero_values_in_matrix",
+          "test_solution.py::test_2x2_all_same_values"
+        ],
+        "duration_sec": 0.26758058700943366,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 7,
+        "errors": 0,
+        "summary": "7 failed, 3 passed in 0.07s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.101
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.03,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 20 行，显示第 1-20 行："
+    },
+    {
+      "turn": 2,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.03,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 20 行，显示第 1-20 行："
+    },
+    {
+      "turn": 3,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.026,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "import pytest\nfrom solution import magic_square_test\n\n\ndef test_valid_3x3_magic_…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（3597 字符，133 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.235,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_valid_3x3_magic_square",
+            "code": "from solution import magic_square_test\n\ndef test_valid_3x3_magic_square():\n    '''A classic 3x3 magic square where every row, column, and diagonal sums to 15.'''\n    my_matrix = [\n        [8, 1, 6],\n        [3, 5, 7],\n        [4, 9, 2]\n    ]\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 integer matrix with values 1-9 arranged as a known magic square",
+            "oracle_reason": "Row sums: 15, 15, 15; Column sums: 15, 15, 15; Main diag: 8+5+2=15; Anti-diag: 6+5+4=15. All sums equal 15, so function should return True.",
+            "fault_hypothesis": "Function incorrectly returns False for valid magic squares due to off-by-one in diagonal traversal or incorrect sum accumulation."
+          },
+          {
+            "name": "test_not_a_magic_square_row_sums_differ",
+            "code": "from solution import magic_square_test\n\ndef test_not_a_magic_square_row_sums_differ():\n    '''Rows have different sums, so it cannot be a magic square.'''\n    my_matrix = [\n        [1, 2, 3],\n        [4, 5, 6],\n        [7, 8, 9]\n    ]\n    assert magic_square_test(my_matrix) is False",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 integer matrix with sequential values 1-9",
+            "oracle_reason": "Row sums are 6, 15, 24 which are not equal. Since at least two sums differ, the function must return False.",
+            "fault_hypothesis": "Function ignores row sums and only checks columns or diagonals, causing false positives."
+          },
+          {
+            "name": "test_single_element_matrix",
+            "code": "from solution import magic_square_test\n\ndef test_single_element_matrix():\n    '''A 1x1 matrix trivially satisfies the magic square property since there is only one sum.'''\n    my_matrix = [[42]]\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "1x1 matrix containing any single integer value",
+            "oracle_reason": "With one element, there is exactly one row sum (42), one column sum (42), one main diagonal sum (42), and one anti-diagonal sum (42). All four sums are identical, so the set has length 1 and the function returns True.",
+            "fault_hypothesis": "Function crashes on 1x1 matrices due to index errors or assumes minimum size of 2x2."
+          },
+          {
+            "name": "test_diagonal_mismatch",
+            "code": "from solution import magic_square_test\n\ndef test_diagonal_mismatch():\n    '''All rows and columns sum equally but diagonals do not match.'''\n    my_matrix = [\n        [2, 2, 2],\n        [2, 2, 2],\n        [2, 2, 2]\n    ]\n    # This actually IS a magic square by the algorithm (all sums = 6)\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 matrix where all elements are identical",
+            "oracle_reason": "Row sums: 6, 6, 6; Column sums: 6, 6, 6; Main diag: 2+2+2=6; Anti-diag: 2+2+2=6. All sums equal 6, so function returns True.",
+            "fault_hypothesis": "Function incorrectly rejects uniform matrices because it expects distinct values (a stricter definition than what the code implements)."
+          },
+          {
+            "name": "test_rectangular_matrix_more_cols_than_rows",
+            "code": "from solution import magic_square_test\n\ndef test_rectangular_matrix_more_cols_than_rows():\n    '''A non-square matrix (more columns than rows) — algorithm still runs without validation.'''\n    my_matrix = [\n        [1, 2, 3],\n        [4, 5, 6]\n    ]\n    # iSize = 3 (len of first row), but only 2 rows\n    # Row sums: 6, 15 -> unequal, so False\n    assert magic_square_test(my_matrix) is False",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "2x3 rectangular matrix (non-square)",
+            "oracle_reason": "Row sums are 6 and 15, which differ. The function should return False regardless of whether it validates squareness.",
+            "fault_hypothesis": "Function crashes with IndexError when accessing my_matrix[i][i] for i >= number of rows, instead of returning False."
+          },
+          {
+            "name": "test_return_type_is_boolean",
+            "code": "from solution import magic_square_test\n\ndef test_return_type_is_boolean():\n    '''The function must always return a boolean value, never None or other types.'''\n    result_true = magic_square_test([[1]])\n    result_false = magic_square_test([[1, 2], [3, 4]])\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "Two small matrices: one that should pass and one that should fail",
+            "oracle_reason": "The function's contract implies it returns a boolean indicating whether the matrix is a magic square. Both inputs produce deterministic results that can be verified independently.",
+            "fault_hypothesis": "Function returns None, an integer, or some other non-boolean type due to missing return statement or incorrect logic path."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_valid_3x3_magic_square\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"ass"
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.769,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_larger_magic_square_4x4",
+            "code": "from solution import magic_square_test\n\ndef test_larger_magic_square_4x4():\n    '''A known 4x4 magic square where all lines sum to 34.'''\n    my_matrix = [\n        [1, 15, 14, 4],\n        [12, 6, 7, 9],\n        [8, 10, 11, 5],\n        [13, 3, 2, 16]\n    ]\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "4x4 integer matrix forming a known magic square with magic constant 34",
+            "oracle_reason": "Row sums: 34, 34, 34, 34; Column sums: 34, 34, 34, 34; Main diag: 1+6+11+16=34; Anti-diag: 4+7+10+13=34. All eight sums equal 34, so set has length 1 and function returns True.",
+            "fault_hypothesis": "Function fails on larger matrices due to incorrect diagonal indexing or off-by-one errors in loop bounds."
+          },
+          {
+            "name": "test_negative_numbers_in_matrix",
+            "code": "from solution import magic_square_test\n\ndef test_negative_numbers_in_matrix():\n    '''Matrix containing negative numbers — algorithm does not restrict signs.'''\n    my_matrix = [\n        [-1, 5, -2],\n        [3, 1, -1],\n        [1, -3, 5]\n    ]\n    # Row sums: 2, 3, 3 -> unequal, so False\n    assert magic_square_test(my_matrix) is False",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 integer matrix with mixed positive and negative values",
+            "oracle_reason": "Row sums are 2, 3, and 3 which are not all equal. Since at least two row sums differ, the function must return False.",
+            "fault_hypothesis": "Function incorrectly handles negative numbers by taking absolute values or skipping them during summation."
+          },
+          {
+            "name": "test_zero_values_in_matrix",
+            "code": "from solution import magic_square_test\n\ndef test_zero_values_in_matrix():\n    '''All-zero matrix — all sums are zero, so they are equal.'''\n    my_matrix = [\n        [0, 0, 0],\n        [0, 0, 0],\n        [0, 0, 0]\n    ]\n    # All row/col/diag sums are 0, set has length 1\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 matrix filled entirely with zeros",
+            "oracle_reason": "Every row sum is 0, every column sum is 0, both diagonals sum to 0. The set of all sums is {0} with length 1, so the function returns True.",
+            "fault_hypothesis": "Function treats zero-sum as invalid or skips zero elements, causing incorrect results."
+          },
+          {
+            "name": "test_column_sums_differ_from_row_sums",
+            "code": "from solution import magic_square_test\n\ndef test_column_sums_differ_from_row_sums():\n    '''Rows sum equally but columns do not match row sums.'''\n    my_matrix = [\n        [1, 2, 3],\n        [1, 2, 3],\n        [1, 2, 3]\n    ]\n    # Row sums: 6, 6, 6; Col sums: 3, 6, 9 -> col sums differ from row sums\n    assert magic_square_test(my_matrix) is False",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "3x3 matrix where each row is identical [1, 2, 3]",
+            "oracle_reason": "Row sums are all 6, but column sums are 3, 6, 9. Since column sums differ from row sums (and from each other), the set of all sums has more than one element, so function returns False.",
+            "fault_hypothesis": "Function only checks row sums and ignores column sums, producing false positives for matrices with uniform rows."
+          },
+          {
+            "name": "test_2x2_all_same_values",
+            "code": "from solution import magic_square_test\n\ndef test_2x2_all_same_values():\n    '''A 2x2 matrix where all values are identical — all sums are equal.'''\n    my_matrix = [\n        [5, 5],\n        [5, 5]\n    ]\n    # Rows: 10, 10; Cols: 10, 10; Diag1: 5+5=10; Diag2: 5+5=10\n    assert magic_square_test(my_matrix) is True",
+            "contract_quote": "'Write a function to calculate whether the matrix is a magic square.'",
+            "input_domain": "2x2 matrix with all elements equal to 5",
+            "oracle_reason": "Row sums: 10, 10; Column sums: 10, 10; Main diagonal: 5+5=10; Anti-diagonal: 5+5=10. All four sums equal 10, so set has length 1 and function returns True.",
+            "fault_hypothesis": "Function assumes minimum size of 3x3 and crashes or misbehaves on 2x2 matrices."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 10, \"attempts_remaining\": 13, \"results\": [{\"name\": \"test_larger_magic_square_4x4\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"a"
+    }
+  ],
+  "started_at": 1791346526.6549697,
+  "duration_sec": 65.068,
+  "tests_chars": 3077
+}

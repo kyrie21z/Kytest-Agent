@@ -1,0 +1,588 @@
+{
+  "instance_id": "MBPP/71",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 4,
+    "llm_calls": 4,
+    "tool_calls": 3,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 12790,
+    "output_tokens": 2456,
+    "total_tokens": 15246,
+    "final_text": "All 6 tests were accepted and written to `test_solution.py`. Here's a summary:\n\n| Test | What it covers | Fault detected |\n|---|---|---|\n| `test_empty_list` | Edge case: empty input | Crash or non-empty return on `[]` |\n| `test_single_element` | Edge case: one element | Corruption of trivially-sorted data |\n| `test_already_sorted` | Best-case scenario | Unnecessary swaps corrupting sorted order |\n| `test_unsorted_basic` | Core functionality | Incomplete sorting (elements out of order) |\n| `test_with_duplicates` | Multiset preservation | Dropped or duplicated elements |\n| `test_negative_numbers` | Signed integer comparisons | Sign-handling bugs in comparison logic |\n\n**Remaining limitations:**\n\n1. **No large-scale stress testing** — the list sizes are small (up to 10 elements). Comb sort's gap-reduction behavior with larger lists could expose subtle issues (e.g., infinite loops if `gaps` gets stuck at 1, or incorrect final pass when `gaps=1`).\n2. **No type-mismatch testing** — the contract doesn't specify behavior for non-list inputs (tuples, strings, etc.), so we can't assert exceptions for those.\n3. **No stability test** — while comb sort is inherently unstable, we don't verify this property explicitly.\n4. **No boundary on shrink factor** — the hardcoded `shrink_fact = 1.3` means gaps decrease geometrically; edge cases where `int(float(gaps)/1.3)` produces unexpected values (e.g., gaps getting stuck) aren't tested with carefully crafted sizes.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.028,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 18 行，显示第 1-18 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.148,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "import solution\n\ndef test_empty_list():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: empty list []\n    # Expected: returns an empty list; no crash on len=0\n    # Fault hypothesis: function crashes or returns non-empty for empty input\n    nums = []\n    result = solution.comb_sort(nums)\n    assert result == []\n    assert result is nums  # in-place modification\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "empty list []",
+              "oracle_reason": "An empty list has no elements to sort; the function should return an empty list without error.",
+              "fault_hypothesis": "Function crashes on empty input or returns a non-empty list."
+            },
+            {
+              "name": "test_single_element",
+              "code": "import solution\n\ndef test_single_element():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with one element [42]\n    # Expected: returns the same single-element list unchanged\n    # Fault hypothesis: function swaps incorrectly or returns wrong type\n    nums = [42]\n    result = solution.comb_sort(nums)\n    assert result == [42]\n    assert result is nums\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "single-element list [42]",
+              "oracle_reason": "A single-element list is trivially sorted; the function should return it unchanged.",
+              "fault_hypothesis": "Function modifies a single-element list incorrectly or returns wrong type."
+            },
+            {
+              "name": "test_already_sorted",
+              "code": "import solution\n\ndef test_already_sorted():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: pre-sorted list [1, 2, 3, 4, 5]\n    # Expected: returns the same sorted list\n    # Fault hypothesis: function corrupts already-sorted data\n    nums = [1, 2, 3, 4, 5]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "already sorted list [1, 2, 3, 4, 5]",
+              "oracle_reason": "An already sorted list should remain sorted after applying any correct sorting algorithm.",
+              "fault_hypothesis": "Function corrupts already-sorted data by performing unnecessary swaps."
+            },
+            {
+              "name": "test_unsorted_basic",
+              "code": "import solution\n\ndef test_unsorted_basic():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: unsorted list [5, 3, 1, 4, 2]\n    # Expected: returns sorted list [1, 2, 3, 4, 5]\n    # Fault hypothesis: function fails to fully sort the list\n    nums = [5, 3, 1, 4, 2]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "unsorted list [5, 3, 1, 4, 2]",
+              "oracle_reason": "Comb sort should produce a fully sorted ascending list from any permutation.",
+              "fault_hypothesis": "Function fails to fully sort the list, leaving elements out of order."
+            },
+            {
+              "name": "test_with_duplicates",
+              "code": "import solution\n\ndef test_with_duplicates():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with duplicate values [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    # Expected: returns sorted list preserving all duplicates\n    # Fault hypothesis: function drops duplicates or miscounts them\n    nums = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    result = solution.comb_sort(nums)\n    assert result == [1, 1, 2, 3, 3, 4, 5, 5, 6, 9]\n    assert len(result) == len(nums)\n    assert result is nums\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "list with duplicates [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]",
+              "oracle_reason": "Sorting must preserve all elements including duplicates; the sorted output should have the same length and contain exactly the same multiset of values.",
+              "fault_hypothesis": "Function drops or duplicates elements during sorting."
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "import solution\n\ndef test_negative_numbers():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with negative numbers [-3, -1, -4, -1, -5]\n    # Expected: returns sorted list with negatives in correct order\n    # Fault hypothesis: function mishandles negative number comparisons\n    nums = [-3, -1, -4, -1, -5]\n    result = solution.comb_sort(nums)\n    assert result == [-5, -4, -3, -1, -1]\n    assert result is nums\n",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "list with negative numbers [-3, -1, -4, -1, -5]",
+              "oracle_reason": "Negative numbers should sort correctly in ascending order; -5 < -4 < -3 < -1.",
+              "fault_hypothesis": "Function mishandles negative number comparisons due to sign issues."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      },
+      {
+        "turn": 3,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.027,
+        "arguments": {
+          "path": "test_solution.py"
+        },
+        "first_line": "文件 `test_solution.py` 共 50 行，显示第 1-50 行："
+      }
+    ],
+    "generation_seconds": 32.126,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list",
+          "code": "import solution\n\ndef test_empty_list():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: empty list []\n    # Expected: returns an empty list; no crash on len=0\n    # Fault hypothesis: function crashes or returns non-empty for empty input\n    nums = []\n    result = solution.comb_sort(nums)\n    assert result == []\n    assert result is nums  # in-place modification\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "empty list []",
+          "oracle_reason": "An empty list has no elements to sort; the function should return an empty list without error.",
+          "fault_hypothesis": "Function crashes on empty input or returns a non-empty list."
+        },
+        {
+          "name": "test_single_element",
+          "code": "import solution\n\ndef test_single_element():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with one element [42]\n    # Expected: returns the same single-element list unchanged\n    # Fault hypothesis: function swaps incorrectly or returns wrong type\n    nums = [42]\n    result = solution.comb_sort(nums)\n    assert result == [42]\n    assert result is nums\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "single-element list [42]",
+          "oracle_reason": "A single-element list is trivially sorted; the function should return it unchanged.",
+          "fault_hypothesis": "Function modifies a single-element list incorrectly or returns wrong type."
+        },
+        {
+          "name": "test_already_sorted",
+          "code": "import solution\n\ndef test_already_sorted():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: pre-sorted list [1, 2, 3, 4, 5]\n    # Expected: returns the same sorted list\n    # Fault hypothesis: function corrupts already-sorted data\n    nums = [1, 2, 3, 4, 5]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "already sorted list [1, 2, 3, 4, 5]",
+          "oracle_reason": "An already sorted list should remain sorted after applying any correct sorting algorithm.",
+          "fault_hypothesis": "Function corrupts already-sorted data by performing unnecessary swaps."
+        },
+        {
+          "name": "test_unsorted_basic",
+          "code": "import solution\n\ndef test_unsorted_basic():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: unsorted list [5, 3, 1, 4, 2]\n    # Expected: returns sorted list [1, 2, 3, 4, 5]\n    # Fault hypothesis: function fails to fully sort the list\n    nums = [5, 3, 1, 4, 2]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "unsorted list [5, 3, 1, 4, 2]",
+          "oracle_reason": "Comb sort should produce a fully sorted ascending list from any permutation.",
+          "fault_hypothesis": "Function fails to fully sort the list, leaving elements out of order."
+        },
+        {
+          "name": "test_with_duplicates",
+          "code": "import solution\n\ndef test_with_duplicates():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with duplicate values [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    # Expected: returns sorted list preserving all duplicates\n    # Fault hypothesis: function drops duplicates or miscounts them\n    nums = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    result = solution.comb_sort(nums)\n    assert result == [1, 1, 2, 3, 3, 4, 5, 5, 6, 9]\n    assert len(result) == len(nums)\n    assert result is nums\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "list with duplicates [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]",
+          "oracle_reason": "Sorting must preserve all elements including duplicates; the sorted output should have the same length and contain exactly the same multiset of values.",
+          "fault_hypothesis": "Function drops or duplicates elements during sorting."
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "import solution\n\ndef test_negative_numbers():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with negative numbers [-3, -1, -4, -1, -5]\n    # Expected: returns sorted list with negatives in correct order\n    # Fault hypothesis: function mishandles negative number comparisons\n    nums = [-3, -1, -4, -1, -5]\n    result = solution.comb_sort(nums)\n    assert result == [-5, -4, -3, -1, -1]\n    assert result is nums\n",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "list with negative numbers [-3, -1, -4, -1, -5]",
+          "oracle_reason": "Negative numbers should sort correctly in ascending order; -5 < -4 < -3 < -1.",
+          "fault_hypothesis": "Function mishandles negative number comparisons due to sign issues."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_already_sorted",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_unsorted_basic",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_with_duplicates",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 1.982,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_2/A4/MBPP__71.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 15,
+    "executable_lines": 15,
+    "mutation_score": 0.1429,
+    "mutants_total": 7,
+    "mutants_killed": 1,
+    "mutants_errors": 2,
+    "mutants_survived": [
+      {
+        "mutant_id": "M1",
+        "operator": "BCR",
+        "line": 6,
+        "column": 14,
+        "description": "True -> False"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "LCR",
+        "line": 8,
+        "column": 10,
+        "description": "Or -> And"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 8,
+        "column": 10,
+        "description": "Gt -> GtE"
+      },
+      {
+        "mutant_id": "M7",
+        "operator": "BCR",
+        "line": 15,
+        "column": 26,
+        "description": "True -> False"
+      }
+    ],
+    "mutant_operators": {
+      "BCR": 3,
+      "LCR": 1,
+      "ROR": 3
+    },
+    "killed_by_operator": {
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "BCR",
+        "line": 6,
+        "column": 14,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.2518132709956262,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.02s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "LCR",
+        "line": 8,
+        "column": 10,
+        "description": "Or -> And",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.25191856498713605,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.02s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 8,
+        "column": 10,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.25222189401392825,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.03s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M4",
+        "operator": "BCR",
+        "line": 10,
+        "column": 18,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 5.004683745995862,
+        "timed_out": true,
+        "returncode": null,
+        "passed": 0,
+        "failed": 0,
+        "errors": 0,
+        "summary": "",
+        "status": "TIMEOUT_UNKNOWN",
+        "reason": "No confirmed detection within the measurement limit"
+      },
+      {
+        "mutant_id": "M5",
+        "operator": "ROR",
+        "line": 12,
+        "column": 14,
+        "description": "Lt -> LtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_empty_list",
+          "test_solution.py::test_single_element",
+          "test_solution.py::test_already_sorted",
+          "test_solution.py::test_unsorted_basic",
+          "test_solution.py::test_with_duplicates",
+          "test_solution.py::test_negative_numbers"
+        ],
+        "duration_sec": 0.2836840520030819,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 6,
+        "errors": 0,
+        "summary": "6 failed in 0.08s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M6",
+        "operator": "ROR",
+        "line": 13,
+        "column": 15,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 5.00443033297779,
+        "timed_out": true,
+        "returncode": null,
+        "passed": 0,
+        "failed": 0,
+        "errors": 0,
+        "summary": "",
+        "status": "TIMEOUT_UNKNOWN",
+        "reason": "No confirmed detection within the measurement limit"
+      },
+      {
+        "mutant_id": "M7",
+        "operator": "BCR",
+        "line": 15,
+        "column": 26,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.25326270097866654,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.03s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      }
+    ],
+    "mutation_completion_rate": 0.7142857142857143,
+    "mutation_upper_bound": 0.42857142857142855,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 12.779
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 7
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.028,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 18 行，显示第 1-18 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.148,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "import solution\n\ndef test_empty_list():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: empty list []\n    # Expected: returns an empty list; no crash on len=0\n    # Fault hypothesis: function crashes or returns non-empty for empty input\n    nums = []\n    result = solution.comb_sort(nums)\n    assert result == []\n    assert result is nums  # in-place modification\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "empty list []",
+            "oracle_reason": "An empty list has no elements to sort; the function should return an empty list without error.",
+            "fault_hypothesis": "Function crashes on empty input or returns a non-empty list."
+          },
+          {
+            "name": "test_single_element",
+            "code": "import solution\n\ndef test_single_element():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with one element [42]\n    # Expected: returns the same single-element list unchanged\n    # Fault hypothesis: function swaps incorrectly or returns wrong type\n    nums = [42]\n    result = solution.comb_sort(nums)\n    assert result == [42]\n    assert result is nums\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "single-element list [42]",
+            "oracle_reason": "A single-element list is trivially sorted; the function should return it unchanged.",
+            "fault_hypothesis": "Function modifies a single-element list incorrectly or returns wrong type."
+          },
+          {
+            "name": "test_already_sorted",
+            "code": "import solution\n\ndef test_already_sorted():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: pre-sorted list [1, 2, 3, 4, 5]\n    # Expected: returns the same sorted list\n    # Fault hypothesis: function corrupts already-sorted data\n    nums = [1, 2, 3, 4, 5]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "already sorted list [1, 2, 3, 4, 5]",
+            "oracle_reason": "An already sorted list should remain sorted after applying any correct sorting algorithm.",
+            "fault_hypothesis": "Function corrupts already-sorted data by performing unnecessary swaps."
+          },
+          {
+            "name": "test_unsorted_basic",
+            "code": "import solution\n\ndef test_unsorted_basic():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: unsorted list [5, 3, 1, 4, 2]\n    # Expected: returns sorted list [1, 2, 3, 4, 5]\n    # Fault hypothesis: function fails to fully sort the list\n    nums = [5, 3, 1, 4, 2]\n    result = solution.comb_sort(nums)\n    assert result == [1, 2, 3, 4, 5]\n    assert result is nums\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "unsorted list [5, 3, 1, 4, 2]",
+            "oracle_reason": "Comb sort should produce a fully sorted ascending list from any permutation.",
+            "fault_hypothesis": "Function fails to fully sort the list, leaving elements out of order."
+          },
+          {
+            "name": "test_with_duplicates",
+            "code": "import solution\n\ndef test_with_duplicates():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with duplicate values [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    # Expected: returns sorted list preserving all duplicates\n    # Fault hypothesis: function drops duplicates or miscounts them\n    nums = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\n    result = solution.comb_sort(nums)\n    assert result == [1, 1, 2, 3, 3, 4, 5, 5, 6, 9]\n    assert len(result) == len(nums)\n    assert result is nums\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "list with duplicates [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]",
+            "oracle_reason": "Sorting must preserve all elements including duplicates; the sorted output should have the same length and contain exactly the same multiset of values.",
+            "fault_hypothesis": "Function drops or duplicates elements during sorting."
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "import solution\n\ndef test_negative_numbers():\n    # Contract quote: 'Write a function to sort a list of elements.'\n    # Input domain: list with negative numbers [-3, -1, -4, -1, -5]\n    # Expected: returns sorted list with negatives in correct order\n    # Fault hypothesis: function mishandles negative number comparisons\n    nums = [-3, -1, -4, -1, -5]\n    result = solution.comb_sort(nums)\n    assert result == [-5, -4, -3, -1, -1]\n    assert result is nums\n",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "list with negative numbers [-3, -1, -4, -1, -5]",
+            "oracle_reason": "Negative numbers should sort correctly in ascending order; -5 < -4 < -3 < -1.",
+            "fault_hypothesis": "Function mishandles negative number comparisons due to sign issues."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    },
+    {
+      "turn": 3,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.027,
+      "arguments": {
+        "path": "test_solution.py"
+      },
+      "first_line": "文件 `test_solution.py` 共 50 行，显示第 1-50 行："
+    }
+  ],
+  "started_at": 1791345902.630726,
+  "duration_sec": 45.02,
+  "tests_chars": 1286
+}

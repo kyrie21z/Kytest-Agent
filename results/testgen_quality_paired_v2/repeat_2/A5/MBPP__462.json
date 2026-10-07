@@ -1,0 +1,857 @@
+{
+  "instance_id": "MBPP/462",
+  "variant": "A5",
+  "status": "all_pass",
+  "agent": {
+    "status": "max_tokens",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 7,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 27103,
+    "output_tokens": 9668,
+    "total_tokens": 36771,
+    "final_text": "The issue is that `sys.path.insert(0, '.')` is not an import — it's an extra module-level statement. Each candidate must contain only imports, a docstring, and one test function. Let me fix this by removing the path manipulation.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.028,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 1,
+        "name": "list_files",
+        "is_error": false,
+        "duration_sec": 0.023,
+        "arguments": {
+          "path": "."
+        },
+        "first_line": "目录 `.` 共列出 1 项："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.025,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for solution.combinations_list.\"\"\"\nimport sys\nsys.path.insert(0, '…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（5527 字符，117 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.056,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list_returns_singleton_empty",
+              "code": "\"\"\"Test that empty input returns [[]].\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"if len(list1) == 0: return [[]]\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+              "contract_quote": "if len(list1) == 0:\n        return [[]]",
+              "input_domain": "list1 = [] (empty list)",
+              "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+              "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 23, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters ve"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.03,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list_returns_singleton_empty",
+              "code": "\"\"\"Test that empty input returns [[]].\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [] (empty list)",
+              "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+              "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+            },
+            {
+              "name": "test_single_element_two_combinations",
+              "code": "\"\"\"Test single-element input produces exactly two combinations.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [42] (single element)",
+              "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+              "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+            },
+            {
+              "name": "test_three_elements_power_of_two",
+              "code": "\"\"\"Test three-element input yields 2^3 = 8 combinations.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+              "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+              "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+            },
+            {
+              "name": "test_all_subsets_present_no_duplicates",
+              "code": "\"\"\"Test every subset appears exactly once with no duplicates.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+              "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+              "fault_hypothesis": "Duplicates in result; missing a subset."
+            },
+            {
+              "name": "test_return_type_consistency",
+              "code": "\"\"\"Test return type is always list of lists regardless of content.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [True, False] (boolean values)",
+              "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+              "fault_hypothesis": "Flattening bug producing non-list elements."
+            },
+            {
+              "name": "test_preserves_relative_order",
+              "code": "\"\"\"Test elements within each combination maintain original relative order.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+              "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+              "fault_hypothesis": "Reordering elements within combinations."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"Only imports, a docstring, and one test function ar"
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.065,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list_returns_singleton_empty",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [] (empty list)",
+              "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+              "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+            },
+            {
+              "name": "test_single_element_two_combinations",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [42] (single element)",
+              "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+              "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+            },
+            {
+              "name": "test_three_elements_power_of_two",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+              "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+              "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+            },
+            {
+              "name": "test_all_subsets_present_no_duplicates",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+              "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+              "fault_hypothesis": "Duplicates in result; missing a subset."
+            },
+            {
+              "name": "test_return_type_consistency",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [True, False] (boolean values)",
+              "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+              "fault_hypothesis": "Flattening bug producing non-list elements."
+            },
+            {
+              "name": "test_preserves_relative_order",
+              "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+              "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+              "fault_hypothesis": "Reordering elements within combinations."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 11, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"Only imports, a docstring, and one test function ar"
+      },
+      {
+        "turn": 6,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.258,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list_returns_singleton_empty",
+              "code": "\"\"\"Test empty input returns [[]].\"\"\"\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [] (empty list)",
+              "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+              "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+            },
+            {
+              "name": "test_single_element_two_combinations",
+              "code": "\"\"\"Test single-element input produces exactly two combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [42] (single element)",
+              "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+              "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+            },
+            {
+              "name": "test_three_elements_power_of_two",
+              "code": "\"\"\"Test three-element input yields 2^3 = 8 combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+              "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+              "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+            },
+            {
+              "name": "test_all_subsets_present_no_duplicates",
+              "code": "\"\"\"Test every subset appears exactly once with no duplicates.\"\"\"\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+              "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+              "fault_hypothesis": "Duplicates in result; missing a subset."
+            },
+            {
+              "name": "test_return_type_consistency",
+              "code": "\"\"\"Test return type is always list of lists regardless of content.\"\"\"\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [True, False] (boolean values)",
+              "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+              "fault_hypothesis": "Flattening bug producing non-list elements."
+            },
+            {
+              "name": "test_preserves_relative_order",
+              "code": "\"\"\"Test elements within each combination maintain original relative order.\"\"\"\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+              "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+              "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+              "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+              "fault_hypothesis": "Reordering elements within combinations."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 5, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations"
+      }
+    ],
+    "generation_seconds": 81.462,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list_returns_singleton_empty",
+          "code": "\"\"\"Test empty input returns [[]].\"\"\"\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+          "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+          "input_domain": "list1 = [] (empty list)",
+          "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+          "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+        },
+        {
+          "name": "test_single_element_two_combinations",
+          "code": "\"\"\"Test single-element input produces exactly two combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+          "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+          "input_domain": "list1 = [42] (single element)",
+          "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+          "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+        },
+        {
+          "name": "test_three_elements_power_of_two",
+          "code": "\"\"\"Test three-element input yields 2^3 = 8 combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+          "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+          "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+          "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+          "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list_returns_singleton_empty",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_empty_list_returns_singleton_empty",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_single_element_two_combinations",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_three_elements_power_of_two",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_all_subsets_present_no_duplicates",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_return_type_consistency",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_preserves_relative_order",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_empty_list_returns_singleton_empty",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_single_element_two_combinations",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_three_elements_power_of_two",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_all_subsets_present_no_duplicates",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_return_type_consistency",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_preserves_relative_order",
+          "status": "REJECTED",
+          "diagnostic": "Only imports, a docstring, and one test function are allowed at module level"
+        },
+        {
+          "name": "test_empty_list_returns_singleton_empty",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element_two_combinations",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_three_elements_power_of_two",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_all_subsets_present_no_duplicates",
+          "status": "REJECTED",
+          "diagnostic": "Oracle check: Assertion does not depend on a target result"
+        },
+        {
+          "name": "test_return_type_consistency",
+          "status": "REJECTED",
+          "diagnostic": "Oracle check: Assertion does not depend on a target result"
+        },
+        {
+          "name": "test_preserves_relative_order",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.165,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________ test_preserves_relative_order _________________________\ntest_solution.py:20: in test_preserves_relative_order\n    assert orig_indices[i] < orig_indices[i + 1], \\\nE   AssertionError: Relative order violated in [20, 10]: indices [1, 0]\nE   assert 1 < 0\n=========================== short test summary info ============================\nFAILED test_solution.py::test_preserves_relative_order - AssertionError: Rela...\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.968,
+      "quality_actions": [
+        {
+          "turn": 6,
+          "decision": "development_feedback",
+          "suite_sha256": "fcdd6b561dc48fab27e775023f3115af690fba481817fcadbcc19ae18d09ed01",
+          "current_suite_checked": true,
+          "feedback_rounds": 1,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M3",
+              "operator": "AOR",
+              "line": 8,
+              "description": "Add -> Sub",
+              "fingerprint": "ba822c1dcd755cc3fc8cf215fcef1be96c4db0dfef6263787d413c7f753a9afd",
+              "status": "FAIL",
+              "seconds": 0.215
+            },
+            {
+              "mutant_id": "M4",
+              "operator": "CRP",
+              "line": 8,
+              "description": "constant 0 -> 1",
+              "fingerprint": "9821cc4e674626e47b43d80132d2794c265016a7ea8f16e873c2d51f2d6aa0e1",
+              "status": "FAIL",
+              "seconds": 0.215
+            }
+          ]
+        }
+      ]
+    },
+    "fault_feedback": [
+      {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "fcdd6b561dc48fab27e775023f3115af690fba481817fcadbcc19ae18d09ed01",
+        "detected_faults": [
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Add -> Sub",
+            "fingerprint": "ba822c1dcd755cc3fc8cf215fcef1be96c4db0dfef6263787d413c7f753a9afd",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 8,
+            "description": "constant 0 -> 1",
+            "fingerprint": "9821cc4e674626e47b43d80132d2794c265016a7ea8f16e873c2d51f2d6aa0e1",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Add -> Sub",
+            "fingerprint": "ba822c1dcd755cc3fc8cf215fcef1be96c4db0dfef6263787d413c7f753a9afd",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 8,
+            "description": "constant 0 -> 1",
+            "fingerprint": "9821cc4e674626e47b43d80132d2794c265016a7ea8f16e873c2d51f2d6aa0e1",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.812,
+        "subprocess_runs": 5,
+        "reference_passed": true,
+        "total": 4,
+        "detected": 2,
+        "survivors": [],
+        "uncertain": [
+          {
+            "mutant_id": "M1",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 0 -> 1",
+            "fingerprint": "5e0d424f744db2db854138f34cfbf74bae491e6d397585a2fad878d4af21ca8f",
+            "status": "RESOURCE_LIMIT",
+            "seconds": 0.465
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "32cdef33e0314a98f25bd467025a9104164327f988d564552b552b027674c879",
+            "status": "RESOURCE_LIMIT",
+            "seconds": 0.751
+          }
+        ],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    ],
+    "generation_trace_file": "generation/repeat_2/A5/MBPP__462.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 3,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "3 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 7,
+    "executable_lines": 7,
+    "mutation_score": 1.0,
+    "mutants_total": 1,
+    "mutants_killed": 1,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 4,
+        "column": 7,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_empty_list_returns_singleton_empty",
+          "test_solution.py::test_single_element_two_combinations",
+          "test_solution.py::test_three_elements_power_of_two"
+        ],
+        "duration_sec": 0.2680207740049809,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 3,
+        "errors": 0,
+        "summary": "3 failed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 1.526
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 1
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.028,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 1,
+      "name": "list_files",
+      "is_error": false,
+      "duration_sec": 0.023,
+      "arguments": {
+        "path": "."
+      },
+      "first_line": "目录 `.` 共列出 1 项："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.025,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for solution.combinations_list.\"\"\"\nimport sys\nsys.path.insert(0, '…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（5527 字符，117 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.056,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list_returns_singleton_empty",
+            "code": "\"\"\"Test that empty input returns [[]].\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"if len(list1) == 0: return [[]]\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+            "contract_quote": "if len(list1) == 0:\n        return [[]]",
+            "input_domain": "list1 = [] (empty list)",
+            "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+            "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 23, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters ve"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.03,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list_returns_singleton_empty",
+            "code": "\"\"\"Test that empty input returns [[]].\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [] (empty list)",
+            "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+            "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+          },
+          {
+            "name": "test_single_element_two_combinations",
+            "code": "\"\"\"Test single-element input produces exactly two combinations.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [42] (single element)",
+            "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+            "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+          },
+          {
+            "name": "test_three_elements_power_of_two",
+            "code": "\"\"\"Test three-element input yields 2^3 = 8 combinations.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+            "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+            "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+          },
+          {
+            "name": "test_all_subsets_present_no_duplicates",
+            "code": "\"\"\"Test every subset appears exactly once with no duplicates.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+            "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+            "fault_hypothesis": "Duplicates in result; missing a subset."
+          },
+          {
+            "name": "test_return_type_consistency",
+            "code": "\"\"\"Test return type is always list of lists regardless of content.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [True, False] (boolean values)",
+            "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+            "fault_hypothesis": "Flattening bug producing non-list elements."
+          },
+          {
+            "name": "test_preserves_relative_order",
+            "code": "\"\"\"Test elements within each combination maintain original relative order.\"\"\"\nimport sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+            "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+            "fault_hypothesis": "Reordering elements within combinations."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"Only imports, a docstring, and one test function ar"
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.065,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list_returns_singleton_empty",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [] (empty list)",
+            "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+            "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+          },
+          {
+            "name": "test_single_element_two_combinations",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [42] (single element)",
+            "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+            "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+          },
+          {
+            "name": "test_three_elements_power_of_two",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+            "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+            "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+          },
+          {
+            "name": "test_all_subsets_present_no_duplicates",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+            "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+            "fault_hypothesis": "Duplicates in result; missing a subset."
+          },
+          {
+            "name": "test_return_type_consistency",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [True, False] (boolean values)",
+            "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+            "fault_hypothesis": "Flattening bug producing non-list elements."
+          },
+          {
+            "name": "test_preserves_relative_order",
+            "code": "import sys\nsys.path.insert(0, '.')\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+            "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+            "fault_hypothesis": "Reordering elements within combinations."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 11, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"status\": \"REJECTED\", \"diagnostic\": \"Only imports, a docstring, and one test function ar"
+    },
+    {
+      "turn": 6,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.258,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list_returns_singleton_empty",
+            "code": "\"\"\"Test empty input returns [[]].\"\"\"\nfrom solution import combinations_list\n\ndef test_empty_list_returns_singleton_empty():\n    '''Verify the base-case contract: empty input yields [[]].\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [] (empty list)\n    Oracle: The only valid combination of zero elements is the empty set itself,\n            represented as a list containing one empty list.\n    Fault hypothesis: A buggy implementation might return [] (no combinations at all)\n                      or [[[]]] (wrong nesting).\n    '''\n    result = combinations_list([])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 1, f\"Expected 1 combination for empty input, got {len(result)}\"\n    assert result[0] == [], f\"Expected [[]], got {result}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [] (empty list)",
+            "oracle_reason": "The only valid combination of zero elements is the empty set itself, represented as a list containing one empty list.",
+            "fault_hypothesis": "A buggy implementation might return [] (no combinations at all) or [[[]]] (wrong nesting)."
+          },
+          {
+            "name": "test_single_element_two_combinations",
+            "code": "\"\"\"Test single-element input produces exactly two combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_single_element_two_combinations():\n    '''Verify single-element input produces exactly two combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [42] (single element)\n    Oracle: With one element there are 2^1 = 2 subsets: the empty set and the set\n            containing that element.\n    Fault hypothesis: Off-by-one returning only 1 or 3 items; wrong nesting.\n    '''\n    result = combinations_list([42])\n    assert isinstance(result, list), \"Result must be a list\"\n    assert len(result) == 2, f\"Expected 2 combinations, got {len(result)}\"\n    assert result[0] == [], f\"First combination should be [], got {result[0]}\"\n    assert result[1] == [42], f\"Second combination should be [42], got {result[1]}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [42] (single element)",
+            "oracle_reason": "With one element there are 2^1 = 2 subsets: the empty set and the set containing that element.",
+            "fault_hypothesis": "Off-by-one returning only 1 or 3 items; wrong nesting."
+          },
+          {
+            "name": "test_three_elements_power_of_two",
+            "code": "\"\"\"Test three-element input yields 2^3 = 8 combinations.\"\"\"\nfrom solution import combinations_list\n\ndef test_three_elements_power_of_two():\n    '''Verify three-element input yields 2^3 = 8 combinations.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [1, 2, 3] (three distinct integers)\n    Oracle: The power set of a 3-element set has size 2^3 = 8.\n    Fault hypothesis: Missing branches in recursion yielding fewer than 8 results.\n    '''\n    result = combinations_list([1, 2, 3])\n    assert len(result) == 8, f\"Expected 8 combinations for 3 elements, got {len(result)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [1, 2, 3] (three distinct integers)",
+            "oracle_reason": "The power set of a 3-element set has size 2^3 = 8.",
+            "fault_hypothesis": "Missing branches in recursion yielding fewer than 8 results."
+          },
+          {
+            "name": "test_all_subsets_present_no_duplicates",
+            "code": "\"\"\"Test every subset appears exactly once with no duplicates.\"\"\"\nfrom solution import combinations_list\n\ndef test_all_subsets_present_no_duplicates():\n    '''Verify every subset of the input appears exactly once.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = ['a', 'b'] (two distinct strings)\n    Oracle: The four subsets are {}, {'a'}, {'b'}, {'a','b'}.\n    Fault hypothesis: Duplicates in result; missing a subset.\n    '''\n    result = combinations_list(['a', 'b'])\n    assert len(result) == 4, f\"Expected 4 combinations, got {len(result)}\"\n    seen = []\n    for combo in result:\n        key = tuple(combo)\n        assert key not in seen, f\"Duplicate combination found: {combo}\"\n        seen.append(key)\n        assert isinstance(combo, list), f\"Each combination must be a list, got {type(combo)}\"\n        for item in combo:\n            assert item in ('a', 'b'), f\"Element {item} not in original list\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = ['a', 'b'] (two distinct strings)",
+            "oracle_reason": "The four subsets of a 2-element set are {}, {'a'}, {'b'}, {'a','b'}.",
+            "fault_hypothesis": "Duplicates in result; missing a subset."
+          },
+          {
+            "name": "test_return_type_consistency",
+            "code": "\"\"\"Test return type is always list of lists regardless of content.\"\"\"\nfrom solution import combinations_list\n\ndef test_return_type_consistency():\n    '''Verify the return value is always a list of lists.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [True, False] (boolean values)\n    Oracle: Every element of the returned list must itself be a list.\n    Fault hypothesis: Flattening bug producing non-list elements.\n    '''\n    result = combinations_list([True, False])\n    assert isinstance(result, list), \"Top-level result must be a list\"\n    for i, combo in enumerate(result):\n        assert isinstance(combo, list), f\"Combination #{i} must be a list, got {type(combo)}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [True, False] (boolean values)",
+            "oracle_reason": "Every element of the returned list must itself be a list per the function's purpose of finding combinations.",
+            "fault_hypothesis": "Flattening bug producing non-list elements."
+          },
+          {
+            "name": "test_preserves_relative_order",
+            "code": "\"\"\"Test elements within each combination maintain original relative order.\"\"\"\nfrom solution import combinations_list\n\ndef test_preserves_relative_order():\n    '''Verify elements within each combination maintain their original relative order.\n    Contract quote: \"Write a function to find all possible combinations of the elements of a given list.\"\n    Input domain: list1 = [10, 20, 30] (three distinct integers)\n    Oracle: In any combination, if x appeared before y in the original list, then x\n            must appear before y in the combination.\n    Fault hypothesis: Reordering elements within combinations.\n    '''\n    result = combinations_list([10, 20, 30])\n    assert len(result) == 8\n    for combo in result:\n        orig_indices = []\n        for item in combo:\n            idx = [10, 20, 30].index(item)\n            orig_indices.append(idx)\n        for i in range(len(orig_indices) - 1):\n            assert orig_indices[i] < orig_indices[i + 1], \\\n                f\"Relative order violated in {combo}: indices {orig_indices}\"",
+            "contract_quote": "Write a function to find all possible combinations of the elements of a given list.",
+            "input_domain": "list1 = [10, 20, 30] (three distinct integers)",
+            "oracle_reason": "In any combination, if x appeared before y in the original list, then x must appear before y in the combination.",
+            "fault_hypothesis": "Reordering elements within combinations."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 5, \"results\": [{\"name\": \"test_empty_list_returns_singleton_empty\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations"
+    }
+  ],
+  "started_at": 1791346249.876789,
+  "duration_sec": 83.103,
+  "tests_chars": 2610
+}

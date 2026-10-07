@@ -1,0 +1,476 @@
+{
+  "instance_id": "MBPP/228",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 3,
+    "llm_calls": 3,
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 7760,
+    "output_tokens": 2950,
+    "total_tokens": 10710,
+    "final_text": "All 6 test cases were accepted. Here's a summary of the test suite:\n\n### Accepted Tests\n\n| Test | Description | What It Catches |\n|------|-------------|-----------------|\n| `test_all_unset_range` | n=5 (101), range [2,2] — bit 2 is 0 | Confuses set/unset logic |\n| `test_some_set_in_range` | n=5 (101), range [1,3] — mixed bits | Always-returning-True bug |\n| `test_n_zero_all_unset` | n=0 with various ranges — all unset | Special-casing bug for zero |\n| `test_all_bits_set_in_range` | n=7 (111), range [1,3] — all set | Set/unset confusion |\n| `test_single_bit_unset` | n=4 (100), range [1,1] — LSB is 0 | Off-by-one in bit indexing |\n| `test_return_type_check` | Verifies bool return type | Returning int instead of bool |\n\n### Remaining Limitations\n\n1. **Invalid input handling**: The contract does not specify behavior for `l > r`, `l < 1`, or negative values. These edge cases are untested — the function may produce incorrect masks silently.\n2. **Large ranges**: No tests with large `r` values to check for potential integer overflow issues (though Python handles arbitrary precision, so this is unlikely).\n3. **Range covering beyond MSB**: Cases where `r` exceeds the number of significant bits in `n` are only partially covered (e.g., `n=0` covers this, but not for non-zero `n`).\n4. **Single-bit vs multi-bit ranges**: Only one single-bit range case exists (`[1,1]`). More boundary cases like `[l,l]` at different positions would add coverage.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.054,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 9 行，显示第 1-9 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.105,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_all_unset_range",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_unset_range():\n    \"\"\"n=5 (101 binary), range [2,2]: bit 2 is 0, so all bits in range are unset.\"\"\"\n    # 5 = 0b101, bit 2 (middle) is 0\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=5, l=2, r=2",
+              "oracle_reason": "5 in binary is 101. Bit position 2 (1-indexed from LSB) is 0. Since the only bit in range [2,2] is 0, all bits in the range are unset, so the function should return True.",
+              "fault_hypothesis": "If the function incorrectly checked for set bits instead of unset bits, it would return False here."
+            },
+            {
+              "name": "test_some_set_in_range",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_some_set_in_range():\n    \"\"\"n=5 (101 binary), range [1,3]: bits include both 0s and 1s, not all unset.\"\"\"\n    # 5 = 0b101, bits 1-3 are 1,0,1 — not all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 1, 3) is False",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=5, l=1, r=3",
+              "oracle_reason": "5 in binary is 101. Bits 1 and 3 are 1, so not all bits in range [1,3] are unset. Function should return False.",
+              "fault_hypothesis": "A bug that always returns True regardless of input would fail this assertion."
+            },
+            {
+              "name": "test_n_zero_all_unset",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_n_zero_all_unset():\n    \"\"\"n=0 has no bits set anywhere, so any range should return True.\"\"\"\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 5) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 10, 20) is True",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=0, various ranges",
+              "oracle_reason": "0 has all bits unset. Any range [l,r] will have new_num = 0 & mask = 0, so the function must return True.",
+              "fault_hypothesis": "A special-casing bug for n=0 returning False would be caught here."
+            },
+            {
+              "name": "test_all_bits_set_in_range",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_bits_set_in_range():\n    \"\"\"n=7 (111 binary), range [1,3]: all three bits are 1, so not all unset.\"\"\"\n    # 7 = 0b111, all bits 1-3 are 1\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=7, l=1, r=3",
+              "oracle_reason": "7 in binary is 111. All bits in range [1,3] are 1, so none are unset. Function should return False.",
+              "fault_hypothesis": "Confusing 'set' vs 'unset' logic would return True here instead of False."
+            },
+            {
+              "name": "test_single_bit_unset",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_single_bit_unset():\n    \"\"\"n=4 (100 binary), range [1,1]: bit 1 is 0, so all bits in range are unset.\"\"\"\n    # 4 = 0b100, bit 1 (LSB) is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=4, l=1, r=1",
+              "oracle_reason": "4 in binary is 100. Bit position 1 (LSB) is 0. Single-bit range [1,1] contains only a 0, so all bits are unset. Return True.",
+              "fault_hypothesis": "Off-by-one error in bit indexing could misidentify which bit is being checked."
+            },
+            {
+              "name": "test_return_type_check",
+              "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_return_type_check():\n    \"\"\"Verify the function always returns a boolean value.\"\"\"\n    result_true = all_Bits_Set_In_The_Given_Range(0, 1, 1)\n    result_false = all_Bits_Set_In_The_Given_Range(1, 1, 1)\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n=0,l=1,r=1 and n=1,l=1,r=1",
+              "oracle_reason": "The function uses an if/else returning True/False, so it must return Python bool instances. n=0 yields True (no bits set), n=1 with range [1,1] yields False (bit 1 is set).",
+              "fault_hypothesis": "Returning 0/1 integers instead of True/False booleans would fail the isinstance checks."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_all_unset_range\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+      }
+    ],
+    "generation_seconds": 35.311,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_all_unset_range",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_unset_range():\n    \"\"\"n=5 (101 binary), range [2,2]: bit 2 is 0, so all bits in range are unset.\"\"\"\n    # 5 = 0b101, bit 2 (middle) is 0\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=5, l=2, r=2",
+          "oracle_reason": "5 in binary is 101. Bit position 2 (1-indexed from LSB) is 0. Since the only bit in range [2,2] is 0, all bits in the range are unset, so the function should return True.",
+          "fault_hypothesis": "If the function incorrectly checked for set bits instead of unset bits, it would return False here."
+        },
+        {
+          "name": "test_some_set_in_range",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_some_set_in_range():\n    \"\"\"n=5 (101 binary), range [1,3]: bits include both 0s and 1s, not all unset.\"\"\"\n    # 5 = 0b101, bits 1-3 are 1,0,1 — not all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 1, 3) is False",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=5, l=1, r=3",
+          "oracle_reason": "5 in binary is 101. Bits 1 and 3 are 1, so not all bits in range [1,3] are unset. Function should return False.",
+          "fault_hypothesis": "A bug that always returns True regardless of input would fail this assertion."
+        },
+        {
+          "name": "test_n_zero_all_unset",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_n_zero_all_unset():\n    \"\"\"n=0 has no bits set anywhere, so any range should return True.\"\"\"\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 5) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 10, 20) is True",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=0, various ranges",
+          "oracle_reason": "0 has all bits unset. Any range [l,r] will have new_num = 0 & mask = 0, so the function must return True.",
+          "fault_hypothesis": "A special-casing bug for n=0 returning False would be caught here."
+        },
+        {
+          "name": "test_all_bits_set_in_range",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_bits_set_in_range():\n    \"\"\"n=7 (111 binary), range [1,3]: all three bits are 1, so not all unset.\"\"\"\n    # 7 = 0b111, all bits 1-3 are 1\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=7, l=1, r=3",
+          "oracle_reason": "7 in binary is 111. All bits in range [1,3] are 1, so none are unset. Function should return False.",
+          "fault_hypothesis": "Confusing 'set' vs 'unset' logic would return True here instead of False."
+        },
+        {
+          "name": "test_single_bit_unset",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_single_bit_unset():\n    \"\"\"n=4 (100 binary), range [1,1]: bit 1 is 0, so all bits in range are unset.\"\"\"\n    # 4 = 0b100, bit 1 (LSB) is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=4, l=1, r=1",
+          "oracle_reason": "4 in binary is 100. Bit position 1 (LSB) is 0. Single-bit range [1,1] contains only a 0, so all bits are unset. Return True.",
+          "fault_hypothesis": "Off-by-one error in bit indexing could misidentify which bit is being checked."
+        },
+        {
+          "name": "test_return_type_check",
+          "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_return_type_check():\n    \"\"\"Verify the function always returns a boolean value.\"\"\"\n    result_true = all_Bits_Set_In_The_Given_Range(0, 1, 1)\n    result_false = all_Bits_Set_In_The_Given_Range(1, 1, 1)\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n=0,l=1,r=1 and n=1,l=1,r=1",
+          "oracle_reason": "The function uses an if/else returning True/False, so it must return Python bool instances. n=0 yields True (no bits set), n=1 with range [1,1] yields False (bit 1 is set).",
+          "fault_hypothesis": "Returning 0/1 integers instead of True/False booleans would fail the isinstance checks."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_all_unset_range",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_some_set_in_range",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_n_zero_all_unset",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_all_bits_set_in_range",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_bit_unset",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_check",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 1.98,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_2/A4/MBPP__228.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 6,
+    "executable_lines": 6,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 6,
+        "column": 8,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_all_unset_range",
+          "test_solution.py::test_some_set_in_range",
+          "test_solution.py::test_n_zero_all_unset",
+          "test_solution.py::test_all_bits_set_in_range",
+          "test_solution.py::test_single_bit_unset",
+          "test_solution.py::test_return_type_check"
+        ],
+        "duration_sec": 0.37211842098622583,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 6,
+        "errors": 0,
+        "summary": "6 failed in 0.08s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "BCR",
+        "line": 7,
+        "column": 15,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_all_unset_range",
+          "test_solution.py::test_n_zero_all_unset",
+          "test_solution.py::test_single_bit_unset",
+          "test_solution.py::test_return_type_check"
+        ],
+        "duration_sec": 0.3722534909902606,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.07s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "BCR",
+        "line": 8,
+        "column": 11,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_some_set_in_range",
+          "test_solution.py::test_all_bits_set_in_range",
+          "test_solution.py::test_return_type_check"
+        ],
+        "duration_sec": 0.3193957670009695,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 3,
+        "errors": 0,
+        "summary": "3 failed, 3 passed in 0.07s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.881
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.054,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 9 行，显示第 1-9 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.105,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_all_unset_range",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_unset_range():\n    \"\"\"n=5 (101 binary), range [2,2]: bit 2 is 0, so all bits in range are unset.\"\"\"\n    # 5 = 0b101, bit 2 (middle) is 0\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=5, l=2, r=2",
+            "oracle_reason": "5 in binary is 101. Bit position 2 (1-indexed from LSB) is 0. Since the only bit in range [2,2] is 0, all bits in the range are unset, so the function should return True.",
+            "fault_hypothesis": "If the function incorrectly checked for set bits instead of unset bits, it would return False here."
+          },
+          {
+            "name": "test_some_set_in_range",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_some_set_in_range():\n    \"\"\"n=5 (101 binary), range [1,3]: bits include both 0s and 1s, not all unset.\"\"\"\n    # 5 = 0b101, bits 1-3 are 1,0,1 — not all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 1, 3) is False",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=5, l=1, r=3",
+            "oracle_reason": "5 in binary is 101. Bits 1 and 3 are 1, so not all bits in range [1,3] are unset. Function should return False.",
+            "fault_hypothesis": "A bug that always returns True regardless of input would fail this assertion."
+          },
+          {
+            "name": "test_n_zero_all_unset",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_n_zero_all_unset():\n    \"\"\"n=0 has no bits set anywhere, so any range should return True.\"\"\"\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 5) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 10, 20) is True",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=0, various ranges",
+            "oracle_reason": "0 has all bits unset. Any range [l,r] will have new_num = 0 & mask = 0, so the function must return True.",
+            "fault_hypothesis": "A special-casing bug for n=0 returning False would be caught here."
+          },
+          {
+            "name": "test_all_bits_set_in_range",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_all_bits_set_in_range():\n    \"\"\"n=7 (111 binary), range [1,3]: all three bits are 1, so not all unset.\"\"\"\n    # 7 = 0b111, all bits 1-3 are 1\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=7, l=1, r=3",
+            "oracle_reason": "7 in binary is 111. All bits in range [1,3] are 1, so none are unset. Function should return False.",
+            "fault_hypothesis": "Confusing 'set' vs 'unset' logic would return True here instead of False."
+          },
+          {
+            "name": "test_single_bit_unset",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_single_bit_unset():\n    \"\"\"n=4 (100 binary), range [1,1]: bit 1 is 0, so all bits in range are unset.\"\"\"\n    # 4 = 0b100, bit 1 (LSB) is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=4, l=1, r=1",
+            "oracle_reason": "4 in binary is 100. Bit position 1 (LSB) is 0. Single-bit range [1,1] contains only a 0, so all bits are unset. Return True.",
+            "fault_hypothesis": "Off-by-one error in bit indexing could misidentify which bit is being checked."
+          },
+          {
+            "name": "test_return_type_check",
+            "code": "from solution import all_Bits_Set_In_The_Given_Range\n\ndef test_return_type_check():\n    \"\"\"Verify the function always returns a boolean value.\"\"\"\n    result_true = all_Bits_Set_In_The_Given_Range(0, 1, 1)\n    result_false = all_Bits_Set_In_The_Given_Range(1, 1, 1)\n    assert isinstance(result_true, bool)\n    assert isinstance(result_false, bool)\n    assert result_true is True\n    assert result_false is False",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n=0,l=1,r=1 and n=1,l=1,r=1",
+            "oracle_reason": "The function uses an if/else returning True/False, so it must return Python bool instances. n=0 yields True (no bits set), n=1 with range [1,1] yields False (bit 1 is set).",
+            "fault_hypothesis": "Returning 0/1 integers instead of True/False booleans would fail the isinstance checks."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_all_unset_range\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+    }
+  ],
+  "started_at": 1791345069.3689692,
+  "duration_sec": 38.374,
+  "tests_chars": 1984
+}

@@ -1,0 +1,533 @@
+{
+  "instance_id": "MBPP/127",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 4,
+    "llm_calls": 4,
+    "tool_calls": 3,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 12192,
+    "output_tokens": 2765,
+    "total_tokens": 14957,
+    "final_text": "All 6 tests are now accepted. Here is the complete accepted test suite:\n\n## Accepted Test Suite\n\n| # | Test Name | What It Covers |\n|---|-----------|---------------|\n| 1 | `test_basic_positive` | Positive × positive multiplication (3×4, 7×2, 10×10) |\n| 2 | `test_zero_handling` | Any operand zero: 5×0, 0×5, 0×0, (-3)×0 — verifies base case `y==0` |\n| 3 | `test_negative_y` | Negative y values: 3×(-4), 7×(-1), 1×(-5) — verifies negation path |\n| 4 | `test_both_negative` | Both operands negative: (-3)×(-4), (-2)×(-5), (-1)×(-1) — verifies double-negation |\n| 5 | `test_return_type` | Return type is always `int` across all sign combinations |\n| 6 | `test_large_values` | Moderately larger inputs: 10×10, 20×(-3), (-7)×5 |\n\n## Limitations\n\n- **Recursion depth**: The function uses naive recursion (`y` decrements by 1 each call). Tests with large absolute values of `y` would hit Python's recursion limit or the 128-call resource cap. Only small-magnitude inputs are tested.\n- **Non-integer inputs**: The contract says \"two integers\" but does not specify behavior for floats, strings, None, etc. These edge cases are untested.\n- **Very large integers**: Python handles arbitrary-precision ints natively, but we only tested up to ~20 in magnitude due to recursion depth constraints.\n- **Commutativity**: We do not explicitly test that `multiply_int(x,y) == multiply_int(y,x)`; the implementation is asymmetric (it recurses on `y`, not `x`).",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.025,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 12 行，显示第 1-12 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.156,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_positive",
+              "code": "from solution import multiply_int\n\ndef test_basic_positive():\n    '''Verify basic positive integer multiplication.'''\n    assert multiply_int(3, 4) == 12\n    assert multiply_int(7, 2) == 14\n    assert multiply_int(10, 10) == 100",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "x and y are positive integers",
+              "oracle_reason": "Direct arithmetic: 3*4=12, 7*2=14, 10*10=100.",
+              "fault_hypothesis": "Off-by-one in recursion or wrong base case would produce incorrect products."
+            },
+            {
+              "name": "test_zero_handling",
+              "code": "from solution import multiply_int\n\ndef test_zero_handling():\n    '''Verify that multiplying by zero yields zero regardless of the other operand.'''\n    assert multiply_int(5, 0) == 0\n    assert multiply_int(0, 5) == 0\n    assert multiply_int(0, 0) == 0\n    assert multiply_int(-3, 0) == 0",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "At least one operand is zero; the other can be any integer.",
+              "oracle_reason": "Mathematical property: any integer times zero equals zero.",
+              "fault_hypothesis": "If the y==0 base case were missing or misordered, the function could recurse infinitely or return wrong value."
+            },
+            {
+              "name": "test_negative_y",
+              "code": "from solution import multiply_int\n\ndef test_negative_y():\n    '''Verify correct behavior when y is negative.'''\n    assert multiply_int(3, -4) == -12\n    assert multiply_int(7, -1) == -7\n    assert multiply_int(1, -5) == -5",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "x is any integer, y is a negative integer.",
+              "oracle_reason": "By contract, multiply_int(x, y) = x * y. For y < 0, the implementation calls -multiply_int(x, -y), so 3*(-4) = -(3*4) = -12.",
+              "fault_hypothesis": "Negation might be applied incorrectly (e.g., forgetting the minus sign) or the recursive call might not flip y's sign."
+            },
+            {
+              "name": "test_both_negative",
+              "code": "from solution import multiply_int\n\ndef test_both_negative():\n    '''Verify that two negatives yield a positive product.'''\n    assert multiply_int(-3, -4) == 12\n    assert multiply_int(-2, -5) == 10\n    assert multiply_int(-1, -1) == 1",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "Both x and y are negative integers.",
+              "oracle_reason": "Product of two negatives is positive: (-3)*(-4)=12, (-2)*(-5)=10, (-1)*(-1)=1.",
+              "fault_hypothesis": "The double-negation logic might fail if the inner recursion doesn't handle negative x correctly or if the outer negation is misplaced."
+            },
+            {
+              "name": "test_return_type",
+              "code": "from solution import multiply_int\n\ndef test_return_type():\n    '''Verify the return value is always an int.'''\n    for x, y in [(3, 4), (0, 0), (-5, 3), (5, -2), (-3, -4)]:\n        result = multiply_int(x, y)\n        assert isinstance(result, int), f\"Expected int but got {type(result).__name__} for ({x}, {y})\"",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "Various combinations of positive, negative, and zero integers.",
+              "oracle_reason": "The contract specifies multiplying two integers, which mathematically yields an integer. All code paths use addition and negation of ints, so the result must be int.",
+              "fault_hypothesis": "A bug could introduce float division or string concatenation, returning a non-int type."
+            },
+            {
+              "name": "test_large_values",
+              "code": "from solution import multiply_int\n\ndef test_large_values():\n    '''Verify correctness with larger integer values.'''\n    assert multiply_int(99, 99) == 9801\n    assert multiply_int(100, -100) == -10000\n    assert multiply_int(-50, 50) == -2500",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "x and y are moderately large integers (up to ~100).",
+              "oracle_reason": "Direct computation: 99*99=9801, 100*(-100)=-10000, (-50)*50=-2500.",
+              "fault_hypothesis": "Recursion depth or accumulation errors could cause incorrect results for larger inputs due to accumulated floating-point issues or stack overflow (though Python handles big ints natively)."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_positive\", \"contract_checks\": {\"sut_calls\": 3, \"checked_calls\": 0, \"unchecked_calls\": 3, \"violations\": [], \"assertion_e"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.413,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_large_values",
+              "code": "from solution import multiply_int\n\ndef test_large_values():\n    '''Verify correctness with moderately larger integer values.'''\n    assert multiply_int(10, 10) == 100\n    assert multiply_int(20, -3) == -60\n    assert multiply_int(-7, 5) == -35",
+              "contract_quote": "'Write a function to multiply two integers.'",
+              "input_domain": "x and y are moderately sized integers (up to ~20).",
+              "oracle_reason": "Direct computation: 10*10=100, 20*(-3)=-60, (-7)*5=-35.",
+              "fault_hypothesis": "Recursion depth or accumulation errors could cause incorrect results for larger inputs."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_large_values\", \"contract_checks\": {\"sut_calls\": 3, \"checked_calls\": 0, \"unchecked_calls\": 3, \"violations\": [], \"assertion_err"
+      }
+    ],
+    "generation_seconds": 31.851,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_basic_positive",
+          "code": "from solution import multiply_int\n\ndef test_basic_positive():\n    '''Verify basic positive integer multiplication.'''\n    assert multiply_int(3, 4) == 12\n    assert multiply_int(7, 2) == 14\n    assert multiply_int(10, 10) == 100",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "x and y are positive integers",
+          "oracle_reason": "Direct arithmetic: 3*4=12, 7*2=14, 10*10=100.",
+          "fault_hypothesis": "Off-by-one in recursion or wrong base case would produce incorrect products."
+        },
+        {
+          "name": "test_zero_handling",
+          "code": "from solution import multiply_int\n\ndef test_zero_handling():\n    '''Verify that multiplying by zero yields zero regardless of the other operand.'''\n    assert multiply_int(5, 0) == 0\n    assert multiply_int(0, 5) == 0\n    assert multiply_int(0, 0) == 0\n    assert multiply_int(-3, 0) == 0",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "At least one operand is zero; the other can be any integer.",
+          "oracle_reason": "Mathematical property: any integer times zero equals zero.",
+          "fault_hypothesis": "If the y==0 base case were missing or misordered, the function could recurse infinitely or return wrong value."
+        },
+        {
+          "name": "test_negative_y",
+          "code": "from solution import multiply_int\n\ndef test_negative_y():\n    '''Verify correct behavior when y is negative.'''\n    assert multiply_int(3, -4) == -12\n    assert multiply_int(7, -1) == -7\n    assert multiply_int(1, -5) == -5",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "x is any integer, y is a negative integer.",
+          "oracle_reason": "By contract, multiply_int(x, y) = x * y. For y < 0, the implementation calls -multiply_int(x, -y), so 3*(-4) = -(3*4) = -12.",
+          "fault_hypothesis": "Negation might be applied incorrectly (e.g., forgetting the minus sign) or the recursive call might not flip y's sign."
+        },
+        {
+          "name": "test_both_negative",
+          "code": "from solution import multiply_int\n\ndef test_both_negative():\n    '''Verify that two negatives yield a positive product.'''\n    assert multiply_int(-3, -4) == 12\n    assert multiply_int(-2, -5) == 10\n    assert multiply_int(-1, -1) == 1",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "Both x and y are negative integers.",
+          "oracle_reason": "Product of two negatives is positive: (-3)*(-4)=12, (-2)*(-5)=10, (-1)*(-1)=1.",
+          "fault_hypothesis": "The double-negation logic might fail if the inner recursion doesn't handle negative x correctly or if the outer negation is misplaced."
+        },
+        {
+          "name": "test_return_type",
+          "code": "from solution import multiply_int\n\ndef test_return_type():\n    '''Verify the return value is always an int.'''\n    for x, y in [(3, 4), (0, 0), (-5, 3), (5, -2), (-3, -4)]:\n        result = multiply_int(x, y)\n        assert isinstance(result, int), f\"Expected int but got {type(result).__name__} for ({x}, {y})\"",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "Various combinations of positive, negative, and zero integers.",
+          "oracle_reason": "The contract specifies multiplying two integers, which mathematically yields an integer. All code paths use addition and negation of ints, so the result must be int.",
+          "fault_hypothesis": "A bug could introduce float division or string concatenation, returning a non-int type."
+        },
+        {
+          "name": "test_large_values",
+          "code": "from solution import multiply_int\n\ndef test_large_values():\n    '''Verify correctness with moderately larger integer values.'''\n    assert multiply_int(10, 10) == 100\n    assert multiply_int(20, -3) == -60\n    assert multiply_int(-7, 5) == -35",
+          "contract_quote": "'Write a function to multiply two integers.'",
+          "input_domain": "x and y are moderately sized integers (up to ~20).",
+          "oracle_reason": "Direct computation: 10*10=100, 20*(-3)=-60, (-7)*5=-35.",
+          "fault_hypothesis": "Recursion depth or accumulation errors could cause incorrect results for larger inputs."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_basic_positive",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 16,
+            "total_calls": 16,
+            "unchecked_calls": 16,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_handling",
+          "contract_checks": {
+            "sut_calls": 4,
+            "checked_calls": 0,
+            "unchecked_calls": 4,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 8,
+            "total_calls": 8,
+            "unchecked_calls": 8,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_negative_y",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 13,
+            "total_calls": 13,
+            "unchecked_calls": 13,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_both_negative",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.164,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 13,
+            "total_calls": 13,
+            "unchecked_calls": 13,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 16,
+            "total_calls": 16,
+            "unchecked_calls": 16,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_large_values",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "RESOURCE_LIMIT",
+          "returncode": 1,
+          "seconds": 0.282,
+          "diagnostic": "ion(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:340: in guarded\n    return function(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nsolution.py:11: in multiply_int\n    return x + multiply_int(x, y - 1)\n               ^^^^^^^^^^^^^^^^^^^^^^\n_testgen_contracts.py:332: in guarded\n    raise ValueError(message)\nE   ValueError: resource limit: maximum 128 target calls per test\n=========================== short test summary info ============================\nFAILED test_solution.py::test_large_values - ValueError: resource limit: maxi...\n1 failed in 0.10s\n\nresource limit: maximum 128 target calls per test",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 129,
+            "total_calls": 129,
+            "unchecked_calls": 128,
+            "violations": [
+              "resource limit: maximum 128 target calls per test"
+            ]
+          }
+        },
+        {
+          "name": "test_large_values",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 19,
+            "total_calls": 19,
+            "unchecked_calls": 19,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 13,
+      "validation_seconds": 2.411,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_3/A4/MBPP__127.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 8,
+    "executable_lines": 8,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 3
+    },
+    "killed_by_operator": {
+      "ROR": 3
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 4,
+        "column": 7,
+        "description": "Lt -> LtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_zero_handling",
+          "test_solution.py::test_return_type"
+        ],
+        "duration_sec": 0.26747496001189575,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 4,
+        "failed": 2,
+        "errors": 0,
+        "summary": "2 failed, 4 passed in 0.06s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 6,
+        "column": 9,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_basic_positive",
+          "test_solution.py::test_zero_handling",
+          "test_solution.py::test_negative_y",
+          "test_solution.py::test_both_negative",
+          "test_solution.py::test_large_values"
+        ],
+        "duration_sec": 0.25993614800972864,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 1,
+        "failed": 5,
+        "errors": 0,
+        "summary": "5 failed, 1 passed in 0.06s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 8,
+        "column": 9,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_basic_positive",
+          "test_solution.py::test_negative_y",
+          "test_solution.py::test_both_negative",
+          "test_solution.py::test_large_values"
+        ],
+        "duration_sec": 0.31589991398504935,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.08s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.204
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.025,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 12 行，显示第 1-12 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.156,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_positive",
+            "code": "from solution import multiply_int\n\ndef test_basic_positive():\n    '''Verify basic positive integer multiplication.'''\n    assert multiply_int(3, 4) == 12\n    assert multiply_int(7, 2) == 14\n    assert multiply_int(10, 10) == 100",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "x and y are positive integers",
+            "oracle_reason": "Direct arithmetic: 3*4=12, 7*2=14, 10*10=100.",
+            "fault_hypothesis": "Off-by-one in recursion or wrong base case would produce incorrect products."
+          },
+          {
+            "name": "test_zero_handling",
+            "code": "from solution import multiply_int\n\ndef test_zero_handling():\n    '''Verify that multiplying by zero yields zero regardless of the other operand.'''\n    assert multiply_int(5, 0) == 0\n    assert multiply_int(0, 5) == 0\n    assert multiply_int(0, 0) == 0\n    assert multiply_int(-3, 0) == 0",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "At least one operand is zero; the other can be any integer.",
+            "oracle_reason": "Mathematical property: any integer times zero equals zero.",
+            "fault_hypothesis": "If the y==0 base case were missing or misordered, the function could recurse infinitely or return wrong value."
+          },
+          {
+            "name": "test_negative_y",
+            "code": "from solution import multiply_int\n\ndef test_negative_y():\n    '''Verify correct behavior when y is negative.'''\n    assert multiply_int(3, -4) == -12\n    assert multiply_int(7, -1) == -7\n    assert multiply_int(1, -5) == -5",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "x is any integer, y is a negative integer.",
+            "oracle_reason": "By contract, multiply_int(x, y) = x * y. For y < 0, the implementation calls -multiply_int(x, -y), so 3*(-4) = -(3*4) = -12.",
+            "fault_hypothesis": "Negation might be applied incorrectly (e.g., forgetting the minus sign) or the recursive call might not flip y's sign."
+          },
+          {
+            "name": "test_both_negative",
+            "code": "from solution import multiply_int\n\ndef test_both_negative():\n    '''Verify that two negatives yield a positive product.'''\n    assert multiply_int(-3, -4) == 12\n    assert multiply_int(-2, -5) == 10\n    assert multiply_int(-1, -1) == 1",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "Both x and y are negative integers.",
+            "oracle_reason": "Product of two negatives is positive: (-3)*(-4)=12, (-2)*(-5)=10, (-1)*(-1)=1.",
+            "fault_hypothesis": "The double-negation logic might fail if the inner recursion doesn't handle negative x correctly or if the outer negation is misplaced."
+          },
+          {
+            "name": "test_return_type",
+            "code": "from solution import multiply_int\n\ndef test_return_type():\n    '''Verify the return value is always an int.'''\n    for x, y in [(3, 4), (0, 0), (-5, 3), (5, -2), (-3, -4)]:\n        result = multiply_int(x, y)\n        assert isinstance(result, int), f\"Expected int but got {type(result).__name__} for ({x}, {y})\"",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "Various combinations of positive, negative, and zero integers.",
+            "oracle_reason": "The contract specifies multiplying two integers, which mathematically yields an integer. All code paths use addition and negation of ints, so the result must be int.",
+            "fault_hypothesis": "A bug could introduce float division or string concatenation, returning a non-int type."
+          },
+          {
+            "name": "test_large_values",
+            "code": "from solution import multiply_int\n\ndef test_large_values():\n    '''Verify correctness with larger integer values.'''\n    assert multiply_int(99, 99) == 9801\n    assert multiply_int(100, -100) == -10000\n    assert multiply_int(-50, 50) == -2500",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "x and y are moderately large integers (up to ~100).",
+            "oracle_reason": "Direct computation: 99*99=9801, 100*(-100)=-10000, (-50)*50=-2500.",
+            "fault_hypothesis": "Recursion depth or accumulation errors could cause incorrect results for larger inputs due to accumulated floating-point issues or stack overflow (though Python handles big ints natively)."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_positive\", \"contract_checks\": {\"sut_calls\": 3, \"checked_calls\": 0, \"unchecked_calls\": 3, \"violations\": [], \"assertion_e"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.413,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_large_values",
+            "code": "from solution import multiply_int\n\ndef test_large_values():\n    '''Verify correctness with moderately larger integer values.'''\n    assert multiply_int(10, 10) == 100\n    assert multiply_int(20, -3) == -60\n    assert multiply_int(-7, 5) == -35",
+            "contract_quote": "'Write a function to multiply two integers.'",
+            "input_domain": "x and y are moderately sized integers (up to ~20).",
+            "oracle_reason": "Direct computation: 10*10=100, 20*(-3)=-60, (-7)*5=-35.",
+            "fault_hypothesis": "Recursion depth or accumulation errors could cause incorrect results for larger inputs."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_large_values\", \"contract_checks\": {\"sut_calls\": 3, \"checked_calls\": 0, \"unchecked_calls\": 3, \"violations\": [], \"assertion_err"
+    }
+  ],
+  "started_at": 1791345694.9348326,
+  "duration_sec": 34.176,
+  "tests_chars": 1862
+}

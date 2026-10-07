@@ -1,0 +1,515 @@
+{
+  "instance_id": "MBPP/472",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "max_tokens",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 6,
+    "tool_errors": 2,
+    "tool_calls_skipped": 0,
+    "input_tokens": 28055,
+    "output_tokens": 6171,
+    "total_tokens": 34226,
+    "final_text": "All 6 candidates were accepted. Let me verify they pass via `pytest`:",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.027,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 5 行，显示第 1-5 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": true,
+        "duration_sec": 0.0,
+        "arguments": {
+          "cases": "\n[{\"name\": \"test_consecutive_positive\", \"code\": \"from solution import check_Cons…"
+        },
+        "first_line": "参数 `cases` 必须是 array，收到 string（值："
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.158,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_consecutive_positive",
+              "code": "from solution import check_Consecutive\n\ndef test_consecutive_positive():\n    '''Test that a straightforward consecutive positive integer list returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 3, 4, 5]\n    Oracle: sorted([1,2,3,4,5]) == [1,2,3,4,5]; range(1,6) == [1,2,3,4,5]; match -> True.\n    Fault hypothesis: If the function incorrectly handles basic consecutive sequences,\n    e.g., by checking adjacency instead of full range coverage, it would fail here.'''\n    assert check_Consecutive([1, 2, 3, 4, 5]) is True",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [1, 2, 3, 4, 5]",
+              "oracle_reason": "sorted([1,2,3,4,5]) equals list(range(1,6)), so the function must return True.",
+              "fault_hypothesis": "Function might only check adjacent pairs rather than full range coverage."
+            },
+            {
+              "name": "test_non_consecutive_gaps",
+              "code": "from solution import check_Consecutive\n\ndef test_non_consecutive_gaps():\n    '''Test that a list with gaps between values returns False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 3, 5, 7]\n    Oracle: sorted([1,3,5,7]) == [1,3,5,7]; range(1,8) == [1,2,3,4,5,6,7]; mismatch -> False.\n    Fault hypothesis: If the function uses a wrong comparison like len-based check,\n    it might incorrectly classify sparse sequences.'''\n    assert check_Consecutive([1, 3, 5, 7]) is False",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [1, 3, 5, 7]",
+              "oracle_reason": "There are gaps (missing 2,4,6) between min=1 and max=7; sorted list != range(1,8); must return False.",
+              "fault_hypothesis": "Function might use length-based heuristic instead of range comparison."
+            },
+            {
+              "name": "test_two_elements_consecutive",
+              "code": "from solution import check_Consecutive\n\ndef test_two_elements_consecutive():\n    '''Test two-element consecutive pair returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [10, 11]\n    Oracle: sorted([10,11]) == [10,11]; range(10,12) == [10,11]; match -> True.\n    Fault hypothesis: Off-by-one error in range upper bound (using max(l) instead of max(l)+1)\n    would produce range(10,11)=[10] which mismatches.'''\n    assert check_Consecutive([10, 11]) is True",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [10, 11]",
+              "oracle_reason": "Two consecutive integers; sorted equals range(min,max+1); must return True.",
+              "fault_hypothesis": "Off-by-one error: using max(l) instead of max(l)+1 in range()."
+            },
+            {
+              "name": "test_single_element",
+              "code": "from solution import check_Consecutive\n\ndef test_single_element():\n    '''Test that a single-element list is trivially consecutive.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [42]\n    Oracle: sorted([42]) == [42]; range(42,43) == [42]; match -> True.\n    Fault hypothesis: Function might require at least 2 elements and return False\n    for single-element lists.'''\n    assert check_Consecutive([42]) is True",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [42]",
+              "oracle_reason": "A single value has no gaps; sorted([42]) == range(42,43); must return True.",
+              "fault_hypothesis": "Function might reject single-element lists as non-consecutive."
+            },
+            {
+              "name": "test_duplicates_in_range",
+              "code": "from solution import check_Consecutive\n\ndef test_duplicates_in_range():\n    '''Test that duplicate values within a consecutive range return False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 2, 3]\n    Oracle: sorted([1,2,2,3]) == [1,2,2,3]; range(1,4) == [1,2,3]; mismatch -> False.\n    Fault hypothesis: Function might ignore duplicates and only check min/max span.'''\n    assert check_Consecutive([1, 2, 2, 3]) is False",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [1, 2, 2, 3]",
+              "oracle_reason": "Duplicate 2 makes sorted list longer than range(1,4); must return False.",
+              "fault_hypothesis": "Function might overlook duplicates and only compare min/max bounds."
+            },
+            {
+              "name": "test_negative_consecutive",
+              "code": "from solution import check_Consecutive\n\ndef test_negative_consecutive():\n    '''Test negative consecutive integers work correctly.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [-3, -2, -1, 0, 1]\n    Oracle: sorted([-3,-2,-1,0,1]) == [-3,-2,-1,0,1]; range(-3,2) == [-3,-2,-1,0,1]; match -> True.\n    Fault hypothesis: Function might mishandle negative numbers in sorting or range generation.'''\n    assert check_Consecutive([-3, -2, -1, 0, 1]) is True",
+              "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+              "input_domain": "l = [-3, -2, -1, 0, 1]",
+              "oracle_reason": "Negative consecutive integers form a valid consecutive sequence; sorted equals range(-3,2); must return True.",
+              "fault_hypothesis": "Function might mishandle negative numbers in sorting or range generation."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_consecutive_positive\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asser"
+      },
+      {
+        "turn": 4,
+        "name": "write_file",
+        "is_error": true,
+        "duration_sec": 0.018,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "from solution import check_Consecutive\n\n\ndef test_consecutive_positive():\n    ''…"
+        },
+        "first_line": "文件 `test_solution.py` 已存在。如确认覆盖，请显式传入 overwrite=true；或改用其他路径。"
+      },
+      {
+        "turn": 5,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.032,
+        "arguments": {
+          "content": "from solution import check_Consecutive\n\n\ndef test_consecutive_positive():\n    ''…",
+          "path": "test_solution.py",
+          "overwrite": true
+        },
+        "first_line": "已写入 `test_solution.py`（3189 字符，71 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 6,
+        "name": "run_command",
+        "is_error": false,
+        "duration_sec": 0.28,
+        "arguments": {
+          "command": "python -m pytest test_solution.py -v"
+        },
+        "first_line": "$ python -m pytest test_solution.py -v"
+      }
+    ],
+    "generation_seconds": 63.067,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_consecutive_positive",
+          "code": "from solution import check_Consecutive\n\ndef test_consecutive_positive():\n    '''Test that a straightforward consecutive positive integer list returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 3, 4, 5]\n    Oracle: sorted([1,2,3,4,5]) == [1,2,3,4,5]; range(1,6) == [1,2,3,4,5]; match -> True.\n    Fault hypothesis: If the function incorrectly handles basic consecutive sequences,\n    e.g., by checking adjacency instead of full range coverage, it would fail here.'''\n    assert check_Consecutive([1, 2, 3, 4, 5]) is True",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [1, 2, 3, 4, 5]",
+          "oracle_reason": "sorted([1,2,3,4,5]) equals list(range(1,6)), so the function must return True.",
+          "fault_hypothesis": "Function might only check adjacent pairs rather than full range coverage."
+        },
+        {
+          "name": "test_non_consecutive_gaps",
+          "code": "from solution import check_Consecutive\n\ndef test_non_consecutive_gaps():\n    '''Test that a list with gaps between values returns False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 3, 5, 7]\n    Oracle: sorted([1,3,5,7]) == [1,3,5,7]; range(1,8) == [1,2,3,4,5,6,7]; mismatch -> False.\n    Fault hypothesis: If the function uses a wrong comparison like len-based check,\n    it might incorrectly classify sparse sequences.'''\n    assert check_Consecutive([1, 3, 5, 7]) is False",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [1, 3, 5, 7]",
+          "oracle_reason": "There are gaps (missing 2,4,6) between min=1 and max=7; sorted list != range(1,8); must return False.",
+          "fault_hypothesis": "Function might use length-based heuristic instead of range comparison."
+        },
+        {
+          "name": "test_two_elements_consecutive",
+          "code": "from solution import check_Consecutive\n\ndef test_two_elements_consecutive():\n    '''Test two-element consecutive pair returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [10, 11]\n    Oracle: sorted([10,11]) == [10,11]; range(10,12) == [10,11]; match -> True.\n    Fault hypothesis: Off-by-one error in range upper bound (using max(l) instead of max(l)+1)\n    would produce range(10,11)=[10] which mismatches.'''\n    assert check_Consecutive([10, 11]) is True",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [10, 11]",
+          "oracle_reason": "Two consecutive integers; sorted equals range(min,max+1); must return True.",
+          "fault_hypothesis": "Off-by-one error: using max(l) instead of max(l)+1 in range()."
+        },
+        {
+          "name": "test_single_element",
+          "code": "from solution import check_Consecutive\n\ndef test_single_element():\n    '''Test that a single-element list is trivially consecutive.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [42]\n    Oracle: sorted([42]) == [42]; range(42,43) == [42]; match -> True.\n    Fault hypothesis: Function might require at least 2 elements and return False\n    for single-element lists.'''\n    assert check_Consecutive([42]) is True",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [42]",
+          "oracle_reason": "A single value has no gaps; sorted([42]) == range(42,43); must return True.",
+          "fault_hypothesis": "Function might reject single-element lists as non-consecutive."
+        },
+        {
+          "name": "test_duplicates_in_range",
+          "code": "from solution import check_Consecutive\n\ndef test_duplicates_in_range():\n    '''Test that duplicate values within a consecutive range return False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 2, 3]\n    Oracle: sorted([1,2,2,3]) == [1,2,2,3]; range(1,4) == [1,2,3]; mismatch -> False.\n    Fault hypothesis: Function might ignore duplicates and only check min/max span.'''\n    assert check_Consecutive([1, 2, 2, 3]) is False",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [1, 2, 2, 3]",
+          "oracle_reason": "Duplicate 2 makes sorted list longer than range(1,4); must return False.",
+          "fault_hypothesis": "Function might overlook duplicates and only compare min/max bounds."
+        },
+        {
+          "name": "test_negative_consecutive",
+          "code": "from solution import check_Consecutive\n\ndef test_negative_consecutive():\n    '''Test negative consecutive integers work correctly.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [-3, -2, -1, 0, 1]\n    Oracle: sorted([-3,-2,-1,0,1]) == [-3,-2,-1,0,1]; range(-3,2) == [-3,-2,-1,0,1]; match -> True.\n    Fault hypothesis: Function might mishandle negative numbers in sorting or range generation.'''\n    assert check_Consecutive([-3, -2, -1, 0, 1]) is True",
+          "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+          "input_domain": "l = [-3, -2, -1, 0, 1]",
+          "oracle_reason": "Negative consecutive integers form a valid consecutive sequence; sorted equals range(-3,2); must return True.",
+          "fault_hypothesis": "Function might mishandle negative numbers in sorting or range generation."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_consecutive_positive",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_non_consecutive_gaps",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_two_elements_consecutive",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_duplicates_in_range",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_negative_consecutive",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.026,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_3/A4/MBPP__472.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 2,
+    "executable_lines": 2,
+    "mutation_score": 1.0,
+    "mutants_total": 1,
+    "mutants_killed": 1,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 4,
+        "column": 11,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_consecutive_positive",
+          "test_solution.py::test_non_consecutive_gaps",
+          "test_solution.py::test_two_elements_consecutive",
+          "test_solution.py::test_single_element",
+          "test_solution.py::test_duplicates_in_range",
+          "test_solution.py::test_negative_consecutive"
+        ],
+        "duration_sec": 0.25223897001706064,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 6,
+        "errors": 0,
+        "summary": "6 failed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 1.509
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 1
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.027,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 5 行，显示第 1-5 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": true,
+      "duration_sec": 0.0,
+      "arguments": {
+        "cases": "\n[{\"name\": \"test_consecutive_positive\", \"code\": \"from solution import check_Cons…"
+      },
+      "first_line": "参数 `cases` 必须是 array，收到 string（值："
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.158,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_consecutive_positive",
+            "code": "from solution import check_Consecutive\n\ndef test_consecutive_positive():\n    '''Test that a straightforward consecutive positive integer list returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 3, 4, 5]\n    Oracle: sorted([1,2,3,4,5]) == [1,2,3,4,5]; range(1,6) == [1,2,3,4,5]; match -> True.\n    Fault hypothesis: If the function incorrectly handles basic consecutive sequences,\n    e.g., by checking adjacency instead of full range coverage, it would fail here.'''\n    assert check_Consecutive([1, 2, 3, 4, 5]) is True",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [1, 2, 3, 4, 5]",
+            "oracle_reason": "sorted([1,2,3,4,5]) equals list(range(1,6)), so the function must return True.",
+            "fault_hypothesis": "Function might only check adjacent pairs rather than full range coverage."
+          },
+          {
+            "name": "test_non_consecutive_gaps",
+            "code": "from solution import check_Consecutive\n\ndef test_non_consecutive_gaps():\n    '''Test that a list with gaps between values returns False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 3, 5, 7]\n    Oracle: sorted([1,3,5,7]) == [1,3,5,7]; range(1,8) == [1,2,3,4,5,6,7]; mismatch -> False.\n    Fault hypothesis: If the function uses a wrong comparison like len-based check,\n    it might incorrectly classify sparse sequences.'''\n    assert check_Consecutive([1, 3, 5, 7]) is False",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [1, 3, 5, 7]",
+            "oracle_reason": "There are gaps (missing 2,4,6) between min=1 and max=7; sorted list != range(1,8); must return False.",
+            "fault_hypothesis": "Function might use length-based heuristic instead of range comparison."
+          },
+          {
+            "name": "test_two_elements_consecutive",
+            "code": "from solution import check_Consecutive\n\ndef test_two_elements_consecutive():\n    '''Test two-element consecutive pair returns True.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [10, 11]\n    Oracle: sorted([10,11]) == [10,11]; range(10,12) == [10,11]; match -> True.\n    Fault hypothesis: Off-by-one error in range upper bound (using max(l) instead of max(l)+1)\n    would produce range(10,11)=[10] which mismatches.'''\n    assert check_Consecutive([10, 11]) is True",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [10, 11]",
+            "oracle_reason": "Two consecutive integers; sorted equals range(min,max+1); must return True.",
+            "fault_hypothesis": "Off-by-one error: using max(l) instead of max(l)+1 in range()."
+          },
+          {
+            "name": "test_single_element",
+            "code": "from solution import check_Consecutive\n\ndef test_single_element():\n    '''Test that a single-element list is trivially consecutive.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [42]\n    Oracle: sorted([42]) == [42]; range(42,43) == [42]; match -> True.\n    Fault hypothesis: Function might require at least 2 elements and return False\n    for single-element lists.'''\n    assert check_Consecutive([42]) is True",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [42]",
+            "oracle_reason": "A single value has no gaps; sorted([42]) == range(42,43); must return True.",
+            "fault_hypothesis": "Function might reject single-element lists as non-consecutive."
+          },
+          {
+            "name": "test_duplicates_in_range",
+            "code": "from solution import check_Consecutive\n\ndef test_duplicates_in_range():\n    '''Test that duplicate values within a consecutive range return False.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [1, 2, 2, 3]\n    Oracle: sorted([1,2,2,3]) == [1,2,2,3]; range(1,4) == [1,2,3]; mismatch -> False.\n    Fault hypothesis: Function might ignore duplicates and only check min/max span.'''\n    assert check_Consecutive([1, 2, 2, 3]) is False",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [1, 2, 2, 3]",
+            "oracle_reason": "Duplicate 2 makes sorted list longer than range(1,4); must return False.",
+            "fault_hypothesis": "Function might overlook duplicates and only compare min/max bounds."
+          },
+          {
+            "name": "test_negative_consecutive",
+            "code": "from solution import check_Consecutive\n\ndef test_negative_consecutive():\n    '''Test negative consecutive integers work correctly.\n    \n    Contract quote: \"Write a python function to check whether the given list\n    contains consecutive numbers or not.\"\n    Input domain: l = [-3, -2, -1, 0, 1]\n    Oracle: sorted([-3,-2,-1,0,1]) == [-3,-2,-1,0,1]; range(-3,2) == [-3,-2,-1,0,1]; match -> True.\n    Fault hypothesis: Function might mishandle negative numbers in sorting or range generation.'''\n    assert check_Consecutive([-3, -2, -1, 0, 1]) is True",
+            "contract_quote": "Write a python function to check whether the given list contains consecutive numbers or not.",
+            "input_domain": "l = [-3, -2, -1, 0, 1]",
+            "oracle_reason": "Negative consecutive integers form a valid consecutive sequence; sorted equals range(-3,2); must return True.",
+            "fault_hypothesis": "Function might mishandle negative numbers in sorting or range generation."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_consecutive_positive\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asser"
+    },
+    {
+      "turn": 4,
+      "name": "write_file",
+      "is_error": true,
+      "duration_sec": 0.018,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "from solution import check_Consecutive\n\n\ndef test_consecutive_positive():\n    ''…"
+      },
+      "first_line": "文件 `test_solution.py` 已存在。如确认覆盖，请显式传入 overwrite=true；或改用其他路径。"
+    },
+    {
+      "turn": 5,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.032,
+      "arguments": {
+        "content": "from solution import check_Consecutive\n\n\ndef test_consecutive_positive():\n    ''…",
+        "path": "test_solution.py",
+        "overwrite": true
+      },
+      "first_line": "已写入 `test_solution.py`（3189 字符，71 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 6,
+      "name": "run_command",
+      "is_error": false,
+      "duration_sec": 0.28,
+      "arguments": {
+        "command": "python -m pytest test_solution.py -v"
+      },
+      "first_line": "$ python -m pytest test_solution.py -v"
+    }
+  ],
+  "started_at": 1791345323.9567187,
+  "duration_sec": 64.694,
+  "tests_chars": 3659
+}

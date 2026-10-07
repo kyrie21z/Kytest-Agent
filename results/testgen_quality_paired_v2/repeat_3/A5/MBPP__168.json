@@ -1,0 +1,512 @@
+{
+  "instance_id": "MBPP/168",
+  "variant": "A5",
+  "status": "all_pass",
+  "agent": {
+    "status": "stopped",
+    "turns": 2,
+    "llm_calls": 2,
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 3922,
+    "output_tokens": 1692,
+    "total_tokens": 5614,
+    "final_text": "Let me analyze the solution first. The `frequency(a, x)` function counts occurrences of `x` in list `a`. Now I'll create test candidates.",
+    "error": null,
+    "stop_reason": "development_targets_exhausted",
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.017,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.1,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_frequency_basic",
+              "code": "from solution import frequency\n\ndef test_frequency_basic():\n    '''Test basic counting of an element appearing multiple times.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1,2,3,2,4,2], x=2\n    Oracle: 2 appears 3 times in the list, so result must be 3.\n    Fault hypothesis: If the loop or comparison is broken, count will be wrong.'''\n    result = frequency([1, 2, 3, 2, 4, 2], 2)\n    assert result == 3\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[1,2,3,2,4,2], x=2",
+              "oracle_reason": "Element 2 appears exactly 3 times in the list.",
+              "fault_hypothesis": "Incorrect iteration or comparison logic would produce a wrong count."
+            },
+            {
+              "name": "test_frequency_empty_list",
+              "code": "from solution import frequency\n\ndef test_frequency_empty_list():\n    '''Test that an empty list returns 0 for any search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[], x=5\n    Oracle: An empty list has no elements, so count must be 0.\n    Fault hypothesis: A bug that doesn't handle empty lists could raise or return non-zero.'''\n    result = frequency([], 5)\n    assert result == 0\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[], x=5",
+              "oracle_reason": "Empty list contains zero occurrences of any element.",
+              "fault_hypothesis": "Missing empty-list handling could cause errors or incorrect results."
+            },
+            {
+              "name": "test_frequency_not_found",
+              "code": "from solution import frequency\n\ndef test_frequency_not_found():\n    '''Test that an element not in the list returns 0.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1, 3, 5, 7], x=99\n    Oracle: 99 does not appear in the list, so count must be 0.\n    Fault hypothesis: Off-by-one or wrong comparison would yield non-zero.'''\n    result = frequency([1, 3, 5, 7], 99)\n    assert result == 0\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[1,3,5,7], x=99",
+              "oracle_reason": "Element 99 is absent from the list entirely.",
+              "fault_hypothesis": "Wrong comparison operator or initialization error could give non-zero."
+            },
+            {
+              "name": "test_frequency_all_match",
+              "code": "from solution import frequency\n\ndef test_frequency_all_match():\n    '''Test when every element matches the search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[4, 4, 4, 4], x=4\n    Oracle: All 4 elements equal x, so count must be 4.\n    Fault hypothesis: Early exit or skipped iterations would undercount.'''\n    result = frequency([4, 4, 4, 4], 4)\n    assert result == 4\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[4,4,4,4], x=4",
+              "oracle_reason": "All four elements are identical to x.",
+              "fault_hypothesis": "Premature termination or logic error would undercount."
+            },
+            {
+              "name": "test_frequency_single_element_match",
+              "code": "from solution import frequency\n\ndef test_frequency_single_element_match():\n    '''Test a single-element list where the element matches.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[7], x=7\n    Oracle: One element equals x, so count must be 1.\n    Fault hypothesis: Boundary issue on length-1 lists could return 0 or 2.'''\n    result = frequency([7], 7)\n    assert result == 1\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[7], x=7",
+              "oracle_reason": "Single element matches x exactly once.",
+              "fault_hypothesis": "Off-by-one on small lists could produce wrong count."
+            },
+            {
+              "name": "test_frequency_negative_numbers",
+              "code": "from solution import frequency\n\ndef test_frequency_negative_numbers():\n    '''Test counting with negative numbers.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[-1, -2, -1, 0, -1], x=-1\n    Oracle: -1 appears 3 times, so count must be 3.\n    Fault hypothesis: Sign handling bugs could miscompare negatives.'''\n    result = frequency([-1, -2, -1, 0, -1], -1)\n    assert result == 3\n",
+              "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+              "input_domain": "a=[-1,-2,-1,0,-1], x=-1",
+              "oracle_reason": "Negative value -1 occurs exactly 3 times.",
+              "fault_hypothesis": "Sign-related comparison errors could miss negative matches."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_frequency_basic\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+      }
+    ],
+    "generation_seconds": 18.801,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_frequency_basic",
+          "code": "from solution import frequency\n\ndef test_frequency_basic():\n    '''Test basic counting of an element appearing multiple times.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1,2,3,2,4,2], x=2\n    Oracle: 2 appears 3 times in the list, so result must be 3.\n    Fault hypothesis: If the loop or comparison is broken, count will be wrong.'''\n    result = frequency([1, 2, 3, 2, 4, 2], 2)\n    assert result == 3\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[1,2,3,2,4,2], x=2",
+          "oracle_reason": "Element 2 appears exactly 3 times in the list.",
+          "fault_hypothesis": "Incorrect iteration or comparison logic would produce a wrong count."
+        },
+        {
+          "name": "test_frequency_empty_list",
+          "code": "from solution import frequency\n\ndef test_frequency_empty_list():\n    '''Test that an empty list returns 0 for any search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[], x=5\n    Oracle: An empty list has no elements, so count must be 0.\n    Fault hypothesis: A bug that doesn't handle empty lists could raise or return non-zero.'''\n    result = frequency([], 5)\n    assert result == 0\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[], x=5",
+          "oracle_reason": "Empty list contains zero occurrences of any element.",
+          "fault_hypothesis": "Missing empty-list handling could cause errors or incorrect results."
+        },
+        {
+          "name": "test_frequency_not_found",
+          "code": "from solution import frequency\n\ndef test_frequency_not_found():\n    '''Test that an element not in the list returns 0.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1, 3, 5, 7], x=99\n    Oracle: 99 does not appear in the list, so count must be 0.\n    Fault hypothesis: Off-by-one or wrong comparison would yield non-zero.'''\n    result = frequency([1, 3, 5, 7], 99)\n    assert result == 0\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[1,3,5,7], x=99",
+          "oracle_reason": "Element 99 is absent from the list entirely.",
+          "fault_hypothesis": "Wrong comparison operator or initialization error could give non-zero."
+        },
+        {
+          "name": "test_frequency_all_match",
+          "code": "from solution import frequency\n\ndef test_frequency_all_match():\n    '''Test when every element matches the search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[4, 4, 4, 4], x=4\n    Oracle: All 4 elements equal x, so count must be 4.\n    Fault hypothesis: Early exit or skipped iterations would undercount.'''\n    result = frequency([4, 4, 4, 4], 4)\n    assert result == 4\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[4,4,4,4], x=4",
+          "oracle_reason": "All four elements are identical to x.",
+          "fault_hypothesis": "Premature termination or logic error would undercount."
+        },
+        {
+          "name": "test_frequency_single_element_match",
+          "code": "from solution import frequency\n\ndef test_frequency_single_element_match():\n    '''Test a single-element list where the element matches.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[7], x=7\n    Oracle: One element equals x, so count must be 1.\n    Fault hypothesis: Boundary issue on length-1 lists could return 0 or 2.'''\n    result = frequency([7], 7)\n    assert result == 1\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[7], x=7",
+          "oracle_reason": "Single element matches x exactly once.",
+          "fault_hypothesis": "Off-by-one on small lists could produce wrong count."
+        },
+        {
+          "name": "test_frequency_negative_numbers",
+          "code": "from solution import frequency\n\ndef test_frequency_negative_numbers():\n    '''Test counting with negative numbers.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[-1, -2, -1, 0, -1], x=-1\n    Oracle: -1 appears 3 times, so count must be 3.\n    Fault hypothesis: Sign handling bugs could miscompare negatives.'''\n    result = frequency([-1, -2, -1, 0, -1], -1)\n    assert result == 3\n",
+          "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+          "input_domain": "a=[-1,-2,-1,0,-1], x=-1",
+          "oracle_reason": "Negative value -1 occurs exactly 3 times.",
+          "fault_hypothesis": "Sign-related comparison errors could miss negative matches."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_frequency_basic",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_frequency_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_frequency_not_found",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_frequency_all_match",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_frequency_single_element_match",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_frequency_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 15,
+      "validation_seconds": 2.476,
+      "quality_actions": [
+        {
+          "turn": 2,
+          "decision": "development_targets_exhausted",
+          "suite_sha256": "5b2b6855c8ad6711de1f6dcfb277911a1bd5b09bd2580850be5b66a28e9ffbb4",
+          "current_suite_checked": true,
+          "feedback_rounds": 1,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M1",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 0 -> 1",
+              "fingerprint": "956eca0f81aaf93a7fc60fbb2d5801c05ef58b11d92bf76db369044faf316ba8",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M2",
+              "operator": "CRP",
+              "line": 7,
+              "description": "constant 1 -> 0",
+              "fingerprint": "0e939bbb22a7e7b52f65c32b4d4c972b301386007054bad7363ebe4b41a72b18",
+              "status": "FAIL",
+              "seconds": 0.165
+            }
+          ]
+        }
+      ]
+    },
+    "fault_feedback": [
+      {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "5b2b6855c8ad6711de1f6dcfb277911a1bd5b09bd2580850be5b66a28e9ffbb4",
+        "detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 0 -> 1",
+            "fingerprint": "956eca0f81aaf93a7fc60fbb2d5801c05ef58b11d92bf76db369044faf316ba8",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "0e939bbb22a7e7b52f65c32b4d4c972b301386007054bad7363ebe4b41a72b18",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 0 -> 1",
+            "fingerprint": "956eca0f81aaf93a7fc60fbb2d5801c05ef58b11d92bf76db369044faf316ba8",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "0e939bbb22a7e7b52f65c32b4d4c972b301386007054bad7363ebe4b41a72b18",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 0.495,
+        "subprocess_runs": 3,
+        "reference_passed": true,
+        "total": 2,
+        "detected": 2,
+        "survivors": [],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    ],
+    "generation_trace_file": "generation/repeat_3/A5/MBPP__168.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 6,
+    "executable_lines": 6,
+    "mutation_score": 1.0,
+    "mutants_total": 1,
+    "mutants_killed": 1,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 6,
+        "column": 9,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_frequency_not_found",
+          "test_solution.py::test_frequency_all_match",
+          "test_solution.py::test_frequency_single_element_match",
+          "test_solution.py::test_frequency_negative_numbers"
+        ],
+        "duration_sec": 0.25207034300547093,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 1.528
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 1
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.017,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.1,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_frequency_basic",
+            "code": "from solution import frequency\n\ndef test_frequency_basic():\n    '''Test basic counting of an element appearing multiple times.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1,2,3,2,4,2], x=2\n    Oracle: 2 appears 3 times in the list, so result must be 3.\n    Fault hypothesis: If the loop or comparison is broken, count will be wrong.'''\n    result = frequency([1, 2, 3, 2, 4, 2], 2)\n    assert result == 3\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[1,2,3,2,4,2], x=2",
+            "oracle_reason": "Element 2 appears exactly 3 times in the list.",
+            "fault_hypothesis": "Incorrect iteration or comparison logic would produce a wrong count."
+          },
+          {
+            "name": "test_frequency_empty_list",
+            "code": "from solution import frequency\n\ndef test_frequency_empty_list():\n    '''Test that an empty list returns 0 for any search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[], x=5\n    Oracle: An empty list has no elements, so count must be 0.\n    Fault hypothesis: A bug that doesn't handle empty lists could raise or return non-zero.'''\n    result = frequency([], 5)\n    assert result == 0\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[], x=5",
+            "oracle_reason": "Empty list contains zero occurrences of any element.",
+            "fault_hypothesis": "Missing empty-list handling could cause errors or incorrect results."
+          },
+          {
+            "name": "test_frequency_not_found",
+            "code": "from solution import frequency\n\ndef test_frequency_not_found():\n    '''Test that an element not in the list returns 0.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[1, 3, 5, 7], x=99\n    Oracle: 99 does not appear in the list, so count must be 0.\n    Fault hypothesis: Off-by-one or wrong comparison would yield non-zero.'''\n    result = frequency([1, 3, 5, 7], 99)\n    assert result == 0\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[1,3,5,7], x=99",
+            "oracle_reason": "Element 99 is absent from the list entirely.",
+            "fault_hypothesis": "Wrong comparison operator or initialization error could give non-zero."
+          },
+          {
+            "name": "test_frequency_all_match",
+            "code": "from solution import frequency\n\ndef test_frequency_all_match():\n    '''Test when every element matches the search value.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[4, 4, 4, 4], x=4\n    Oracle: All 4 elements equal x, so count must be 4.\n    Fault hypothesis: Early exit or skipped iterations would undercount.'''\n    result = frequency([4, 4, 4, 4], 4)\n    assert result == 4\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[4,4,4,4], x=4",
+            "oracle_reason": "All four elements are identical to x.",
+            "fault_hypothesis": "Premature termination or logic error would undercount."
+          },
+          {
+            "name": "test_frequency_single_element_match",
+            "code": "from solution import frequency\n\ndef test_frequency_single_element_match():\n    '''Test a single-element list where the element matches.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[7], x=7\n    Oracle: One element equals x, so count must be 1.\n    Fault hypothesis: Boundary issue on length-1 lists could return 0 or 2.'''\n    result = frequency([7], 7)\n    assert result == 1\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[7], x=7",
+            "oracle_reason": "Single element matches x exactly once.",
+            "fault_hypothesis": "Off-by-one on small lists could produce wrong count."
+          },
+          {
+            "name": "test_frequency_negative_numbers",
+            "code": "from solution import frequency\n\ndef test_frequency_negative_numbers():\n    '''Test counting with negative numbers.\n    Contract quote: \"count the number of occurrences of a number in a given list.\"\n    Input domain: a=[-1, -2, -1, 0, -1], x=-1\n    Oracle: -1 appears 3 times, so count must be 3.\n    Fault hypothesis: Sign handling bugs could miscompare negatives.'''\n    result = frequency([-1, -2, -1, 0, -1], -1)\n    assert result == 3\n",
+            "contract_quote": "\"Write a function to count the number of occurrences of a number in a given list.\"",
+            "input_domain": "a=[-1,-2,-1,0,-1], x=-1",
+            "oracle_reason": "Negative value -1 occurs exactly 3 times.",
+            "fault_hypothesis": "Sign-related comparison errors could miss negative matches."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_frequency_basic\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+    }
+  ],
+  "started_at": 1791346026.9277844,
+  "duration_sec": 20.462,
+  "tests_chars": 2906
+}

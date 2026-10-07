@@ -1,0 +1,911 @@
+{
+  "instance_id": "MBPP/141",
+  "variant": "A5",
+  "status": "all_pass",
+  "agent": {
+    "status": "max_tokens",
+    "turns": 7,
+    "llm_calls": 7,
+    "tool_calls": 8,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 27231,
+    "output_tokens": 8206,
+    "total_tokens": 35437,
+    "final_text": "Let me first verify the solution works correctly by running a quick test, then submit proper unit tests.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.037,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+      },
+      {
+        "turn": 2,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.03,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+      },
+      {
+        "turn": 3,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.017,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for pancake_sort.\"\"\"\n\n\ndef test_basic_sort():\n    \"\"\"Test that a s…",
+          "overwrite": true
+        },
+        "first_line": "已写入 `test_solution.py`（5684 字符，178 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 4,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.017,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+      },
+      {
+        "turn": 4,
+        "name": "list_files",
+        "is_error": false,
+        "duration_sec": 0.019,
+        "arguments": {
+          "path": "."
+        },
+        "first_line": "目录 `.` 共列出 3 项："
+      },
+      {
+        "turn": 5,
+        "name": "run_command",
+        "is_error": false,
+        "duration_sec": 0.063,
+        "arguments": {
+          "command": "python -c \"from solution import pancake_sort; print(pancake_sort([3,1,2])); prin…"
+        },
+        "first_line": "$ python -c from solution import pancake_sort; print(pancake_sort([3,1,2])); print(pancake_sort([])); print(pancake_sort([5,4,3,2,1])); print(pancake_sort([1]))"
+      },
+      {
+        "turn": 6,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.069,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_sort",
+              "code": "def test_basic_sort():\n    from solution import pancake_sort\n    result = pancake_sort([3, 1, 2])\n    assert result == [1, 2, 3]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [3, 1, 2], a small unsorted list of integers",
+              "oracle_reasoning": "Sorting [3, 1, 2] in ascending order yields [1, 2, 3]. The function should return a list where every element is <= the next.",
+              "fault_hypothesis": "If the function returns the input unchanged or sorts incorrectly (e.g., descending), this assertion will catch it."
+            },
+            {
+              "name": "test_already_sorted",
+              "code": "def test_already_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([1, 2, 3, 4, 5])\n    assert result == [1, 2, 3, 4, 5]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [1, 2, 3, 4, 5], a pre-sorted list",
+              "oracle_reasoning": "A sorted list should remain unchanged after sorting.",
+              "fault_hypothesis": "If the algorithm corrupts an already-correct ordering due to off-by-one in slice indices, the output will differ."
+            },
+            {
+              "name": "test_reverse_sorted",
+              "code": "def test_reverse_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([5, 4, 3, 2, 1])\n    assert result == [1, 2, 3, 4, 5]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [5, 4, 3, 2, 1], fully descending",
+              "oracle_reasoning": "Reversing [5, 4, 3, 2, 1] gives [1, 2, 3, 4, 5].",
+              "fault_hypothesis": "Pancake sort must handle the worst-case permutation; if the flip logic is wrong, the result will not be ascending."
+            },
+            {
+              "name": "test_empty_list",
+              "code": "def test_empty_list():\n    from solution import pancake_sort\n    result = pancake_sort([])\n    assert result == []",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [], no elements",
+              "oracle_reasoning": "An empty list is trivially sorted. len([]) == 0, so the while loop (arr_len > 1) never executes, and [] is returned.",
+              "fault_hypothesis": "If the function crashes on empty input or returns something other than [], this catches it."
+            },
+            {
+              "name": "test_single_element",
+              "code": "def test_single_element():\n    from solution import pancake_sort\n    result = pancake_sort([42])\n    assert result == [42]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [42], one element",
+              "oracle_reasoning": "A list with one element is trivially sorted.",
+              "fault_hypothesis": "If the while loop condition or indexing is incorrect, a single element might cause an error or unexpected behavior."
+            },
+            {
+              "name": "test_two_elements_unsorted",
+              "code": "def test_two_elements_unsorted():\n    from solution import pancake_sort\n    result = pancake_sort([2, 1])\n    assert result == [1, 2]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [2, 1], two elements out of order",
+              "oracle_reasoning": "Swapping gives [1, 2].",
+              "fault_hypothesis": "Boundary case with minimum non-trivial size; if the flip logic has an off-by-one, two elements may not swap correctly."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_sort\", \"status\": \"REJECTED\", \"diagnostic\": \"Each case requires exactly: name, code, contract_quote, input_domain, oracl"
+      },
+      {
+        "turn": 7,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.091,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_sort",
+              "code": "def test_basic_sort():\n    from solution import pancake_sort\n    result = pancake_sort([3, 1, 2])\n    assert result == [1, 2, 3]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [3, 1, 2], a small unsorted list of integers",
+              "oracle_reason": "Sorting [3, 1, 2] in ascending order yields [1, 2, 3]. The function should return a list where every element is <= the next.",
+              "fault_hypothesis": "If the function returns the input unchanged or sorts incorrectly (e.g., descending), this assertion will catch it."
+            },
+            {
+              "name": "test_already_sorted",
+              "code": "def test_already_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([1, 2, 3, 4, 5])\n    assert result == [1, 2, 3, 4, 5]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [1, 2, 3, 4, 5], a pre-sorted list",
+              "oracle_reason": "A sorted list should remain unchanged after sorting.",
+              "fault_hypothesis": "If the algorithm corrupts an already-correct ordering due to off-by-one in slice indices, the output will differ."
+            },
+            {
+              "name": "test_reverse_sorted",
+              "code": "def test_reverse_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([5, 4, 3, 2, 1])\n    assert result == [1, 2, 3, 4, 5]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [5, 4, 3, 2, 1], fully descending",
+              "oracle_reason": "Reversing [5, 4, 3, 2, 1] gives [1, 2, 3, 4, 5].",
+              "fault_hypothesis": "Pancake sort must handle the worst-case permutation; if the flip logic is wrong, the result will not be ascending."
+            },
+            {
+              "name": "test_empty_list",
+              "code": "def test_empty_list():\n    from solution import pancake_sort\n    result = pancake_sort([])\n    assert result == []",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [], no elements",
+              "oracle_reason": "An empty list is trivially sorted. len([]) == 0, so the while loop (arr_len > 1) never executes, and [] is returned.",
+              "fault_hypothesis": "If the function crashes on empty input or returns something other than [], this catches it."
+            },
+            {
+              "name": "test_single_element",
+              "code": "def test_single_element():\n    from solution import pancake_sort\n    result = pancake_sort([42])\n    assert result == [42]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [42], one element",
+              "oracle_reason": "A list with one element is trivially sorted.",
+              "fault_hypothesis": "If the while loop condition or indexing is incorrect, a single element might cause an error or unexpected behavior."
+            },
+            {
+              "name": "test_two_elements_unsorted",
+              "code": "def test_two_elements_unsorted():\n    from solution import pancake_sort\n    result = pancake_sort([2, 1])\n    assert result == [1, 2]",
+              "contract_quote": "'Write a function to sort a list of elements.'",
+              "input_domain": "nums = [2, 1], two elements out of order",
+              "oracle_reason": "Swapping gives [1, 2].",
+              "fault_hypothesis": "Boundary case with minimum non-trivial size; if the flip logic has an off-by-one, two elements may not swap correctly."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_basic_sort\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      }
+    ],
+    "generation_seconds": 84.08,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_basic_sort",
+          "code": "def test_basic_sort():\n    from solution import pancake_sort\n    result = pancake_sort([3, 1, 2])\n    assert result == [1, 2, 3]",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [3, 1, 2], a small unsorted list of integers",
+          "oracle_reason": "Sorting [3, 1, 2] in ascending order yields [1, 2, 3]. The function should return a list where every element is <= the next.",
+          "fault_hypothesis": "If the function returns the input unchanged or sorts incorrectly (e.g., descending), this assertion will catch it."
+        },
+        {
+          "name": "test_already_sorted",
+          "code": "def test_already_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([1, 2, 3, 4, 5])\n    assert result == [1, 2, 3, 4, 5]",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [1, 2, 3, 4, 5], a pre-sorted list",
+          "oracle_reason": "A sorted list should remain unchanged after sorting.",
+          "fault_hypothesis": "If the algorithm corrupts an already-correct ordering due to off-by-one in slice indices, the output will differ."
+        },
+        {
+          "name": "test_reverse_sorted",
+          "code": "def test_reverse_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([5, 4, 3, 2, 1])\n    assert result == [1, 2, 3, 4, 5]",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [5, 4, 3, 2, 1], fully descending",
+          "oracle_reason": "Reversing [5, 4, 3, 2, 1] gives [1, 2, 3, 4, 5].",
+          "fault_hypothesis": "Pancake sort must handle the worst-case permutation; if the flip logic is wrong, the result will not be ascending."
+        },
+        {
+          "name": "test_empty_list",
+          "code": "def test_empty_list():\n    from solution import pancake_sort\n    result = pancake_sort([])\n    assert result == []",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [], no elements",
+          "oracle_reason": "An empty list is trivially sorted. len([]) == 0, so the while loop (arr_len > 1) never executes, and [] is returned.",
+          "fault_hypothesis": "If the function crashes on empty input or returns something other than [], this catches it."
+        },
+        {
+          "name": "test_single_element",
+          "code": "def test_single_element():\n    from solution import pancake_sort\n    result = pancake_sort([42])\n    assert result == [42]",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [42], one element",
+          "oracle_reason": "A list with one element is trivially sorted.",
+          "fault_hypothesis": "If the while loop condition or indexing is incorrect, a single element might cause an error or unexpected behavior."
+        },
+        {
+          "name": "test_two_elements_unsorted",
+          "code": "def test_two_elements_unsorted():\n    from solution import pancake_sort\n    result = pancake_sort([2, 1])\n    assert result == [1, 2]",
+          "contract_quote": "'Write a function to sort a list of elements.'",
+          "input_domain": "nums = [2, 1], two elements out of order",
+          "oracle_reason": "Swapping gives [1, 2].",
+          "fault_hypothesis": "Boundary case with minimum non-trivial size; if the flip logic has an off-by-one, two elements may not swap correctly."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_basic_sort",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_already_sorted",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_reverse_sorted",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_empty_list",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_single_element",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_two_elements_unsorted",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_basic_sort",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_already_sorted",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_reverse_sorted",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_two_elements_unsorted",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 21,
+      "validation_seconds": 3.669,
+      "quality_actions": [
+        {
+          "turn": 7,
+          "decision": "development_feedback",
+          "suite_sha256": "541b953302cdc13bd201fcfa338b7b11adc2e5714f78289c1fa0e8ee5c418fcc",
+          "current_suite_checked": true,
+          "feedback_rounds": 1,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M2",
+              "operator": "CRP",
+              "line": 6,
+              "description": "constant 0 -> 1",
+              "fingerprint": "72c45c25ab4bfce0d8b390bd1927f68bec7828ae2e388fcbdcdf755c4c0be8a6",
+              "status": "FAIL",
+              "seconds": 0.166
+            },
+            {
+              "mutant_id": "M3",
+              "operator": "AOR",
+              "line": 7,
+              "description": "Add -> Sub",
+              "fingerprint": "13cd9b833f26cd23c62208fa439bb0bbae7b9be2ca3cef7ee6827c635ea0d171",
+              "status": "FAIL",
+              "seconds": 0.215
+            },
+            {
+              "mutant_id": "M4",
+              "operator": "CRP",
+              "line": 7,
+              "description": "constant 1 -> 0",
+              "fingerprint": "9a712736104d634b81f175717282752df781ce7339cf2b5a861e491dc18eee55",
+              "status": "FAIL",
+              "seconds": 0.217
+            },
+            {
+              "mutant_id": "M5",
+              "operator": "AOR",
+              "line": 7,
+              "description": "Add -> Sub",
+              "fingerprint": "7ae2398770fb4d0e6aeb65fe96821cdcb2d5726e9560bbf7cf192ce43ff86e3b",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M6",
+              "operator": "CRP",
+              "line": 7,
+              "description": "constant 1 -> 0",
+              "fingerprint": "6f44da14cf8bcfa71e6bfb508edf707315f75aa10211c6b90fb83849abcd71d2",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M7",
+              "operator": "AOR",
+              "line": 8,
+              "description": "Add -> Sub",
+              "fingerprint": "4bc54431a0cac56a78b9f859d6cec2383a7ef5b2aef7dcacf4c9a52fc94714ad",
+              "status": "FAIL",
+              "seconds": 0.215
+            },
+            {
+              "mutant_id": "M8",
+              "operator": "AOR",
+              "line": 8,
+              "description": "Sub -> Add",
+              "fingerprint": "c5f524b1a71157b659bc598d27a007aaad8e1a9fa5f36ad411f902dec2a40d9a",
+              "status": "FAIL",
+              "seconds": 0.215
+            }
+          ]
+        }
+      ]
+    },
+    "fault_feedback": [
+      {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "541b953302cdc13bd201fcfa338b7b11adc2e5714f78289c1fa0e8ee5c418fcc",
+        "detected_faults": [
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 6,
+            "description": "constant 0 -> 1",
+            "fingerprint": "72c45c25ab4bfce0d8b390bd1927f68bec7828ae2e388fcbdcdf755c4c0be8a6",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 7,
+            "description": "Add -> Sub",
+            "fingerprint": "13cd9b833f26cd23c62208fa439bb0bbae7b9be2ca3cef7ee6827c635ea0d171",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "9a712736104d634b81f175717282752df781ce7339cf2b5a861e491dc18eee55",
+            "status": "FAIL",
+            "seconds": 0.217
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "AOR",
+            "line": 7,
+            "description": "Add -> Sub",
+            "fingerprint": "7ae2398770fb4d0e6aeb65fe96821cdcb2d5726e9560bbf7cf192ce43ff86e3b",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "6f44da14cf8bcfa71e6bfb508edf707315f75aa10211c6b90fb83849abcd71d2",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Add -> Sub",
+            "fingerprint": "4bc54431a0cac56a78b9f859d6cec2383a7ef5b2aef7dcacf4c9a52fc94714ad",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Sub -> Add",
+            "fingerprint": "c5f524b1a71157b659bc598d27a007aaad8e1a9fa5f36ad411f902dec2a40d9a",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 6,
+            "description": "constant 0 -> 1",
+            "fingerprint": "72c45c25ab4bfce0d8b390bd1927f68bec7828ae2e388fcbdcdf755c4c0be8a6",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 7,
+            "description": "Add -> Sub",
+            "fingerprint": "13cd9b833f26cd23c62208fa439bb0bbae7b9be2ca3cef7ee6827c635ea0d171",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "9a712736104d634b81f175717282752df781ce7339cf2b5a861e491dc18eee55",
+            "status": "FAIL",
+            "seconds": 0.217
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "AOR",
+            "line": 7,
+            "description": "Add -> Sub",
+            "fingerprint": "7ae2398770fb4d0e6aeb65fe96821cdcb2d5726e9560bbf7cf192ce43ff86e3b",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 7,
+            "description": "constant 1 -> 0",
+            "fingerprint": "6f44da14cf8bcfa71e6bfb508edf707315f75aa10211c6b90fb83849abcd71d2",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Add -> Sub",
+            "fingerprint": "4bc54431a0cac56a78b9f859d6cec2383a7ef5b2aef7dcacf4c9a52fc94714ad",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "AOR",
+            "line": 8,
+            "description": "Sub -> Add",
+            "fingerprint": "c5f524b1a71157b659bc598d27a007aaad8e1a9fa5f36ad411f902dec2a40d9a",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.688,
+        "subprocess_runs": 9,
+        "reference_passed": true,
+        "total": 8,
+        "detected": 7,
+        "survivors": [
+          {
+            "mutant_id": "M1",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "daead4368a7a53646ee4afd2a44d5211d061609aba92dadd34d93ee92909c83a",
+            "status": "PASS",
+            "seconds": 0.165,
+            "change": "--- \n+++ \n@@ -3,3 +3,3 @@\n     arr_len = len(nums)\n-    while arr_len > 1:\n+    while arr_len > 0:\n         mi = nums.index(max(nums[0:arr_len]))"
+          }
+        ],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    ],
+    "generation_trace_file": "generation/repeat_2/A5/MBPP__141.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 8,
+    "executable_lines": 8,
+    "mutation_score": 0.0,
+    "mutants_total": 1,
+    "mutants_killed": 0,
+    "mutants_errors": 0,
+    "mutants_survived": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 5,
+        "column": 10,
+        "description": "Gt -> GtE"
+      }
+    ],
+    "mutant_operators": {
+      "ROR": 1
+    },
+    "killed_by_operator": {},
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 5,
+        "column": 10,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.21651163999922574,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.02s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 0.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 1.383
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 1
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.037,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+    },
+    {
+      "turn": 2,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.03,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+    },
+    {
+      "turn": 3,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.017,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for pancake_sort.\"\"\"\n\n\ndef test_basic_sort():\n    \"\"\"Test that a s…",
+        "overwrite": true
+      },
+      "first_line": "已写入 `test_solution.py`（5684 字符，178 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 4,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.017,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 11 行，显示第 1-11 行："
+    },
+    {
+      "turn": 4,
+      "name": "list_files",
+      "is_error": false,
+      "duration_sec": 0.019,
+      "arguments": {
+        "path": "."
+      },
+      "first_line": "目录 `.` 共列出 3 项："
+    },
+    {
+      "turn": 5,
+      "name": "run_command",
+      "is_error": false,
+      "duration_sec": 0.063,
+      "arguments": {
+        "command": "python -c \"from solution import pancake_sort; print(pancake_sort([3,1,2])); prin…"
+      },
+      "first_line": "$ python -c from solution import pancake_sort; print(pancake_sort([3,1,2])); print(pancake_sort([])); print(pancake_sort([5,4,3,2,1])); print(pancake_sort([1]))"
+    },
+    {
+      "turn": 6,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.069,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_sort",
+            "code": "def test_basic_sort():\n    from solution import pancake_sort\n    result = pancake_sort([3, 1, 2])\n    assert result == [1, 2, 3]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [3, 1, 2], a small unsorted list of integers",
+            "oracle_reasoning": "Sorting [3, 1, 2] in ascending order yields [1, 2, 3]. The function should return a list where every element is <= the next.",
+            "fault_hypothesis": "If the function returns the input unchanged or sorts incorrectly (e.g., descending), this assertion will catch it."
+          },
+          {
+            "name": "test_already_sorted",
+            "code": "def test_already_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([1, 2, 3, 4, 5])\n    assert result == [1, 2, 3, 4, 5]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [1, 2, 3, 4, 5], a pre-sorted list",
+            "oracle_reasoning": "A sorted list should remain unchanged after sorting.",
+            "fault_hypothesis": "If the algorithm corrupts an already-correct ordering due to off-by-one in slice indices, the output will differ."
+          },
+          {
+            "name": "test_reverse_sorted",
+            "code": "def test_reverse_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([5, 4, 3, 2, 1])\n    assert result == [1, 2, 3, 4, 5]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [5, 4, 3, 2, 1], fully descending",
+            "oracle_reasoning": "Reversing [5, 4, 3, 2, 1] gives [1, 2, 3, 4, 5].",
+            "fault_hypothesis": "Pancake sort must handle the worst-case permutation; if the flip logic is wrong, the result will not be ascending."
+          },
+          {
+            "name": "test_empty_list",
+            "code": "def test_empty_list():\n    from solution import pancake_sort\n    result = pancake_sort([])\n    assert result == []",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [], no elements",
+            "oracle_reasoning": "An empty list is trivially sorted. len([]) == 0, so the while loop (arr_len > 1) never executes, and [] is returned.",
+            "fault_hypothesis": "If the function crashes on empty input or returns something other than [], this catches it."
+          },
+          {
+            "name": "test_single_element",
+            "code": "def test_single_element():\n    from solution import pancake_sort\n    result = pancake_sort([42])\n    assert result == [42]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [42], one element",
+            "oracle_reasoning": "A list with one element is trivially sorted.",
+            "fault_hypothesis": "If the while loop condition or indexing is incorrect, a single element might cause an error or unexpected behavior."
+          },
+          {
+            "name": "test_two_elements_unsorted",
+            "code": "def test_two_elements_unsorted():\n    from solution import pancake_sort\n    result = pancake_sort([2, 1])\n    assert result == [1, 2]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [2, 1], two elements out of order",
+            "oracle_reasoning": "Swapping gives [1, 2].",
+            "fault_hypothesis": "Boundary case with minimum non-trivial size; if the flip logic has an off-by-one, two elements may not swap correctly."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_sort\", \"status\": \"REJECTED\", \"diagnostic\": \"Each case requires exactly: name, code, contract_quote, input_domain, oracl"
+    },
+    {
+      "turn": 7,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.091,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_sort",
+            "code": "def test_basic_sort():\n    from solution import pancake_sort\n    result = pancake_sort([3, 1, 2])\n    assert result == [1, 2, 3]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [3, 1, 2], a small unsorted list of integers",
+            "oracle_reason": "Sorting [3, 1, 2] in ascending order yields [1, 2, 3]. The function should return a list where every element is <= the next.",
+            "fault_hypothesis": "If the function returns the input unchanged or sorts incorrectly (e.g., descending), this assertion will catch it."
+          },
+          {
+            "name": "test_already_sorted",
+            "code": "def test_already_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([1, 2, 3, 4, 5])\n    assert result == [1, 2, 3, 4, 5]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [1, 2, 3, 4, 5], a pre-sorted list",
+            "oracle_reason": "A sorted list should remain unchanged after sorting.",
+            "fault_hypothesis": "If the algorithm corrupts an already-correct ordering due to off-by-one in slice indices, the output will differ."
+          },
+          {
+            "name": "test_reverse_sorted",
+            "code": "def test_reverse_sorted():\n    from solution import pancake_sort\n    result = pancake_sort([5, 4, 3, 2, 1])\n    assert result == [1, 2, 3, 4, 5]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [5, 4, 3, 2, 1], fully descending",
+            "oracle_reason": "Reversing [5, 4, 3, 2, 1] gives [1, 2, 3, 4, 5].",
+            "fault_hypothesis": "Pancake sort must handle the worst-case permutation; if the flip logic is wrong, the result will not be ascending."
+          },
+          {
+            "name": "test_empty_list",
+            "code": "def test_empty_list():\n    from solution import pancake_sort\n    result = pancake_sort([])\n    assert result == []",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [], no elements",
+            "oracle_reason": "An empty list is trivially sorted. len([]) == 0, so the while loop (arr_len > 1) never executes, and [] is returned.",
+            "fault_hypothesis": "If the function crashes on empty input or returns something other than [], this catches it."
+          },
+          {
+            "name": "test_single_element",
+            "code": "def test_single_element():\n    from solution import pancake_sort\n    result = pancake_sort([42])\n    assert result == [42]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [42], one element",
+            "oracle_reason": "A list with one element is trivially sorted.",
+            "fault_hypothesis": "If the while loop condition or indexing is incorrect, a single element might cause an error or unexpected behavior."
+          },
+          {
+            "name": "test_two_elements_unsorted",
+            "code": "def test_two_elements_unsorted():\n    from solution import pancake_sort\n    result = pancake_sort([2, 1])\n    assert result == [1, 2]",
+            "contract_quote": "'Write a function to sort a list of elements.'",
+            "input_domain": "nums = [2, 1], two elements out of order",
+            "oracle_reason": "Swapping gives [1, 2].",
+            "fault_hypothesis": "Boundary case with minimum non-trivial size; if the flip logic has an off-by-one, two elements may not swap correctly."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_basic_sort\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    }
+  ],
+  "started_at": 1791344752.7956915,
+  "duration_sec": 85.63,
+  "tests_chars": 862
+}

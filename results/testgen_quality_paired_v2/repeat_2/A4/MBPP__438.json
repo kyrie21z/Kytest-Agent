@@ -1,0 +1,701 @@
+{
+  "instance_id": "MBPP/438",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 23963,
+    "output_tokens": 6014,
+    "total_tokens": 29977,
+    "final_text": "All 6 tests are already **NAME_LOCKED** (previously accepted and immutable). Here's the summary:\n\n## Accepted Test Suite\n\n| Test | What It Checks | Fault Hypothesis |\n|---|---|---|\n| `test_empty_list` | Empty list → 0 | Crash or wrong value on empty input |\n| `test_single_element` | One tuple → 0 | Self-pair counting error |\n| `test_basic_bidirectional_pairs` | Chain `[(1,2),(2,3),(3,4)]` → 2 | Miscounting pair comparisons |\n| `test_symmetric_tuples` | `[(1,1),(2,2),(3,3)]` → 0 | False positives on symmetric tuples |\n| `test_mixed_matching_and_nonmatching` | `[(1,2),(2,1),(3,4)]` → 1 | Double-counting or missing matches |\n| `test_return_type_is_int` | Return type + non-negativity on larger input | Wrong type or negative result |\n\n## Remaining Limitations\n\n1. **Docstring vs. Implementation Mismatch**: The docstring says \"count bidirectional tuple pairs\" (suggesting `(a,b)` paired with `(b,a)`), but the actual code checks `t2[0] == t1[1]` twice (identical conditions). Our tests validate the *actual* behavior, not the *intended* semantics. A bug-fix that implements true bidirectional matching would cause these tests to fail — which is correct since they document current behavior.\n\n2. **No duplicate-tuple tests**: e.g., `[(1,2), (1,2)]` — how does the function handle identical tuples?\n\n3. **No heterogeneous element tests**: Negative numbers, strings, or mixed types aren't tested.\n\n4. **No invalid-input tests**: Passing non-list or non-tuple elements would raise `TypeError`, but this isn't documented as a precondition.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.025,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 2,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.029,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.106,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "from solution import count_bidirectional\n\ndef test_empty_list():\n    '''Test with empty list returns 0.'''\n    # Contract: function accepts a list; empty list has no pairs.\n    result = count_bidirectional([])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Empty list []",
+              "oracle_reason": "With zero elements, there are no pairs to compare, so the result must be 0.",
+              "fault_hypothesis": "Function might raise an error or return non-zero for empty input."
+            },
+            {
+              "name": "test_single_element",
+              "code": "from solution import count_bidirectional\n\ndef test_single_element():\n    '''Test with a single-element list returns 0.'''\n    # No pairs can be formed from a single element.\n    result = count_bidirectional([(1, 2)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List with one tuple [(1, 2)]",
+              "oracle_reason": "With only one element, range(idx+1, len) is always empty, so no comparisons occur. Result is 0.",
+              "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+            },
+            {
+              "name": "test_basic_bidirectional_pairs",
+              "code": "from solution import count_bidirectional\n\ndef test_basic_bidirectional_pairs():\n    '''Test counting pairs where t2[0] == t1[1].\n    \n    Actual logic: for each pair (t1, t2), check t2[0] == t1[1].\n    \n    List: [(1, 2), (2, 3), (3, 4)]\n    Pairs:\n      ((1,2), (2,3)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 != t1[1]=2 -> NO\n      ((2,3), (3,4)): t2[0]=3 == t1[1]=3 -> YES\n    Expected: 2\n    '''\n    result = count_bidirectional([(1, 2), (2, 3), (3, 4)])\n    assert result == 2\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 2), (2, 3), (3, 4)]",
+              "oracle_reason": "Manual enumeration of all 3 pairs shows exactly 2 satisfy t2[0] == t1[1].",
+              "fault_hypothesis": "Function might use different comparison logic or miscount pairs."
+            },
+            {
+              "name": "test_symmetric_tuples",
+              "code": "from solution import count_bidirectional\n\ndef test_symmetric_tuples():\n    '''Test with symmetric tuples (a, a).\n    \n    List: [(1, 1), (2, 2), (3, 3)]\n    Pairs:\n      ((1,1), (2,2)): t2[0]=2 == t1[1]=1? NO\n      ((1,1), (3,3)): t2[0]=3 == t1[1]=1? NO\n      ((2,2), (3,3)): t2[0]=3 == t1[1]=2? NO\n    Expected: 0\n    \n    Even though tuples are symmetric, t2[0] never equals t1[1] here.\n    '''\n    result = count_bidirectional([(1, 1), (2, 2), (3, 3)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 1), (2, 2), (3, 3)]",
+              "oracle_reason": "For symmetric tuples (a,a) and (b,b), t2[0]==b and t1[1]==a, so b==a is needed. Since all values differ, no matches.",
+              "fault_hypothesis": "Function might incorrectly assume symmetric tuples always match."
+            },
+            {
+              "name": "test_mixed_matching_and_nonmatching",
+              "code": "from solution import count_bidirectional\n\ndef test_mixed_matching_and_nonmatching():\n    '''Test with mix of matching and non-matching pairs.\n    \n    List: [(1, 2), (2, 1), (3, 4)]\n    Pairs:\n      ((1,2), (2,1)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 == t1[1]=2? NO\n      ((2,1), (3,4)): t2[0]=3 == t1[1]=1? NO\n    Expected: 1\n    '''\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 2), (2, 1), (3, 4)]",
+              "oracle_reason": "Only the pair ((1,2), (2,1)) satisfies t2[0]==t1[1], giving count 1.",
+              "fault_hypothesis": "Function might double-count or miss the single valid pair."
+            },
+            {
+              "name": "test_return_type_is_int",
+              "code": "from solution import count_bidirectional\n\ndef test_return_type_is_int():\n    '''Verify return type is always int regardless of input.'''\n    result = count_bidirectional([(5, 6), (6, 7), (7, 8), (8, 9)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    # Also verify with larger list\n    large_list = [(i, i+1) for i in range(100)]\n    result2 = count_bidirectional(large_list)\n    assert isinstance(result2, int)\n    assert result2 >= 0\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Various lists of tuples",
+              "oracle_reason": "The function accumulates integer counts via += 1 starting from 0, so it always returns a non-negative int.",
+              "fault_hypothesis": "Function might return float, string, or negative value due to implementation bug."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      },
+      {
+        "turn": 4,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.018,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "from solution import count_bidirectional\n\n\ndef test_empty_list():\n    '''Test wi…",
+          "overwrite": true
+        },
+        "first_line": "已写入 `test_solution.py`（2311 字符，78 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.073,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "from solution import count_bidirectional\n\ndef test_empty_list():\n    '''Test with empty list returns 0.'''\n    result = count_bidirectional([])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Empty list []",
+              "oracle_reason": "With zero elements, there are no pairs to compare, so the result must be 0.",
+              "fault_hypothesis": "Function might raise an error or return non-zero for empty input."
+            },
+            {
+              "name": "test_single_element",
+              "code": "from solution import count_bidirectional\n\ndef test_single_element():\n    '''Test with a single-element list returns 0.'''\n    result = count_bidirectional([(1, 2)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List with one tuple [(1, 2)]",
+              "oracle_reason": "With only one element, range(idx+1, len) is always empty, so no comparisons occur. Result is 0.",
+              "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+            },
+            {
+              "name": "test_basic_bidirectional_pairs",
+              "code": "from solution import count_bidirectional\n\ndef test_basic_bidirectional_pairs():\n    '''Test counting pairs where t2[0] == t1[1].\n\n    List: [(1, 2), (2, 3), (3, 4)]\n    Pairs:\n      ((1,2), (2,3)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 != t1[1]=2 -> NO\n      ((2,3), (3,4)): t2[0]=3 == t1[1]=3 -> YES\n    Expected: 2\n    '''\n    result = count_bidirectional([(1, 2), (2, 3), (3, 4)])\n    assert result == 2\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 2), (2, 3), (3, 4)]",
+              "oracle_reason": "Manual enumeration of all 3 pairs shows exactly 2 satisfy t2[0] == t1[1].",
+              "fault_hypothesis": "Function might use different comparison logic or miscount pairs."
+            },
+            {
+              "name": "test_symmetric_tuples",
+              "code": "from solution import count_bidirectional\n\ndef test_symmetric_tuples():\n    '''Test with symmetric tuples (a, a).\n\n    List: [(1, 1), (2, 2), (3, 3)]\n    Pairs:\n      ((1,1), (2,2)): t2[0]=2 == t1[1]=1? NO\n      ((1,1), (3,3)): t2[0]=3 == t1[1]=1? NO\n      ((2,2), (3,3)): t2[0]=3 == t1[1]=2? NO\n    Expected: 0\n    '''\n    result = count_bidirectional([(1, 1), (2, 2), (3, 3)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 1), (2, 2), (3, 3)]",
+              "oracle_reason": "For symmetric tuples (a,a) and (b,b), t2[0]==b and t1[1]==a, so b==a is needed. Since all values differ, no matches.",
+              "fault_hypothesis": "Function might incorrectly assume symmetric tuples always match."
+            },
+            {
+              "name": "test_mixed_matching_and_nonmatching",
+              "code": "from solution import count_bidirectional\n\ndef test_mixed_matching_and_nonmatching():\n    '''Test with mix of matching and non-matching pairs.\n\n    List: [(1, 2), (2, 1), (3, 4)]\n    Pairs:\n      ((1,2), (2,1)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 == t1[1]=2? NO\n      ((2,1), (3,4)): t2[0]=3 == t1[1]=1? NO\n    Expected: 1\n    '''\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1\n    assert isinstance(result, int)\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "[(1, 2), (2, 1), (3, 4)]",
+              "oracle_reason": "Only the pair ((1,2), (2,1)) satisfies t2[0]==t1[1], giving count 1.",
+              "fault_hypothesis": "Function might double-count or miss the single valid pair."
+            },
+            {
+              "name": "test_return_type_is_int",
+              "code": "from solution import count_bidirectional\n\ndef test_return_type_is_int():\n    '''Verify return type is always int regardless of input.'''\n    result = count_bidirectional([(5, 6), (6, 7), (7, 8), (8, 9)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    large_list = [(i, i+1) for i in range(100)]\n    result2 = count_bidirectional(large_list)\n    assert isinstance(result2, int)\n    assert result2 >= 0\n",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Various lists of tuples",
+              "oracle_reason": "The function accumulates integer counts via += 1 starting from 0, so it always returns a non-negative int.",
+              "fault_hypothesis": "Function might return float, string, or negative value due to implementation bug."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      }
+    ],
+    "generation_seconds": 56.617,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list",
+          "code": "from solution import count_bidirectional\n\ndef test_empty_list():\n    '''Test with empty list returns 0.'''\n    # Contract: function accepts a list; empty list has no pairs.\n    result = count_bidirectional([])\n    assert result == 0\n    assert isinstance(result, int)\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "Empty list []",
+          "oracle_reason": "With zero elements, there are no pairs to compare, so the result must be 0.",
+          "fault_hypothesis": "Function might raise an error or return non-zero for empty input."
+        },
+        {
+          "name": "test_single_element",
+          "code": "from solution import count_bidirectional\n\ndef test_single_element():\n    '''Test with a single-element list returns 0.'''\n    # No pairs can be formed from a single element.\n    result = count_bidirectional([(1, 2)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List with one tuple [(1, 2)]",
+          "oracle_reason": "With only one element, range(idx+1, len) is always empty, so no comparisons occur. Result is 0.",
+          "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+        },
+        {
+          "name": "test_basic_bidirectional_pairs",
+          "code": "from solution import count_bidirectional\n\ndef test_basic_bidirectional_pairs():\n    '''Test counting pairs where t2[0] == t1[1].\n    \n    Actual logic: for each pair (t1, t2), check t2[0] == t1[1].\n    \n    List: [(1, 2), (2, 3), (3, 4)]\n    Pairs:\n      ((1,2), (2,3)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 != t1[1]=2 -> NO\n      ((2,3), (3,4)): t2[0]=3 == t1[1]=3 -> YES\n    Expected: 2\n    '''\n    result = count_bidirectional([(1, 2), (2, 3), (3, 4)])\n    assert result == 2\n    assert isinstance(result, int)\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "[(1, 2), (2, 3), (3, 4)]",
+          "oracle_reason": "Manual enumeration of all 3 pairs shows exactly 2 satisfy t2[0] == t1[1].",
+          "fault_hypothesis": "Function might use different comparison logic or miscount pairs."
+        },
+        {
+          "name": "test_symmetric_tuples",
+          "code": "from solution import count_bidirectional\n\ndef test_symmetric_tuples():\n    '''Test with symmetric tuples (a, a).\n    \n    List: [(1, 1), (2, 2), (3, 3)]\n    Pairs:\n      ((1,1), (2,2)): t2[0]=2 == t1[1]=1? NO\n      ((1,1), (3,3)): t2[0]=3 == t1[1]=1? NO\n      ((2,2), (3,3)): t2[0]=3 == t1[1]=2? NO\n    Expected: 0\n    \n    Even though tuples are symmetric, t2[0] never equals t1[1] here.\n    '''\n    result = count_bidirectional([(1, 1), (2, 2), (3, 3)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "[(1, 1), (2, 2), (3, 3)]",
+          "oracle_reason": "For symmetric tuples (a,a) and (b,b), t2[0]==b and t1[1]==a, so b==a is needed. Since all values differ, no matches.",
+          "fault_hypothesis": "Function might incorrectly assume symmetric tuples always match."
+        },
+        {
+          "name": "test_mixed_matching_and_nonmatching",
+          "code": "from solution import count_bidirectional\n\ndef test_mixed_matching_and_nonmatching():\n    '''Test with mix of matching and non-matching pairs.\n    \n    List: [(1, 2), (2, 1), (3, 4)]\n    Pairs:\n      ((1,2), (2,1)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 == t1[1]=2? NO\n      ((2,1), (3,4)): t2[0]=3 == t1[1]=1? NO\n    Expected: 1\n    '''\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1\n    assert isinstance(result, int)\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "[(1, 2), (2, 1), (3, 4)]",
+          "oracle_reason": "Only the pair ((1,2), (2,1)) satisfies t2[0]==t1[1], giving count 1.",
+          "fault_hypothesis": "Function might double-count or miss the single valid pair."
+        },
+        {
+          "name": "test_return_type_is_int",
+          "code": "from solution import count_bidirectional\n\ndef test_return_type_is_int():\n    '''Verify return type is always int regardless of input.'''\n    result = count_bidirectional([(5, 6), (6, 7), (7, 8), (8, 9)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    # Also verify with larger list\n    large_list = [(i, i+1) for i in range(100)]\n    result2 = count_bidirectional(large_list)\n    assert isinstance(result2, int)\n    assert result2 >= 0\n",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "Various lists of tuples",
+          "oracle_reason": "The function accumulates integer counts via += 1 starting from 0, so it always returns a non-negative int.",
+          "fault_hypothesis": "Function might return float, string, or negative value due to implementation bug."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_basic_bidirectional_pairs",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_symmetric_tuples",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_mixed_matching_and_nonmatching",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_is_int",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_basic_bidirectional_pairs",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_symmetric_tuples",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_mixed_matching_and_nonmatching",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_return_type_is_int",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 1.982,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_2/A4/MBPP__438.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 7,
+    "executable_lines": 7,
+    "mutation_score": 0.6667,
+    "mutants_total": 3,
+    "mutants_killed": 2,
+    "mutants_errors": 0,
+    "mutants_survived": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 7,
+        "column": 9,
+        "description": "And -> Or"
+      }
+    ],
+    "mutant_operators": {
+      "LCR": 1,
+      "ROR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 7,
+        "column": 9,
+        "description": "And -> Or",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.2519497369939927,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "summary": "6 passed in 0.03s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 7,
+        "column": 9,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_basic_bidirectional_pairs",
+          "test_solution.py::test_mixed_matching_and_nonmatching"
+        ],
+        "duration_sec": 0.2520045390119776,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 4,
+        "failed": 2,
+        "errors": 0,
+        "summary": "2 failed, 4 passed in 0.04s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 7,
+        "column": 53,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_basic_bidirectional_pairs",
+          "test_solution.py::test_mixed_matching_and_nonmatching"
+        ],
+        "duration_sec": 0.2526818740007002,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 4,
+        "failed": 2,
+        "errors": 0,
+        "summary": "2 failed, 4 passed in 0.04s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 0.6666666666666666,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.208
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.025,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 2,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.029,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.106,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "from solution import count_bidirectional\n\ndef test_empty_list():\n    '''Test with empty list returns 0.'''\n    # Contract: function accepts a list; empty list has no pairs.\n    result = count_bidirectional([])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Empty list []",
+            "oracle_reason": "With zero elements, there are no pairs to compare, so the result must be 0.",
+            "fault_hypothesis": "Function might raise an error or return non-zero for empty input."
+          },
+          {
+            "name": "test_single_element",
+            "code": "from solution import count_bidirectional\n\ndef test_single_element():\n    '''Test with a single-element list returns 0.'''\n    # No pairs can be formed from a single element.\n    result = count_bidirectional([(1, 2)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List with one tuple [(1, 2)]",
+            "oracle_reason": "With only one element, range(idx+1, len) is always empty, so no comparisons occur. Result is 0.",
+            "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+          },
+          {
+            "name": "test_basic_bidirectional_pairs",
+            "code": "from solution import count_bidirectional\n\ndef test_basic_bidirectional_pairs():\n    '''Test counting pairs where t2[0] == t1[1].\n    \n    Actual logic: for each pair (t1, t2), check t2[0] == t1[1].\n    \n    List: [(1, 2), (2, 3), (3, 4)]\n    Pairs:\n      ((1,2), (2,3)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 != t1[1]=2 -> NO\n      ((2,3), (3,4)): t2[0]=3 == t1[1]=3 -> YES\n    Expected: 2\n    '''\n    result = count_bidirectional([(1, 2), (2, 3), (3, 4)])\n    assert result == 2\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 2), (2, 3), (3, 4)]",
+            "oracle_reason": "Manual enumeration of all 3 pairs shows exactly 2 satisfy t2[0] == t1[1].",
+            "fault_hypothesis": "Function might use different comparison logic or miscount pairs."
+          },
+          {
+            "name": "test_symmetric_tuples",
+            "code": "from solution import count_bidirectional\n\ndef test_symmetric_tuples():\n    '''Test with symmetric tuples (a, a).\n    \n    List: [(1, 1), (2, 2), (3, 3)]\n    Pairs:\n      ((1,1), (2,2)): t2[0]=2 == t1[1]=1? NO\n      ((1,1), (3,3)): t2[0]=3 == t1[1]=1? NO\n      ((2,2), (3,3)): t2[0]=3 == t1[1]=2? NO\n    Expected: 0\n    \n    Even though tuples are symmetric, t2[0] never equals t1[1] here.\n    '''\n    result = count_bidirectional([(1, 1), (2, 2), (3, 3)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 1), (2, 2), (3, 3)]",
+            "oracle_reason": "For symmetric tuples (a,a) and (b,b), t2[0]==b and t1[1]==a, so b==a is needed. Since all values differ, no matches.",
+            "fault_hypothesis": "Function might incorrectly assume symmetric tuples always match."
+          },
+          {
+            "name": "test_mixed_matching_and_nonmatching",
+            "code": "from solution import count_bidirectional\n\ndef test_mixed_matching_and_nonmatching():\n    '''Test with mix of matching and non-matching pairs.\n    \n    List: [(1, 2), (2, 1), (3, 4)]\n    Pairs:\n      ((1,2), (2,1)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 == t1[1]=2? NO\n      ((2,1), (3,4)): t2[0]=3 == t1[1]=1? NO\n    Expected: 1\n    '''\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 2), (2, 1), (3, 4)]",
+            "oracle_reason": "Only the pair ((1,2), (2,1)) satisfies t2[0]==t1[1], giving count 1.",
+            "fault_hypothesis": "Function might double-count or miss the single valid pair."
+          },
+          {
+            "name": "test_return_type_is_int",
+            "code": "from solution import count_bidirectional\n\ndef test_return_type_is_int():\n    '''Verify return type is always int regardless of input.'''\n    result = count_bidirectional([(5, 6), (6, 7), (7, 8), (8, 9)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    # Also verify with larger list\n    large_list = [(i, i+1) for i in range(100)]\n    result2 = count_bidirectional(large_list)\n    assert isinstance(result2, int)\n    assert result2 >= 0\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Various lists of tuples",
+            "oracle_reason": "The function accumulates integer counts via += 1 starting from 0, so it always returns a non-negative int.",
+            "fault_hypothesis": "Function might return float, string, or negative value due to implementation bug."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    },
+    {
+      "turn": 4,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.018,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "from solution import count_bidirectional\n\n\ndef test_empty_list():\n    '''Test wi…",
+        "overwrite": true
+      },
+      "first_line": "已写入 `test_solution.py`（2311 字符，78 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.073,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "from solution import count_bidirectional\n\ndef test_empty_list():\n    '''Test with empty list returns 0.'''\n    result = count_bidirectional([])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Empty list []",
+            "oracle_reason": "With zero elements, there are no pairs to compare, so the result must be 0.",
+            "fault_hypothesis": "Function might raise an error or return non-zero for empty input."
+          },
+          {
+            "name": "test_single_element",
+            "code": "from solution import count_bidirectional\n\ndef test_single_element():\n    '''Test with a single-element list returns 0.'''\n    result = count_bidirectional([(1, 2)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List with one tuple [(1, 2)]",
+            "oracle_reason": "With only one element, range(idx+1, len) is always empty, so no comparisons occur. Result is 0.",
+            "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+          },
+          {
+            "name": "test_basic_bidirectional_pairs",
+            "code": "from solution import count_bidirectional\n\ndef test_basic_bidirectional_pairs():\n    '''Test counting pairs where t2[0] == t1[1].\n\n    List: [(1, 2), (2, 3), (3, 4)]\n    Pairs:\n      ((1,2), (2,3)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 != t1[1]=2 -> NO\n      ((2,3), (3,4)): t2[0]=3 == t1[1]=3 -> YES\n    Expected: 2\n    '''\n    result = count_bidirectional([(1, 2), (2, 3), (3, 4)])\n    assert result == 2\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 2), (2, 3), (3, 4)]",
+            "oracle_reason": "Manual enumeration of all 3 pairs shows exactly 2 satisfy t2[0] == t1[1].",
+            "fault_hypothesis": "Function might use different comparison logic or miscount pairs."
+          },
+          {
+            "name": "test_symmetric_tuples",
+            "code": "from solution import count_bidirectional\n\ndef test_symmetric_tuples():\n    '''Test with symmetric tuples (a, a).\n\n    List: [(1, 1), (2, 2), (3, 3)]\n    Pairs:\n      ((1,1), (2,2)): t2[0]=2 == t1[1]=1? NO\n      ((1,1), (3,3)): t2[0]=3 == t1[1]=1? NO\n      ((2,2), (3,3)): t2[0]=3 == t1[1]=2? NO\n    Expected: 0\n    '''\n    result = count_bidirectional([(1, 1), (2, 2), (3, 3)])\n    assert result == 0\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 1), (2, 2), (3, 3)]",
+            "oracle_reason": "For symmetric tuples (a,a) and (b,b), t2[0]==b and t1[1]==a, so b==a is needed. Since all values differ, no matches.",
+            "fault_hypothesis": "Function might incorrectly assume symmetric tuples always match."
+          },
+          {
+            "name": "test_mixed_matching_and_nonmatching",
+            "code": "from solution import count_bidirectional\n\ndef test_mixed_matching_and_nonmatching():\n    '''Test with mix of matching and non-matching pairs.\n\n    List: [(1, 2), (2, 1), (3, 4)]\n    Pairs:\n      ((1,2), (2,1)): t2[0]=2 == t1[1]=2 -> YES\n      ((1,2), (3,4)): t2[0]=3 == t1[1]=2? NO\n      ((2,1), (3,4)): t2[0]=3 == t1[1]=1? NO\n    Expected: 1\n    '''\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1\n    assert isinstance(result, int)\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "[(1, 2), (2, 1), (3, 4)]",
+            "oracle_reason": "Only the pair ((1,2), (2,1)) satisfies t2[0]==t1[1], giving count 1.",
+            "fault_hypothesis": "Function might double-count or miss the single valid pair."
+          },
+          {
+            "name": "test_return_type_is_int",
+            "code": "from solution import count_bidirectional\n\ndef test_return_type_is_int():\n    '''Verify return type is always int regardless of input.'''\n    result = count_bidirectional([(5, 6), (6, 7), (7, 8), (8, 9)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    large_list = [(i, i+1) for i in range(100)]\n    result2 = count_bidirectional(large_list)\n    assert isinstance(result2, int)\n    assert result2 >= 0\n",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Various lists of tuples",
+            "oracle_reason": "The function accumulates integer counts via += 1 starting from 0, so it always returns a non-negative int.",
+            "fault_hypothesis": "Function might return float, string, or negative value due to implementation bug."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    }
+  ],
+  "started_at": 1791347539.4148865,
+  "duration_sec": 58.942,
+  "tests_chars": 2679
+}

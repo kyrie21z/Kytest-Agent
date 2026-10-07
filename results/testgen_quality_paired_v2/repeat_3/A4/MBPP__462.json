@@ -1,0 +1,554 @@
+{
+  "instance_id": "MBPP/462",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 19688,
+    "output_tokens": 5953,
+    "total_tokens": 25641,
+    "final_text": "All 6 tests have been accepted. Here's a summary of the complete test suite:\n\n## Accepted Test Suite (6 tests)\n\n| Test | What it verifies | Fault hypothesis |\n|---|---|---|\n| `test_empty_list` | Empty input returns `[[]]` — the base case | Returns `[]` instead of `[[]]` |\n| `test_single_element` | Singleton `[42]` → `[[], [42]]` with correct order | Wrong order or missing subset |\n| `test_two_elements_exact` | `[1,2]` → `[[], [1], [2], [2,1]]` exact recursive order | Sorted/lexicographic ordering instead of recursive construction |\n| `test_three_elements_exact` | `[1,2,3]` → all 8 subsets in exact recursive order | Completely wrong ordering or count |\n| `test_duplicate_elements` | `[1,1]` → `[[], [1], [1], [1,1]]` — positions treated as distinct | Deduplication via sets loses duplicate subsets |\n| `test_mixed_types_exact` | `['a']` preserves string type in output | Type conversion or coercion bugs |\n\n## Remaining Limitations\n\n1. **No negative-length / non-list inputs tested** — The contract doesn't specify behavior for invalid types (e.g., `None`, strings, dicts), so we don't assert on them.\n2. **Only small inputs (n ≤ 3)** — We use minimal representative sizes; larger lists could expose recursion depth issues or memory problems not caught here.\n3. **Order is verified only for n=2 and n=3** — The general recursive ordering pattern is inferred but not exhaustively checked for arbitrary n.\n4. **No performance/timout boundary tests** — Large inputs that might cause stack overflow aren't tested.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.038,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 2,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.025,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 3,
+        "name": "run_command",
+        "is_error": false,
+        "duration_sec": 0.062,
+        "arguments": {
+          "command": "python3 -c \"\nfrom solution import combinations_list\nprint('[]:', combinations_li…"
+        },
+        "first_line": "$ python3 -c"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.134,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "from solution import combinations_list\n\ndef test_empty_list():\n    '''Verify that an empty input list returns a list containing one empty subset.'''\n    result = combinations_list([])\n    assert result == [[]]\n    assert isinstance(result, list)\n    assert len(result) == 1\n    assert result[0] == []",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is an empty list []",
+              "oracle_reason": "The base case in the implementation explicitly returns [[]] when len(list1) == 0. The power set of an empty set contains exactly one element: the empty set itself.",
+              "fault_hypothesis": "A faulty implementation might return [] instead of [[]] for the empty input, failing to include the empty subset."
+            },
+            {
+              "name": "test_single_element",
+              "code": "from solution import combinations_list\n\ndef test_single_element():\n    '''Verify that a single-element list returns exactly two subsets: empty and the element itself.'''\n    result = combinations_list([42])\n    assert isinstance(result, list)\n    assert len(result) == 2\n    assert [] in result\n    assert [42] in result\n    # Verify exact order: empty set first, then the element\n    assert result == [[], [42]]",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is a list with exactly one element, e.g., [42]",
+              "oracle_reason": "The power set of a singleton {42} has 2^1 = 2 elements: {} and {42}. Tracing the recursion: combinations_list([42]) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], [42]]. So result = [[], [42]].",
+              "fault_hypothesis": "A buggy implementation might produce [[42], []] (wrong order), or miss one of the subsets, or return a non-list type."
+            },
+            {
+              "name": "test_two_elements_order",
+              "code": "from solution import combinations_list\n\ndef test_two_elements_order():\n    '''Verify the exact ordering of subsets for a two-element list.'''\n    result = combinations_list([1, 2])\n    assert isinstance(result, list)\n    assert len(result) == 4\n    # Trace: combinations_list([2]) -> [[], [2]]\n    # For el=[]: add [], [1]\n    # For el=[2]: add [2], [2, 1]\n    expected = [[], [1], [2], [2, 1]]\n    assert result == expected\n    # All elements are lists\n    for item in result:\n        assert isinstance(item, list)",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is a list with exactly two distinct elements, e.g., [1, 2]",
+              "oracle_reason": "Tracing the recursion: combinations_list([1,2]) calls combinations_list([2]). That returns [[], [2]]. Then for el=[], we append [] and [1]; for el=[2], we append [2] and [2,1]. Result: [[], [1], [2], [2,1]]. Length is 2^2=4.",
+              "fault_hypothesis": "A wrong implementation might use itertools.combinations incorrectly (which produces sorted-length subsets), yielding [[], [1], [2], [1,2]] instead of the actual recursive order [[], [1], [2], [2,1]]."
+            },
+            {
+              "name": "test_three_elements_count_and_membership",
+              "code": "from solution import combinations_list\n\ndef test_three_elements_count_and_membership():\n    '''Verify count and subset membership for a three-element list.'''\n    result = combinations_list([1, 2, 3])\n    assert isinstance(result, list)\n    # Power set size is 2^3 = 8\n    assert len(result) == 8\n    # Check that every element in result is a list\n    for item in result:\n        assert isinstance(item, list)\n    # Check specific subsets exist\n    assert [] in result\n    assert [1] in result\n    assert [2] in result\n    assert [3] in result\n    assert [1, 2] in result\n    assert [2, 1] in result\n    assert [3, 2, 1] in result\n    # The full reversed list should be present\n    assert [3, 2, 1] in result",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is a list with three distinct elements, e.g., [1, 2, 3]",
+              "oracle_reason": "The power set of a 3-element set has 2^3 = 8 subsets. Each recursive step doubles the count. The trace confirms: combinations_list([2,3]) yields 4 items, each duplicated with/without 1 prepended, giving 8 total. Specific subsets like [3,2,1] appear because each recursive level appends the current head element.",
+              "fault_hypothesis": "An incorrect implementation might produce only n+1 subsets (like itertools.combinations chained), missing many valid subsets, or might not preserve the correct recursive construction order."
+            },
+            {
+              "name": "test_duplicate_elements",
+              "code": "from solution import combinations_list\n\ndef test_duplicate_elements():\n    '''Verify behavior when the input contains duplicate values.'''\n    result = combinations_list([1, 1])\n    assert isinstance(result, list)\n    # Power set of a 2-element list (even with duplicates) has 2^2 = 4 subsets\n    assert len(result) == 4\n    # The function treats positions as distinct, not values\n    # Trace: combinations_list([1]) -> [[], [1]]\n    # For el=[]: add [], [1]\n    # For el=[1]: add [1], [1, 1]\n    expected = [[], [1], [1], [1, 1]]\n    assert result == expected\n    # Verify the full subset [1,1] exists\n    assert [1, 1] in result",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is a list with duplicate values, e.g., [1, 1]",
+              "oracle_reason": "The function operates on list positions via slicing (list1[1:]), treating each position independently regardless of value equality. For [1,1]: the recursive call on [1] returns [[],[1]], then each gets [1] appended. This yields [[], [1], [1], [1,1]] — four items including a duplicate [1].",
+              "fault_hypothesis": "A buggy implementation might deduplicate results (e.g., using sets), producing [[], [1], [1,1]] with only 3 items instead of 4, losing the duplicate subset."
+            },
+            {
+              "name": "test_return_type_and_nested_lists",
+              "code": "from solution import combinations_list\n\ndef test_return_type_and_nested_lists():\n    '''Verify that the return value is always a list of lists for various inputs.'''\n    for inp in [[], [0], ['a'], [True, False], [1, 'x', 3.14]]:\n        result = combinations_list(inp)\n        assert isinstance(result, list), f\"Expected list for input {inp}, got {type(result)}\"\n        assert len(result) == 2 ** len(inp), f\"Expected 2^{len(inp)}={2**len(inp)} subsets for input {inp}\"\n        for item in result:\n            assert isinstance(item, list), f\"Expected each subset to be a list, got {type(item)} for input {inp}\"",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is any Python list (empty, single element, mixed types, booleans, strings, floats)",
+              "oracle_reason": "By structural induction: the base case returns [[]] (list of list). The recursive step iterates over a list of lists and appends copies and extensions, preserving the list-of-lists structure. The count is always 2^n by the binary choice at each element.",
+              "fault_hypothesis": "A faulty implementation might return tuples instead of lists, flatten nested structures, or fail to handle mixed-type elements correctly due to type assumptions."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.1,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_two_elements_exact",
+              "code": "from solution import combinations_list\n\ndef test_two_elements_exact():\n    '''Verify the exact output for [1, 2] matches the recursive construction.'''\n    result = combinations_list([1, 2])\n    # Trace: combinations_list([2]) -> [[], [2]]\n    # For el=[]: append [] then [1]\n    # For el=[2]: append [2] then [2, 1]\n    # Result: [[], [1], [2], [2, 1]]\n    assert result == [[], [1], [2], [2, 1]]",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is [1, 2]",
+              "oracle_reason": "Tracing the recursion step by step: combinations_list([1,2]) calls combinations_list([2]). That returns [[], [2]]. Then for el=[], we do result += [[], [1]]; for el=[2], we do result += [[2], [2, 1]]. Final result is [[], [1], [2], [2, 1]].",
+              "fault_hypothesis": "A buggy implementation might produce [[], [1], [2], [1, 2]] (sorted order) instead of the actual recursive order [[], [1], [2], [2, 1]], or might miss an element entirely."
+            },
+            {
+              "name": "test_three_elements_exact",
+              "code": "from solution import combinations_list\n\ndef test_three_elements_exact():\n    '''Verify the exact output for [1, 2, 3] matches the recursive construction.'''\n    result = combinations_list([1, 2, 3])\n    # Trace: combinations_list([2,3]) yields 4 items:\n    #   combinations_list([3]) -> [[], [3]]\n    #   For el=[]: [], [2]; for el=[3]: [3], [3, 2]\n    #   So combinations_list([2,3]) = [[], [2], [3], [3, 2]]\n    # Then for each, add [1] version:\n    #   el=[]: [], [1]; el=[2]: [2], [2, 1]; el=[3]: [3], [3, 1]; el=[3,2]: [3,2], [3,2,1]\n    expected = [[], [1], [2], [2, 1], [3], [3, 1], [3, 2], [3, 2, 1]]\n    assert result == expected",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is [1, 2, 3]",
+              "oracle_reason": "Full trace: combinations_list([1,2,3]) calls combinations_list([2,3]). That calls combinations_list([3]) which returns [[],[3]]. For el=[]: add [],[2]; for el=[3]: add [3],[3,2]. So combinations_list([2,3])=[[],[2],[3],[3,2]]. Back to level 1: for each of those 4, add the element-with-1 version. Result: [[],[1],[2],[2,1],[3],[3,1],[3,2],[3,2,1]].",
+              "fault_hypothesis": "An incorrect implementation might sort subsets lexicographically or by length, producing a different ordering like [[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]."
+            },
+            {
+              "name": "test_mixed_types_exact",
+              "code": "from solution import combinations_list\n\ndef test_mixed_types_exact():\n    '''Verify exact output for a mixed-type single-element list preserves types.'''\n    result = combinations_list(['a'])\n    # Power set of ['a']: [[], ['a']]\n    assert result == [[], ['a']]\n    assert isinstance(result[0], list)\n    assert isinstance(result[1], list)\n    assert result[1][0] == 'a'\n    assert isinstance(result[1][0], str)",
+              "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+              "input_domain": "list1 is ['a'], a single string element",
+              "oracle_reason": "combinations_list(['a']) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], ['a']]. So result = [[], ['a']]. The string type must be preserved in the output.",
+              "fault_hypothesis": "A faulty implementation might convert elements to strings, drop the original type, or return [['a'], []] in wrong order."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 15, \"results\": [{\"name\": \"test_two_elements_exact\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asserti"
+      }
+    ],
+    "generation_seconds": 74.511,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list",
+          "code": "from solution import combinations_list\n\ndef test_empty_list():\n    '''Verify that an empty input list returns a list containing one empty subset.'''\n    result = combinations_list([])\n    assert result == [[]]\n    assert isinstance(result, list)\n    assert len(result) == 1\n    assert result[0] == []",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is an empty list []",
+          "oracle_reason": "The base case in the implementation explicitly returns [[]] when len(list1) == 0. The power set of an empty set contains exactly one element: the empty set itself.",
+          "fault_hypothesis": "A faulty implementation might return [] instead of [[]] for the empty input, failing to include the empty subset."
+        },
+        {
+          "name": "test_single_element",
+          "code": "from solution import combinations_list\n\ndef test_single_element():\n    '''Verify that a single-element list returns exactly two subsets: empty and the element itself.'''\n    result = combinations_list([42])\n    assert isinstance(result, list)\n    assert len(result) == 2\n    assert [] in result\n    assert [42] in result\n    # Verify exact order: empty set first, then the element\n    assert result == [[], [42]]",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is a list with exactly one element, e.g., [42]",
+          "oracle_reason": "The power set of a singleton {42} has 2^1 = 2 elements: {} and {42}. Tracing the recursion: combinations_list([42]) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], [42]]. So result = [[], [42]].",
+          "fault_hypothesis": "A buggy implementation might produce [[42], []] (wrong order), or miss one of the subsets, or return a non-list type."
+        },
+        {
+          "name": "test_duplicate_elements",
+          "code": "from solution import combinations_list\n\ndef test_duplicate_elements():\n    '''Verify behavior when the input contains duplicate values.'''\n    result = combinations_list([1, 1])\n    assert isinstance(result, list)\n    # Power set of a 2-element list (even with duplicates) has 2^2 = 4 subsets\n    assert len(result) == 4\n    # The function treats positions as distinct, not values\n    # Trace: combinations_list([1]) -> [[], [1]]\n    # For el=[]: add [], [1]\n    # For el=[1]: add [1], [1, 1]\n    expected = [[], [1], [1], [1, 1]]\n    assert result == expected\n    # Verify the full subset [1,1] exists\n    assert [1, 1] in result",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is a list with duplicate values, e.g., [1, 1]",
+          "oracle_reason": "The function operates on list positions via slicing (list1[1:]), treating each position independently regardless of value equality. For [1,1]: the recursive call on [1] returns [[],[1]], then each gets [1] appended. This yields [[], [1], [1], [1,1]] — four items including a duplicate [1].",
+          "fault_hypothesis": "A buggy implementation might deduplicate results (e.g., using sets), producing [[], [1], [1,1]] with only 3 items instead of 4, losing the duplicate subset."
+        },
+        {
+          "name": "test_two_elements_exact",
+          "code": "from solution import combinations_list\n\ndef test_two_elements_exact():\n    '''Verify the exact output for [1, 2] matches the recursive construction.'''\n    result = combinations_list([1, 2])\n    # Trace: combinations_list([2]) -> [[], [2]]\n    # For el=[]: append [] then [1]\n    # For el=[2]: append [2] then [2, 1]\n    # Result: [[], [1], [2], [2, 1]]\n    assert result == [[], [1], [2], [2, 1]]",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is [1, 2]",
+          "oracle_reason": "Tracing the recursion step by step: combinations_list([1,2]) calls combinations_list([2]). That returns [[], [2]]. Then for el=[], we do result += [[], [1]]; for el=[2], we do result += [[2], [2, 1]]. Final result is [[], [1], [2], [2, 1]].",
+          "fault_hypothesis": "A buggy implementation might produce [[], [1], [2], [1, 2]] (sorted order) instead of the actual recursive order [[], [1], [2], [2, 1]], or might miss an element entirely."
+        },
+        {
+          "name": "test_three_elements_exact",
+          "code": "from solution import combinations_list\n\ndef test_three_elements_exact():\n    '''Verify the exact output for [1, 2, 3] matches the recursive construction.'''\n    result = combinations_list([1, 2, 3])\n    # Trace: combinations_list([2,3]) yields 4 items:\n    #   combinations_list([3]) -> [[], [3]]\n    #   For el=[]: [], [2]; for el=[3]: [3], [3, 2]\n    #   So combinations_list([2,3]) = [[], [2], [3], [3, 2]]\n    # Then for each, add [1] version:\n    #   el=[]: [], [1]; el=[2]: [2], [2, 1]; el=[3]: [3], [3, 1]; el=[3,2]: [3,2], [3,2,1]\n    expected = [[], [1], [2], [2, 1], [3], [3, 1], [3, 2], [3, 2, 1]]\n    assert result == expected",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is [1, 2, 3]",
+          "oracle_reason": "Full trace: combinations_list([1,2,3]) calls combinations_list([2,3]). That calls combinations_list([3]) which returns [[],[3]]. For el=[]: add [],[2]; for el=[3]: add [3],[3,2]. So combinations_list([2,3])=[[],[2],[3],[3,2]]. Back to level 1: for each of those 4, add the element-with-1 version. Result: [[],[1],[2],[2,1],[3],[3,1],[3,2],[3,2,1]].",
+          "fault_hypothesis": "An incorrect implementation might sort subsets lexicographically or by length, producing a different ordering like [[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]."
+        },
+        {
+          "name": "test_mixed_types_exact",
+          "code": "from solution import combinations_list\n\ndef test_mixed_types_exact():\n    '''Verify exact output for a mixed-type single-element list preserves types.'''\n    result = combinations_list(['a'])\n    # Power set of ['a']: [[], ['a']]\n    assert result == [[], ['a']]\n    assert isinstance(result[0], list)\n    assert isinstance(result[1], list)\n    assert result[1][0] == 'a'\n    assert isinstance(result[1][0], str)",
+          "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+          "input_domain": "list1 is ['a'], a single string element",
+          "oracle_reason": "combinations_list(['a']) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], ['a']]. So result = [[], ['a']]. The string type must be preserved in the output.",
+          "fault_hypothesis": "A faulty implementation might convert elements to strings, drop the original type, or return [['a'], []] in wrong order."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_two_elements_order",
+          "status": "REJECTED",
+          "diagnostic": "Oracle check: Assertion does not depend on a target result"
+        },
+        {
+          "name": "test_three_elements_count_and_membership",
+          "status": "REJECTED",
+          "diagnostic": "Oracle check: Assertion does not depend on a target result"
+        },
+        {
+          "name": "test_duplicate_elements",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 3,
+            "total_calls": 3,
+            "unchecked_calls": 3,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_and_nested_lists",
+          "status": "REJECTED",
+          "diagnostic": "Oracle check: Assertion does not depend on a target result"
+        },
+        {
+          "name": "test_two_elements_exact",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 3,
+            "total_calls": 3,
+            "unchecked_calls": 3,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_three_elements_exact",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_mixed_types_exact",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.031,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_3/A4/MBPP__462.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 7,
+    "executable_lines": 7,
+    "mutation_score": 1.0,
+    "mutants_total": 1,
+    "mutants_killed": 1,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 4,
+        "column": 7,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_empty_list",
+          "test_solution.py::test_single_element",
+          "test_solution.py::test_duplicate_elements",
+          "test_solution.py::test_two_elements_exact",
+          "test_solution.py::test_three_elements_exact",
+          "test_solution.py::test_mixed_types_exact"
+        ],
+        "duration_sec": 0.28407288098242134,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 6,
+        "errors": 0,
+        "summary": "6 failed in 0.07s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 1.557
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 1
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.038,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 2,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.025,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 3,
+      "name": "run_command",
+      "is_error": false,
+      "duration_sec": 0.062,
+      "arguments": {
+        "command": "python3 -c \"\nfrom solution import combinations_list\nprint('[]:', combinations_li…"
+      },
+      "first_line": "$ python3 -c"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.134,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "from solution import combinations_list\n\ndef test_empty_list():\n    '''Verify that an empty input list returns a list containing one empty subset.'''\n    result = combinations_list([])\n    assert result == [[]]\n    assert isinstance(result, list)\n    assert len(result) == 1\n    assert result[0] == []",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is an empty list []",
+            "oracle_reason": "The base case in the implementation explicitly returns [[]] when len(list1) == 0. The power set of an empty set contains exactly one element: the empty set itself.",
+            "fault_hypothesis": "A faulty implementation might return [] instead of [[]] for the empty input, failing to include the empty subset."
+          },
+          {
+            "name": "test_single_element",
+            "code": "from solution import combinations_list\n\ndef test_single_element():\n    '''Verify that a single-element list returns exactly two subsets: empty and the element itself.'''\n    result = combinations_list([42])\n    assert isinstance(result, list)\n    assert len(result) == 2\n    assert [] in result\n    assert [42] in result\n    # Verify exact order: empty set first, then the element\n    assert result == [[], [42]]",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is a list with exactly one element, e.g., [42]",
+            "oracle_reason": "The power set of a singleton {42} has 2^1 = 2 elements: {} and {42}. Tracing the recursion: combinations_list([42]) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], [42]]. So result = [[], [42]].",
+            "fault_hypothesis": "A buggy implementation might produce [[42], []] (wrong order), or miss one of the subsets, or return a non-list type."
+          },
+          {
+            "name": "test_two_elements_order",
+            "code": "from solution import combinations_list\n\ndef test_two_elements_order():\n    '''Verify the exact ordering of subsets for a two-element list.'''\n    result = combinations_list([1, 2])\n    assert isinstance(result, list)\n    assert len(result) == 4\n    # Trace: combinations_list([2]) -> [[], [2]]\n    # For el=[]: add [], [1]\n    # For el=[2]: add [2], [2, 1]\n    expected = [[], [1], [2], [2, 1]]\n    assert result == expected\n    # All elements are lists\n    for item in result:\n        assert isinstance(item, list)",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is a list with exactly two distinct elements, e.g., [1, 2]",
+            "oracle_reason": "Tracing the recursion: combinations_list([1,2]) calls combinations_list([2]). That returns [[], [2]]. Then for el=[], we append [] and [1]; for el=[2], we append [2] and [2,1]. Result: [[], [1], [2], [2,1]]. Length is 2^2=4.",
+            "fault_hypothesis": "A wrong implementation might use itertools.combinations incorrectly (which produces sorted-length subsets), yielding [[], [1], [2], [1,2]] instead of the actual recursive order [[], [1], [2], [2,1]]."
+          },
+          {
+            "name": "test_three_elements_count_and_membership",
+            "code": "from solution import combinations_list\n\ndef test_three_elements_count_and_membership():\n    '''Verify count and subset membership for a three-element list.'''\n    result = combinations_list([1, 2, 3])\n    assert isinstance(result, list)\n    # Power set size is 2^3 = 8\n    assert len(result) == 8\n    # Check that every element in result is a list\n    for item in result:\n        assert isinstance(item, list)\n    # Check specific subsets exist\n    assert [] in result\n    assert [1] in result\n    assert [2] in result\n    assert [3] in result\n    assert [1, 2] in result\n    assert [2, 1] in result\n    assert [3, 2, 1] in result\n    # The full reversed list should be present\n    assert [3, 2, 1] in result",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is a list with three distinct elements, e.g., [1, 2, 3]",
+            "oracle_reason": "The power set of a 3-element set has 2^3 = 8 subsets. Each recursive step doubles the count. The trace confirms: combinations_list([2,3]) yields 4 items, each duplicated with/without 1 prepended, giving 8 total. Specific subsets like [3,2,1] appear because each recursive level appends the current head element.",
+            "fault_hypothesis": "An incorrect implementation might produce only n+1 subsets (like itertools.combinations chained), missing many valid subsets, or might not preserve the correct recursive construction order."
+          },
+          {
+            "name": "test_duplicate_elements",
+            "code": "from solution import combinations_list\n\ndef test_duplicate_elements():\n    '''Verify behavior when the input contains duplicate values.'''\n    result = combinations_list([1, 1])\n    assert isinstance(result, list)\n    # Power set of a 2-element list (even with duplicates) has 2^2 = 4 subsets\n    assert len(result) == 4\n    # The function treats positions as distinct, not values\n    # Trace: combinations_list([1]) -> [[], [1]]\n    # For el=[]: add [], [1]\n    # For el=[1]: add [1], [1, 1]\n    expected = [[], [1], [1], [1, 1]]\n    assert result == expected\n    # Verify the full subset [1,1] exists\n    assert [1, 1] in result",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is a list with duplicate values, e.g., [1, 1]",
+            "oracle_reason": "The function operates on list positions via slicing (list1[1:]), treating each position independently regardless of value equality. For [1,1]: the recursive call on [1] returns [[],[1]], then each gets [1] appended. This yields [[], [1], [1], [1,1]] — four items including a duplicate [1].",
+            "fault_hypothesis": "A buggy implementation might deduplicate results (e.g., using sets), producing [[], [1], [1,1]] with only 3 items instead of 4, losing the duplicate subset."
+          },
+          {
+            "name": "test_return_type_and_nested_lists",
+            "code": "from solution import combinations_list\n\ndef test_return_type_and_nested_lists():\n    '''Verify that the return value is always a list of lists for various inputs.'''\n    for inp in [[], [0], ['a'], [True, False], [1, 'x', 3.14]]:\n        result = combinations_list(inp)\n        assert isinstance(result, list), f\"Expected list for input {inp}, got {type(result)}\"\n        assert len(result) == 2 ** len(inp), f\"Expected 2^{len(inp)}={2**len(inp)} subsets for input {inp}\"\n        for item in result:\n            assert isinstance(item, list), f\"Expected each subset to be a list, got {type(item)} for input {inp}\"",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is any Python list (empty, single element, mixed types, booleans, strings, floats)",
+            "oracle_reason": "By structural induction: the base case returns [[]] (list of list). The recursive step iterates over a list of lists and appends copies and extensions, preserving the list-of-lists structure. The count is always 2^n by the binary choice at each element.",
+            "fault_hypothesis": "A faulty implementation might return tuples instead of lists, flatten nested structures, or fail to handle mixed-type elements correctly due to type assumptions."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 3, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.1,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_two_elements_exact",
+            "code": "from solution import combinations_list\n\ndef test_two_elements_exact():\n    '''Verify the exact output for [1, 2] matches the recursive construction.'''\n    result = combinations_list([1, 2])\n    # Trace: combinations_list([2]) -> [[], [2]]\n    # For el=[]: append [] then [1]\n    # For el=[2]: append [2] then [2, 1]\n    # Result: [[], [1], [2], [2, 1]]\n    assert result == [[], [1], [2], [2, 1]]",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is [1, 2]",
+            "oracle_reason": "Tracing the recursion step by step: combinations_list([1,2]) calls combinations_list([2]). That returns [[], [2]]. Then for el=[], we do result += [[], [1]]; for el=[2], we do result += [[2], [2, 1]]. Final result is [[], [1], [2], [2, 1]].",
+            "fault_hypothesis": "A buggy implementation might produce [[], [1], [2], [1, 2]] (sorted order) instead of the actual recursive order [[], [1], [2], [2, 1]], or might miss an element entirely."
+          },
+          {
+            "name": "test_three_elements_exact",
+            "code": "from solution import combinations_list\n\ndef test_three_elements_exact():\n    '''Verify the exact output for [1, 2, 3] matches the recursive construction.'''\n    result = combinations_list([1, 2, 3])\n    # Trace: combinations_list([2,3]) yields 4 items:\n    #   combinations_list([3]) -> [[], [3]]\n    #   For el=[]: [], [2]; for el=[3]: [3], [3, 2]\n    #   So combinations_list([2,3]) = [[], [2], [3], [3, 2]]\n    # Then for each, add [1] version:\n    #   el=[]: [], [1]; el=[2]: [2], [2, 1]; el=[3]: [3], [3, 1]; el=[3,2]: [3,2], [3,2,1]\n    expected = [[], [1], [2], [2, 1], [3], [3, 1], [3, 2], [3, 2, 1]]\n    assert result == expected",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is [1, 2, 3]",
+            "oracle_reason": "Full trace: combinations_list([1,2,3]) calls combinations_list([2,3]). That calls combinations_list([3]) which returns [[],[3]]. For el=[]: add [],[2]; for el=[3]: add [3],[3,2]. So combinations_list([2,3])=[[],[2],[3],[3,2]]. Back to level 1: for each of those 4, add the element-with-1 version. Result: [[],[1],[2],[2,1],[3],[3,1],[3,2],[3,2,1]].",
+            "fault_hypothesis": "An incorrect implementation might sort subsets lexicographically or by length, producing a different ordering like [[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]."
+          },
+          {
+            "name": "test_mixed_types_exact",
+            "code": "from solution import combinations_list\n\ndef test_mixed_types_exact():\n    '''Verify exact output for a mixed-type single-element list preserves types.'''\n    result = combinations_list(['a'])\n    # Power set of ['a']: [[], ['a']]\n    assert result == [[], ['a']]\n    assert isinstance(result[0], list)\n    assert isinstance(result[1], list)\n    assert result[1][0] == 'a'\n    assert isinstance(result[1][0], str)",
+            "contract_quote": "'Write a function to find all possible combinations of the elements of a given list.'",
+            "input_domain": "list1 is ['a'], a single string element",
+            "oracle_reason": "combinations_list(['a']) calls combinations_list([]) which returns [[]]. Then for el=[], result += [[], ['a']]. So result = [[], ['a']]. The string type must be preserved in the output.",
+            "fault_hypothesis": "A faulty implementation might convert elements to strings, drop the original type, or return [['a'], []] in wrong order."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 15, \"results\": [{\"name\": \"test_two_elements_exact\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asserti"
+    }
+  ],
+  "started_at": 1791346566.3577328,
+  "duration_sec": 76.222,
+  "tests_chars": 2182
+}

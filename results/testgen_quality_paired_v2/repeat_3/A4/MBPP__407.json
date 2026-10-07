@@ -1,0 +1,679 @@
+{
+  "instance_id": "MBPP/407",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 20342,
+    "output_tokens": 5009,
+    "total_tokens": 25351,
+    "final_text": "All 6 tests were **already accepted** from the first submission. Here's the final accepted suite:\n\n## Accepted Test Suite for `rearrange_bigger`\n\n| # | Test Name | What It Covers |\n|---|-----------|----------------|\n| 1 | `test_simple_two_digits` | Basic two-digit input (12 → 21) — verifies core algorithm works on minimal case |\n| 2 | `test_descending_returns_false` | All-descending digits (4321 → False) — verifies failure signal when no bigger rearrangement exists |\n| 3 | `test_single_digit_returns_false` | Single digit (5 → False) — edge case with no pivot possible |\n| 4 | `test_with_duplicates` | Repeated digits (122 → 212, 212 → 221) — ensures correct handling of duplicate values in min/filter/sort |\n| 5 | `test_return_type_int_or_bool` | Return type checks — confirms `int` on success, `False` (not `None`/string/error) on failure |\n| 6 | `test_next_permutation_chain` | Full permutation chain from 1234 through 7 consecutive calls — validates correctness across the entire lexicographic sequence |\n\n## Remaining Limitations\n\n- **No negative number testing**: The function converts via `str(n)`, which would produce `\"-12\"`. Negative inputs aren't addressed by the contract or implementation.\n- **No zero input**: `rearrange_bigger(0)` returns `False` but isn't explicitly tested.\n- **No larger numbers**: Tests use up to 4-digit numbers. Longer numbers (5+ digits) could expose bugs in pivot detection or sorting at different positions.\n- **No boundary around same-digit numbers**: e.g., `111` or `999` (all identical digits) should return `False` but aren't tested.\n- **No test verifying the result is strictly greater than input**: While implied by the contract, no assertion explicitly checks `result > n`.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.029,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.102,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_simple_two_digits",
+              "code": "from solution import rearrange_bigger\n\ndef test_simple_two_digits():\n    '''Test basic two-digit number where swapping gives next bigger.'''\n    # Contract: \"create the next bigger number by rearranging the digits\"\n    # For n=12, digits [1,2], pivot at index 0 (1<2), swap with min greater = 2,\n    # result = [2,1] = 21\n    assert rearrange_bigger(12) == 21\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Positive integers with at least two distinct digits in non-descending order",
+              "oracle_reason": "For n=12, the only rearrangement bigger than 12 is 21. The next permutation of [1,2] is [2,1].",
+              "fault_hypothesis": "Function might return 12 itself, or fail on simple inputs."
+            },
+            {
+              "name": "test_descending_returns_false",
+              "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    '''When digits are in descending order, no bigger rearrangement exists.'''\n    # Contract implies returning something when no bigger number can be formed.\n    # Implementation returns False for this case.\n    # n=4321: digits [4,3,2,1] — no i where nums[i] < nums[i+1]\n    assert rearrange_bigger(4321) is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Integers whose digits are in strictly descending order",
+              "oracle_reason": "No rearrangement of [4,3,2,1] produces a number > 4321. The function should signal impossibility.",
+              "fault_hypothesis": "Function might return an incorrect value instead of False, or crash."
+            },
+            {
+              "name": "test_single_digit_returns_false",
+              "code": "from solution import rearrange_bigger\n\ndef test_single_digit_returns_false():\n    '''A single digit has no other rearrangement.'''\n    # n=5: only one digit, no pivot possible, loop doesn't execute meaningful work\n    assert rearrange_bigger(5) is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Single-digit positive integers",
+              "oracle_reason": "With only one digit, there is no other arrangement, so no bigger number exists.",
+              "fault_hypothesis": "Function might return the same digit or raise an error on single-digit input."
+            },
+            {
+              "name": "test_with_duplicates",
+              "code": "from solution import rearrange_bigger\n\ndef test_with_duplicates():\n    '''Test numbers with repeated digits.'''\n    # n=122: digits [1,2,2]. Pivot at i=0 (1<2). z=[1,2,2], min greater than 1 is 2.\n    # Remove first 2, sort rest [1,2] -> [1,2]. Result: [2,1,2] = 212\n    assert rearrange_bigger(122) == 212\n    # n=212: digits [2,1,2]. Pivot at i=1 (1<2). z=[1,2], min greater than 1 is 2.\n    # Remove 2, sort rest [1]. Result: [2,2,1] = 221\n    assert rearrange_bigger(212) == 221\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Integers with repeated digit values",
+              "oracle_reason": "For 122, permutations in order: 122, 212, 221. Next after 122 is 212. For 212, next is 221.",
+              "fault_hypothesis": "Function might incorrectly handle duplicate digits, picking wrong pivot or not sorting properly."
+            },
+            {
+              "name": "test_return_type_int_or_bool",
+              "code": "from solution import rearrange_bigger\n\ndef test_return_type_int_or_bool():\n    '''Return value must be int when successful, False when impossible.'''\n    result1 = rearrange_bigger(12)\n    assert isinstance(result1, int)\n    result2 = rearrange_bigger(4321)\n    assert result2 is False\n    result3 = rearrange_bigger(5)\n    assert result3 is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Any valid integer input",
+              "oracle_reason": "The contract promises a 'bigger number' (int) or signals failure (False per implementation).",
+              "fault_hypothesis": "Function might return a string, float, or None instead of int/bool."
+            },
+            {
+              "name": "test_next_permutation_chain",
+              "code": "from solution import rearrange_bigger\n\ndef test_next_permutation_chain():\n    '''Verify consecutive calls produce the correct sequence of next permutations.'''\n    # Starting from 1234, each call should give the lexicographically next permutation\n    r1 = rearrange_bigger(1234)\n    assert r1 == 1243\n    r2 = rearrange_bigger(r1)\n    assert r2 == 1324\n    r3 = rearrange_bigger(r2)\n    assert r3 == 1342\n    r4 = rearrange_bigger(r3)\n    assert r4 == 1423\n    # Eventually we reach 4321 which has no bigger rearrangement\n    r5 = rearrange_bigger(r4)\n    assert r5 == 1432\n    r6 = rearrange_bigger(r5)\n    assert r6 == 2134\n    r_last = rearrange_bigger(4321)\n    assert r_last is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Four-digit numbers with distinct digits",
+              "oracle_reason": "Next permutation of 1234 is 1243, then 1324, 1342, 1423, 1432, 2134, ..., up to 4321 which has none.",
+              "fault_hypothesis": "Function might skip permutations or produce non-consecutive results in the chain."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_simple_two_digits\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertio"
+      },
+      {
+        "turn": 3,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.03,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "from solution import rearrange_bigger\n\n\ndef test_simple_two_digits():\n    '''Tes…",
+          "overwrite": true
+        },
+        "first_line": "已写入 `test_solution.py`（2342 字符，63 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.078,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_simple_two_digits",
+              "code": "from solution import rearrange_bigger\n\ndef test_simple_two_digits():\n    '''Test basic two-digit number where swapping gives next bigger.'''\n    # Contract: \"create the next bigger number by rearranging the digits\"\n    # For n=12, digits [1,2], pivot at index 0 (1<2), swap with min greater = 2,\n    # result = [2,1] = 21\n    assert rearrange_bigger(12) == 21\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Positive integers with at least two distinct digits in non-descending order",
+              "oracle_reason": "For n=12, the only rearrangement bigger than 12 is 21. The next permutation of [1,2] is [2,1].",
+              "fault_hypothesis": "Function might return 12 itself, or fail on simple inputs."
+            },
+            {
+              "name": "test_descending_returns_false",
+              "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    '''When digits are in descending order, no bigger rearrangement exists.'''\n    # Contract implies returning something when no bigger number can be formed.\n    # Implementation returns False for this case.\n    # n=4321: digits [4,3,2,1] — no i where nums[i] < nums[i+1]\n    assert rearrange_bigger(4321) is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Integers whose digits are in strictly descending order",
+              "oracle_reason": "No rearrangement of [4,3,2,1] produces a number > 4321. The function should signal impossibility.",
+              "fault_hypothesis": "Function might return an incorrect value instead of False, or crash."
+            },
+            {
+              "name": "test_single_digit_returns_false",
+              "code": "from solution import rearrange_bigger\n\ndef test_single_digit_returns_false():\n    '''A single digit has no other rearrangement.'''\n    # n=5: only one digit, no pivot possible, loop doesn't execute meaningful work\n    assert rearrange_bigger(5) is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Single-digit positive integers",
+              "oracle_reason": "With only one digit, there is no other arrangement, so no bigger number exists.",
+              "fault_hypothesis": "Function might return the same digit or raise an error on single-digit input."
+            },
+            {
+              "name": "test_with_duplicates",
+              "code": "from solution import rearrange_bigger\n\ndef test_with_duplicates():\n    '''Test numbers with repeated digits.'''\n    # n=122: digits [1,2,2]. Pivot at i=0 (1<2). z=[1,2,2], min greater than 1 is 2.\n    # Remove first 2, sort rest [1,2] -> [1,2]. Result: [2,1,2] = 212\n    assert rearrange_bigger(122) == 212\n    # n=212: digits [2,1,2]. Pivot at i=1 (1<2). z=[1,2], min greater than 1 is 2.\n    # Remove 2, sort rest [1]. Result: [2,2,1] = 221\n    assert rearrange_bigger(212) == 221\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Integers with repeated digit values",
+              "oracle_reason": "For 122, permutations in order: 122, 212, 221. Next after 122 is 212. For 212, next is 221.",
+              "fault_hypothesis": "Function might incorrectly handle duplicate digits, picking wrong pivot or not sorting properly."
+            },
+            {
+              "name": "test_return_type_int_or_bool",
+              "code": "from solution import rearrange_bigger\n\ndef test_return_type_int_or_bool():\n    '''Return value must be int when successful, False when impossible.'''\n    result1 = rearrange_bigger(12)\n    assert isinstance(result1, int)\n    result2 = rearrange_bigger(4321)\n    assert result2 is False\n    result3 = rearrange_bigger(5)\n    assert result3 is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Any valid integer input",
+              "oracle_reason": "The contract promises a 'bigger number' (int) or signals failure (False per implementation).",
+              "fault_hypothesis": "Function might return a string, float, or None instead of int/bool."
+            },
+            {
+              "name": "test_next_permutation_chain",
+              "code": "from solution import rearrange_bigger\n\ndef test_next_permutation_chain():\n    '''Verify consecutive calls produce the correct sequence of next permutations.'''\n    # Starting from 1234, each call should give the lexicographically next permutation\n    r1 = rearrange_bigger(1234)\n    assert r1 == 1243\n    r2 = rearrange_bigger(r1)\n    assert r2 == 1324\n    r3 = rearrange_bigger(r2)\n    assert r3 == 1342\n    r4 = rearrange_bigger(r3)\n    assert r4 == 1423\n    # Eventually we reach 4321 which has no bigger rearrangement\n    r5 = rearrange_bigger(r4)\n    assert r5 == 1432\n    r6 = rearrange_bigger(r5)\n    assert r6 == 2134\n    r_last = rearrange_bigger(4321)\n    assert r_last is False\n",
+              "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+              "input_domain": "Four-digit numbers with distinct digits",
+              "oracle_reason": "Next permutation of 1234 is 1243, then 1324, 1342, 1423, 1432, 2134, ..., up to 4321 which has none.",
+              "fault_hypothesis": "Function might skip permutations or produce non-consecutive results in the chain."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_simple_two_digits\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertio"
+      }
+    ],
+    "generation_seconds": 46.741,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_simple_two_digits",
+          "code": "from solution import rearrange_bigger\n\ndef test_simple_two_digits():\n    '''Test basic two-digit number where swapping gives next bigger.'''\n    # Contract: \"create the next bigger number by rearranging the digits\"\n    # For n=12, digits [1,2], pivot at index 0 (1<2), swap with min greater = 2,\n    # result = [2,1] = 21\n    assert rearrange_bigger(12) == 21\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Positive integers with at least two distinct digits in non-descending order",
+          "oracle_reason": "For n=12, the only rearrangement bigger than 12 is 21. The next permutation of [1,2] is [2,1].",
+          "fault_hypothesis": "Function might return 12 itself, or fail on simple inputs."
+        },
+        {
+          "name": "test_descending_returns_false",
+          "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    '''When digits are in descending order, no bigger rearrangement exists.'''\n    # Contract implies returning something when no bigger number can be formed.\n    # Implementation returns False for this case.\n    # n=4321: digits [4,3,2,1] — no i where nums[i] < nums[i+1]\n    assert rearrange_bigger(4321) is False\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Integers whose digits are in strictly descending order",
+          "oracle_reason": "No rearrangement of [4,3,2,1] produces a number > 4321. The function should signal impossibility.",
+          "fault_hypothesis": "Function might return an incorrect value instead of False, or crash."
+        },
+        {
+          "name": "test_single_digit_returns_false",
+          "code": "from solution import rearrange_bigger\n\ndef test_single_digit_returns_false():\n    '''A single digit has no other rearrangement.'''\n    # n=5: only one digit, no pivot possible, loop doesn't execute meaningful work\n    assert rearrange_bigger(5) is False\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Single-digit positive integers",
+          "oracle_reason": "With only one digit, there is no other arrangement, so no bigger number exists.",
+          "fault_hypothesis": "Function might return the same digit or raise an error on single-digit input."
+        },
+        {
+          "name": "test_with_duplicates",
+          "code": "from solution import rearrange_bigger\n\ndef test_with_duplicates():\n    '''Test numbers with repeated digits.'''\n    # n=122: digits [1,2,2]. Pivot at i=0 (1<2). z=[1,2,2], min greater than 1 is 2.\n    # Remove first 2, sort rest [1,2] -> [1,2]. Result: [2,1,2] = 212\n    assert rearrange_bigger(122) == 212\n    # n=212: digits [2,1,2]. Pivot at i=1 (1<2). z=[1,2], min greater than 1 is 2.\n    # Remove 2, sort rest [1]. Result: [2,2,1] = 221\n    assert rearrange_bigger(212) == 221\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Integers with repeated digit values",
+          "oracle_reason": "For 122, permutations in order: 122, 212, 221. Next after 122 is 212. For 212, next is 221.",
+          "fault_hypothesis": "Function might incorrectly handle duplicate digits, picking wrong pivot or not sorting properly."
+        },
+        {
+          "name": "test_return_type_int_or_bool",
+          "code": "from solution import rearrange_bigger\n\ndef test_return_type_int_or_bool():\n    '''Return value must be int when successful, False when impossible.'''\n    result1 = rearrange_bigger(12)\n    assert isinstance(result1, int)\n    result2 = rearrange_bigger(4321)\n    assert result2 is False\n    result3 = rearrange_bigger(5)\n    assert result3 is False\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Any valid integer input",
+          "oracle_reason": "The contract promises a 'bigger number' (int) or signals failure (False per implementation).",
+          "fault_hypothesis": "Function might return a string, float, or None instead of int/bool."
+        },
+        {
+          "name": "test_next_permutation_chain",
+          "code": "from solution import rearrange_bigger\n\ndef test_next_permutation_chain():\n    '''Verify consecutive calls produce the correct sequence of next permutations.'''\n    # Starting from 1234, each call should give the lexicographically next permutation\n    r1 = rearrange_bigger(1234)\n    assert r1 == 1243\n    r2 = rearrange_bigger(r1)\n    assert r2 == 1324\n    r3 = rearrange_bigger(r2)\n    assert r3 == 1342\n    r4 = rearrange_bigger(r3)\n    assert r4 == 1423\n    # Eventually we reach 4321 which has no bigger rearrangement\n    r5 = rearrange_bigger(r4)\n    assert r5 == 1432\n    r6 = rearrange_bigger(r5)\n    assert r6 == 2134\n    r_last = rearrange_bigger(4321)\n    assert r_last is False\n",
+          "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+          "input_domain": "Four-digit numbers with distinct digits",
+          "oracle_reason": "Next permutation of 1234 is 1243, then 1324, 1342, 1423, 1432, 2134, ..., up to 4321 which has none.",
+          "fault_hypothesis": "Function might skip permutations or produce non-consecutive results in the chain."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_simple_two_digits",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_descending_returns_false",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_digit_returns_false",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_with_duplicates",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_int_or_bool",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 3,
+            "total_calls": 3,
+            "unchecked_calls": 3,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_next_permutation_chain",
+          "contract_checks": {
+            "sut_calls": 7,
+            "checked_calls": 0,
+            "unchecked_calls": 7,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 7,
+            "total_calls": 7,
+            "unchecked_calls": 7,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_simple_two_digits",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        },
+        {
+          "name": "test_descending_returns_false",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        },
+        {
+          "name": "test_single_digit_returns_false",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        },
+        {
+          "name": "test_with_duplicates",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        },
+        {
+          "name": "test_return_type_int_or_bool",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        },
+        {
+          "name": "test_next_permutation_chain",
+          "contract_checks": {
+            "sut_calls": 7,
+            "checked_calls": 0,
+            "unchecked_calls": 7,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ALREADY_ACCEPTED"
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 1.979,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_3/A4/MBPP__407.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 11,
+    "executable_lines": 11,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 2,
+      "BCR": 1
+    },
+    "killed_by_operator": {
+      "ROR": 2,
+      "BCR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 6,
+        "column": 11,
+        "description": "Lt -> LtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_with_duplicates"
+        ],
+        "duration_sec": 0.2517076699878089,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 5,
+        "failed": 1,
+        "errors": 0,
+        "summary": "1 failed, 5 passed in 0.04s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 8,
+        "column": 37,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_simple_two_digits",
+          "test_solution.py::test_with_duplicates",
+          "test_solution.py::test_next_permutation_chain"
+        ],
+        "duration_sec": 0.2524898489937186,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 3,
+        "errors": 0,
+        "summary": "3 failed, 3 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "BCR",
+        "line": 13,
+        "column": 11,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_descending_returns_false",
+          "test_solution.py::test_single_digit_returns_false",
+          "test_solution.py::test_return_type_int_or_bool",
+          "test_solution.py::test_next_permutation_chain"
+        ],
+        "duration_sec": 0.2524821980041452,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.12
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.029,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.102,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_simple_two_digits",
+            "code": "from solution import rearrange_bigger\n\ndef test_simple_two_digits():\n    '''Test basic two-digit number where swapping gives next bigger.'''\n    # Contract: \"create the next bigger number by rearranging the digits\"\n    # For n=12, digits [1,2], pivot at index 0 (1<2), swap with min greater = 2,\n    # result = [2,1] = 21\n    assert rearrange_bigger(12) == 21\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Positive integers with at least two distinct digits in non-descending order",
+            "oracle_reason": "For n=12, the only rearrangement bigger than 12 is 21. The next permutation of [1,2] is [2,1].",
+            "fault_hypothesis": "Function might return 12 itself, or fail on simple inputs."
+          },
+          {
+            "name": "test_descending_returns_false",
+            "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    '''When digits are in descending order, no bigger rearrangement exists.'''\n    # Contract implies returning something when no bigger number can be formed.\n    # Implementation returns False for this case.\n    # n=4321: digits [4,3,2,1] — no i where nums[i] < nums[i+1]\n    assert rearrange_bigger(4321) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Integers whose digits are in strictly descending order",
+            "oracle_reason": "No rearrangement of [4,3,2,1] produces a number > 4321. The function should signal impossibility.",
+            "fault_hypothesis": "Function might return an incorrect value instead of False, or crash."
+          },
+          {
+            "name": "test_single_digit_returns_false",
+            "code": "from solution import rearrange_bigger\n\ndef test_single_digit_returns_false():\n    '''A single digit has no other rearrangement.'''\n    # n=5: only one digit, no pivot possible, loop doesn't execute meaningful work\n    assert rearrange_bigger(5) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Single-digit positive integers",
+            "oracle_reason": "With only one digit, there is no other arrangement, so no bigger number exists.",
+            "fault_hypothesis": "Function might return the same digit or raise an error on single-digit input."
+          },
+          {
+            "name": "test_with_duplicates",
+            "code": "from solution import rearrange_bigger\n\ndef test_with_duplicates():\n    '''Test numbers with repeated digits.'''\n    # n=122: digits [1,2,2]. Pivot at i=0 (1<2). z=[1,2,2], min greater than 1 is 2.\n    # Remove first 2, sort rest [1,2] -> [1,2]. Result: [2,1,2] = 212\n    assert rearrange_bigger(122) == 212\n    # n=212: digits [2,1,2]. Pivot at i=1 (1<2). z=[1,2], min greater than 1 is 2.\n    # Remove 2, sort rest [1]. Result: [2,2,1] = 221\n    assert rearrange_bigger(212) == 221\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Integers with repeated digit values",
+            "oracle_reason": "For 122, permutations in order: 122, 212, 221. Next after 122 is 212. For 212, next is 221.",
+            "fault_hypothesis": "Function might incorrectly handle duplicate digits, picking wrong pivot or not sorting properly."
+          },
+          {
+            "name": "test_return_type_int_or_bool",
+            "code": "from solution import rearrange_bigger\n\ndef test_return_type_int_or_bool():\n    '''Return value must be int when successful, False when impossible.'''\n    result1 = rearrange_bigger(12)\n    assert isinstance(result1, int)\n    result2 = rearrange_bigger(4321)\n    assert result2 is False\n    result3 = rearrange_bigger(5)\n    assert result3 is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Any valid integer input",
+            "oracle_reason": "The contract promises a 'bigger number' (int) or signals failure (False per implementation).",
+            "fault_hypothesis": "Function might return a string, float, or None instead of int/bool."
+          },
+          {
+            "name": "test_next_permutation_chain",
+            "code": "from solution import rearrange_bigger\n\ndef test_next_permutation_chain():\n    '''Verify consecutive calls produce the correct sequence of next permutations.'''\n    # Starting from 1234, each call should give the lexicographically next permutation\n    r1 = rearrange_bigger(1234)\n    assert r1 == 1243\n    r2 = rearrange_bigger(r1)\n    assert r2 == 1324\n    r3 = rearrange_bigger(r2)\n    assert r3 == 1342\n    r4 = rearrange_bigger(r3)\n    assert r4 == 1423\n    # Eventually we reach 4321 which has no bigger rearrangement\n    r5 = rearrange_bigger(r4)\n    assert r5 == 1432\n    r6 = rearrange_bigger(r5)\n    assert r6 == 2134\n    r_last = rearrange_bigger(4321)\n    assert r_last is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Four-digit numbers with distinct digits",
+            "oracle_reason": "Next permutation of 1234 is 1243, then 1324, 1342, 1423, 1432, 2134, ..., up to 4321 which has none.",
+            "fault_hypothesis": "Function might skip permutations or produce non-consecutive results in the chain."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_simple_two_digits\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertio"
+    },
+    {
+      "turn": 3,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.03,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "from solution import rearrange_bigger\n\n\ndef test_simple_two_digits():\n    '''Tes…",
+        "overwrite": true
+      },
+      "first_line": "已写入 `test_solution.py`（2342 字符，63 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.078,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_simple_two_digits",
+            "code": "from solution import rearrange_bigger\n\ndef test_simple_two_digits():\n    '''Test basic two-digit number where swapping gives next bigger.'''\n    # Contract: \"create the next bigger number by rearranging the digits\"\n    # For n=12, digits [1,2], pivot at index 0 (1<2), swap with min greater = 2,\n    # result = [2,1] = 21\n    assert rearrange_bigger(12) == 21\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Positive integers with at least two distinct digits in non-descending order",
+            "oracle_reason": "For n=12, the only rearrangement bigger than 12 is 21. The next permutation of [1,2] is [2,1].",
+            "fault_hypothesis": "Function might return 12 itself, or fail on simple inputs."
+          },
+          {
+            "name": "test_descending_returns_false",
+            "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    '''When digits are in descending order, no bigger rearrangement exists.'''\n    # Contract implies returning something when no bigger number can be formed.\n    # Implementation returns False for this case.\n    # n=4321: digits [4,3,2,1] — no i where nums[i] < nums[i+1]\n    assert rearrange_bigger(4321) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Integers whose digits are in strictly descending order",
+            "oracle_reason": "No rearrangement of [4,3,2,1] produces a number > 4321. The function should signal impossibility.",
+            "fault_hypothesis": "Function might return an incorrect value instead of False, or crash."
+          },
+          {
+            "name": "test_single_digit_returns_false",
+            "code": "from solution import rearrange_bigger\n\ndef test_single_digit_returns_false():\n    '''A single digit has no other rearrangement.'''\n    # n=5: only one digit, no pivot possible, loop doesn't execute meaningful work\n    assert rearrange_bigger(5) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Single-digit positive integers",
+            "oracle_reason": "With only one digit, there is no other arrangement, so no bigger number exists.",
+            "fault_hypothesis": "Function might return the same digit or raise an error on single-digit input."
+          },
+          {
+            "name": "test_with_duplicates",
+            "code": "from solution import rearrange_bigger\n\ndef test_with_duplicates():\n    '''Test numbers with repeated digits.'''\n    # n=122: digits [1,2,2]. Pivot at i=0 (1<2). z=[1,2,2], min greater than 1 is 2.\n    # Remove first 2, sort rest [1,2] -> [1,2]. Result: [2,1,2] = 212\n    assert rearrange_bigger(122) == 212\n    # n=212: digits [2,1,2]. Pivot at i=1 (1<2). z=[1,2], min greater than 1 is 2.\n    # Remove 2, sort rest [1]. Result: [2,2,1] = 221\n    assert rearrange_bigger(212) == 221\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Integers with repeated digit values",
+            "oracle_reason": "For 122, permutations in order: 122, 212, 221. Next after 122 is 212. For 212, next is 221.",
+            "fault_hypothesis": "Function might incorrectly handle duplicate digits, picking wrong pivot or not sorting properly."
+          },
+          {
+            "name": "test_return_type_int_or_bool",
+            "code": "from solution import rearrange_bigger\n\ndef test_return_type_int_or_bool():\n    '''Return value must be int when successful, False when impossible.'''\n    result1 = rearrange_bigger(12)\n    assert isinstance(result1, int)\n    result2 = rearrange_bigger(4321)\n    assert result2 is False\n    result3 = rearrange_bigger(5)\n    assert result3 is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Any valid integer input",
+            "oracle_reason": "The contract promises a 'bigger number' (int) or signals failure (False per implementation).",
+            "fault_hypothesis": "Function might return a string, float, or None instead of int/bool."
+          },
+          {
+            "name": "test_next_permutation_chain",
+            "code": "from solution import rearrange_bigger\n\ndef test_next_permutation_chain():\n    '''Verify consecutive calls produce the correct sequence of next permutations.'''\n    # Starting from 1234, each call should give the lexicographically next permutation\n    r1 = rearrange_bigger(1234)\n    assert r1 == 1243\n    r2 = rearrange_bigger(r1)\n    assert r2 == 1324\n    r3 = rearrange_bigger(r2)\n    assert r3 == 1342\n    r4 = rearrange_bigger(r3)\n    assert r4 == 1423\n    # Eventually we reach 4321 which has no bigger rearrangement\n    r5 = rearrange_bigger(r4)\n    assert r5 == 1432\n    r6 = rearrange_bigger(r5)\n    assert r6 == 2134\n    r_last = rearrange_bigger(4321)\n    assert r_last is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Four-digit numbers with distinct digits",
+            "oracle_reason": "Next permutation of 1234 is 1243, then 1324, 1342, 1423, 1432, 2134, ..., up to 4321 which has none.",
+            "fault_hypothesis": "Function might skip permutations or produce non-consecutive results in the chain."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_simple_two_digits\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertio"
+    }
+  ],
+  "started_at": 1791346728.729891,
+  "duration_sec": 48.975,
+  "tests_chars": 1963
+}

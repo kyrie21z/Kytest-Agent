@@ -1,0 +1,797 @@
+{
+  "job": [
+    2,
+    "A5",
+    "MBPP/407"
+  ],
+  "started_at": 1791345540.2614505,
+  "requests": [
+    {
+      "started_at": 1791345540.410354,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a coding agent generating useful unit tests for solution.py.\nRead its docstring and implementation first. Use submit_tests to create test_solution.py.\nFor each candidate give a verbatim docstring quote, its valid input domain, an\nindependent explanation of the expected result, and a concrete faulty behavior\nthe assertion should detect. Derive the oracle from the contract, worked examples,\nor mathematical properties; do not obtain expected values by calling the function\nunder test or copying its implementation. Include discriminating boundary and\nreturn-type checks when the contract supports them. A passing test is not necessarily\na useful test. Preserve accepted tests and add complementary cases.\nDo not assume unspecified invalid inputs must raise: a precondition is not a\npromise of input validation. Empty/null inputs need explicit contractual support.\nUse small representative inputs and bounded samples, never exhaustive Cartesian\nproducts or huge stress tests. Each candidate is a self-contained Python module\nwith imports and exactly one test_* function, with no parameters or decorators.\nUse assertions or pytest.raises only for documented exceptions. No fixtures,\ntest classes, module-level execution, or tests that alter solution.py.\nSubmit up to six candidates at once. The tool checks each separately, returning\nthe exact rejected test, assertion failure, or timeout, then merges only passing\ncases after a regression check. Fix rejected candidates in a later submission.\nAccepted names are immutable; use a new name to add a different case. Do not write\ntest_solution.py directly. Finish with the accepted suite and explain its remaining\nlimitations; never claim mutation improvement or complete correctness without evidence.\n\nAfter you have an accepted suite, call inspect_survivors. It runs a bounded set\nof development fault candidates and returns changes that existing assertions\ndid not detect. Use the contract to devise a small valid input and independent\noracle that distinguish these faulty behaviors, then submit complementary tests.\nCover adjacent boundaries of the same behavior, not just the exact shown edit.\nSome surviving edits are equivalent to the original on the valid input domain;\ndo not invent invalid-input requirements or break passing tests to kill them.\nState this uncertainty. Feedback faults are not the independent scoring faults;\nnever present the development kill count as a final quality score. Inspect at\nmost twice, after changing the accepted suite. Preserve all accepted tests.\n"
+        },
+        {
+          "role": "user",
+          "content": "Generate unit tests for solution.py in the current directory.\nWrite them to test_solution.py using pytest.\n"
+        }
+      ],
+      "tool_names": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_code",
+        "run_command",
+        "submit_tests",
+        "inspect_survivors"
+      ],
+      "response": {
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_d72aeb1a8cf74cdc8a45db0b",
+            "name": "read_file",
+            "arguments": "{\"path\": \"solution.py\"}"
+          }
+        ],
+        "usage": {
+          "completion_tokens": 63,
+          "completion_tokens_details": {
+            "reasoning_tokens": 35,
+            "text_tokens": 63
+          },
+          "prompt_tokens": 1876,
+          "prompt_tokens_details": {
+            "cached_tokens": 1536,
+            "text_tokens": 1876
+          },
+          "total_tokens": 1939
+        },
+        "raw": {
+          "choices": [
+            {
+              "finish_reason": "tool_calls",
+              "index": 0,
+              "message": {
+                "content": "",
+                "reasoning_content": "The user wants me to generate unit tests for solution.py. Let me start by reading the solution.py file to understand its docstring and implementation, then create appropriate unit tests.",
+                "role": "assistant",
+                "tool_calls": [
+                  {
+                    "function": {
+                      "arguments": "{\"path\": \"solution.py\"}",
+                      "name": "read_file"
+                    },
+                    "id": "call_d72aeb1a8cf74cdc8a45db0b",
+                    "index": 0,
+                    "type": "function"
+                  }
+                ]
+              }
+            }
+          ],
+          "created": 1791345539,
+          "id": "chatcmpl-834d7d79-331f-9075-a10b-7ee7bf8ce076",
+          "model": "qwen3.7-flash",
+          "object": "chat.completion",
+          "usage": {
+            "completion_tokens": 63,
+            "completion_tokens_details": {
+              "reasoning_tokens": 35,
+              "text_tokens": 63
+            },
+            "prompt_tokens": 1876,
+            "prompt_tokens_details": {
+              "cached_tokens": 1536,
+              "text_tokens": 1876
+            },
+            "total_tokens": 1939
+          }
+        }
+      },
+      "finished_at": 1791345541.4095852
+    },
+    {
+      "started_at": 1791345541.5408993,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a coding agent generating useful unit tests for solution.py.\nRead its docstring and implementation first. Use submit_tests to create test_solution.py.\nFor each candidate give a verbatim docstring quote, its valid input domain, an\nindependent explanation of the expected result, and a concrete faulty behavior\nthe assertion should detect. Derive the oracle from the contract, worked examples,\nor mathematical properties; do not obtain expected values by calling the function\nunder test or copying its implementation. Include discriminating boundary and\nreturn-type checks when the contract supports them. A passing test is not necessarily\na useful test. Preserve accepted tests and add complementary cases.\nDo not assume unspecified invalid inputs must raise: a precondition is not a\npromise of input validation. Empty/null inputs need explicit contractual support.\nUse small representative inputs and bounded samples, never exhaustive Cartesian\nproducts or huge stress tests. Each candidate is a self-contained Python module\nwith imports and exactly one test_* function, with no parameters or decorators.\nUse assertions or pytest.raises only for documented exceptions. No fixtures,\ntest classes, module-level execution, or tests that alter solution.py.\nSubmit up to six candidates at once. The tool checks each separately, returning\nthe exact rejected test, assertion failure, or timeout, then merges only passing\ncases after a regression check. Fix rejected candidates in a later submission.\nAccepted names are immutable; use a new name to add a different case. Do not write\ntest_solution.py directly. Finish with the accepted suite and explain its remaining\nlimitations; never claim mutation improvement or complete correctness without evidence.\n\nAfter you have an accepted suite, call inspect_survivors. It runs a bounded set\nof development fault candidates and returns changes that existing assertions\ndid not detect. Use the contract to devise a small valid input and independent\noracle that distinguish these faulty behaviors, then submit complementary tests.\nCover adjacent boundaries of the same behavior, not just the exact shown edit.\nSome surviving edits are equivalent to the original on the valid input domain;\ndo not invent invalid-input requirements or break passing tests to kill them.\nState this uncertainty. Feedback faults are not the independent scoring faults;\nnever present the development kill count as a final quality score. Inspect at\nmost twice, after changing the accepted suite. Preserve all accepted tests.\n"
+        },
+        {
+          "role": "user",
+          "content": "Generate unit tests for solution.py in the current directory.\nWrite them to test_solution.py using pytest.\n"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_d72aeb1a8cf74cdc8a45db0b",
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": {
+                  "path": "solution.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_d72aeb1a8cf74cdc8a45db0b",
+          "name": "read_file",
+          "content": "[OK] 文件 `solution.py` 共 14 行，显示第 1-14 行：\n    1| \n    2| def rearrange_bigger(n):\n    3|     'Write a function to create the next bigger number by rearranging the digits of a given number.'\n    4|     nums = list(str(n))\n    5|     for i in range(len(nums)-2,-1,-1):\n    6|         if nums[i] < nums[i+1]:\n    7|             z = nums[i:]\n    8|             y = min(filter(lambda x: x > z[0], z))\n    9|             z.remove(y)\n   10|             z.sort()\n   11|             nums[i:] = [y] + z\n   12|             return int(\"\".join(nums))\n   13|     return False\n   14| "
+        }
+      ],
+      "tool_names": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_code",
+        "run_command",
+        "submit_tests",
+        "inspect_survivors"
+      ],
+      "response": {
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_a729687ed8794e0981625a8c",
+            "name": "read_file",
+            "arguments": "{\"path\": \"solution.py\"}"
+          }
+        ],
+        "usage": {
+          "completion_tokens": 937,
+          "completion_tokens_details": {
+            "reasoning_tokens": 909,
+            "text_tokens": 937
+          },
+          "prompt_tokens": 2133,
+          "prompt_tokens_details": {
+            "cached_tokens": 1920,
+            "text_tokens": 2133
+          },
+          "total_tokens": 3070
+        },
+        "raw": {
+          "choices": [
+            {
+              "finish_reason": "tool_calls",
+              "index": 0,
+              "message": {
+                "content": "",
+                "reasoning_content": "Let me analyze the `rearrange_bigger` function:\n\n1. It takes a number `n` and finds the next bigger number by rearranging its digits.\n2. The algorithm is essentially finding the \"next permutation\" of the digits.\n3. It converts the number to a list of digit characters, then finds the rightmost position where a digit is smaller than the one after it (the pivot).\n4. From that point onward, it finds the smallest digit larger than the pivot digit, swaps them, and sorts the remaining digits in ascending order.\n5. If no such pivot exists (digits are in descending order), it returns `False`.\n\nLet me think about edge cases and test scenarios:\n\n1. **Basic cases**: \n   - `rearrange_bigger(12)` → 21 (swap)\n   - `rearrange_bigger(1234)` → 1243\n   - `rearrange_bigger(12345)` → 12354\n\n2. **Cases requiring more complex rearrangement**:\n   - `rearrange_bigger(1243)` → 1324\n   - `rearrange_bigger(54321)` → False (no bigger number possible)\n   - `rearrange_bigger(111)` → False (all same digits)\n\n3. **Single digit**: `rearrange_bigger(5)` → False\n\n4. **Edge with repeated digits**: `rearrange_bigger(199)` → 919? Let me trace through:\n   - nums = ['1', '9', '9']\n   - i=1: nums[1]='9' < nums[2]='9'? No\n   - i=0: nums[0]='1' < nums[1]='9'? Yes\n   - z = ['1', '9', '9'], y = min(filter(x > '1', z)) = '9', remove first '9', z = ['1', '9'], sort → ['1', '9']\n   - nums[0:] = ['9', '1', '9'] → 919\n   \n   Wait, let me re-check. After removing y from z: z was ['1','9','9'], we remove '9' (one instance), so z becomes ['1','9']. Then sorted: ['1','9']. So nums[0:] = ['9','1','9'] → 919. That seems correct.\n\n5. **Zero handling**: What about numbers with 0? Like `rearrange_bigger(10)` → 10? Let me trace:\n   - nums = ['1', '0']\n   - i=0: nums[0]='1' < nums[1]='0'? No\n   - Loop ends, return False\n   - Hmm, but 10 can't be rearranged to make a bigger number... wait, 01 = 1 which is smaller. So False is correct.\n\n6. `rearrange_bigger(210)` → ?\n   - nums = ['2', '1', '0']\n   - i=1: '1' < '0'? No\n   - i=0: '2' < '1'? No\n   - Return False. Correct since 210 is already the largest arrangement.\n\n7. `rearrange_bigger(102)` → ?\n   - nums = ['1', '0', '2']\n   - i=1: '0' < '2'? Yes\n   - z = ['0', '2'], y = min(filter(x > '0', z)) = '2', z.remove('2') → z=['0'], sort → ['0']\n   - nums[1:] = ['2', '0'] → [1, 2, 0] → 120\n\nNow let me write comprehensive tests. I need to be careful about:\n- Return type checks (should be int or False)\n- Boundary cases (single digit, all same digits, already largest)\n- Repeated digits\n- Numbers with zeros\n\nLet me create the test file.",
+                "role": "assistant",
+                "tool_calls": [
+                  {
+                    "function": {
+                      "arguments": "{\"path\": \"solution.py\"}",
+                      "name": "read_file"
+                    },
+                    "id": "call_a729687ed8794e0981625a8c",
+                    "index": 0,
+                    "type": "function"
+                  }
+                ]
+              }
+            }
+          ],
+          "created": 1791345540,
+          "id": "chatcmpl-500a7aca-1571-9ce1-8660-e5d3f222ed1d",
+          "model": "qwen3.7-flash",
+          "object": "chat.completion",
+          "usage": {
+            "completion_tokens": 937,
+            "completion_tokens_details": {
+              "reasoning_tokens": 909,
+              "text_tokens": 937
+            },
+            "prompt_tokens": 2133,
+            "prompt_tokens_details": {
+              "cached_tokens": 1920,
+              "text_tokens": 2133
+            },
+            "total_tokens": 3070
+          }
+        }
+      },
+      "finished_at": 1791345553.2593877
+    },
+    {
+      "started_at": 1791345553.3819382,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a coding agent generating useful unit tests for solution.py.\nRead its docstring and implementation first. Use submit_tests to create test_solution.py.\nFor each candidate give a verbatim docstring quote, its valid input domain, an\nindependent explanation of the expected result, and a concrete faulty behavior\nthe assertion should detect. Derive the oracle from the contract, worked examples,\nor mathematical properties; do not obtain expected values by calling the function\nunder test or copying its implementation. Include discriminating boundary and\nreturn-type checks when the contract supports them. A passing test is not necessarily\na useful test. Preserve accepted tests and add complementary cases.\nDo not assume unspecified invalid inputs must raise: a precondition is not a\npromise of input validation. Empty/null inputs need explicit contractual support.\nUse small representative inputs and bounded samples, never exhaustive Cartesian\nproducts or huge stress tests. Each candidate is a self-contained Python module\nwith imports and exactly one test_* function, with no parameters or decorators.\nUse assertions or pytest.raises only for documented exceptions. No fixtures,\ntest classes, module-level execution, or tests that alter solution.py.\nSubmit up to six candidates at once. The tool checks each separately, returning\nthe exact rejected test, assertion failure, or timeout, then merges only passing\ncases after a regression check. Fix rejected candidates in a later submission.\nAccepted names are immutable; use a new name to add a different case. Do not write\ntest_solution.py directly. Finish with the accepted suite and explain its remaining\nlimitations; never claim mutation improvement or complete correctness without evidence.\n\nAfter you have an accepted suite, call inspect_survivors. It runs a bounded set\nof development fault candidates and returns changes that existing assertions\ndid not detect. Use the contract to devise a small valid input and independent\noracle that distinguish these faulty behaviors, then submit complementary tests.\nCover adjacent boundaries of the same behavior, not just the exact shown edit.\nSome surviving edits are equivalent to the original on the valid input domain;\ndo not invent invalid-input requirements or break passing tests to kill them.\nState this uncertainty. Feedback faults are not the independent scoring faults;\nnever present the development kill count as a final quality score. Inspect at\nmost twice, after changing the accepted suite. Preserve all accepted tests.\n"
+        },
+        {
+          "role": "user",
+          "content": "Generate unit tests for solution.py in the current directory.\nWrite them to test_solution.py using pytest.\n"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_d72aeb1a8cf74cdc8a45db0b",
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": {
+                  "path": "solution.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_d72aeb1a8cf74cdc8a45db0b",
+          "name": "read_file",
+          "content": "[OK] 文件 `solution.py` 共 14 行，显示第 1-14 行：\n    1| \n    2| def rearrange_bigger(n):\n    3|     'Write a function to create the next bigger number by rearranging the digits of a given number.'\n    4|     nums = list(str(n))\n    5|     for i in range(len(nums)-2,-1,-1):\n    6|         if nums[i] < nums[i+1]:\n    7|             z = nums[i:]\n    8|             y = min(filter(lambda x: x > z[0], z))\n    9|             z.remove(y)\n   10|             z.sort()\n   11|             nums[i:] = [y] + z\n   12|             return int(\"\".join(nums))\n   13|     return False\n   14| "
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_a729687ed8794e0981625a8c",
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": {
+                  "path": "solution.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_a729687ed8794e0981625a8c",
+          "name": "read_file",
+          "content": "[OK] 文件 `solution.py` 共 14 行，显示第 1-14 行：\n    1| \n    2| def rearrange_bigger(n):\n    3|     'Write a function to create the next bigger number by rearranging the digits of a given number.'\n    4|     nums = list(str(n))\n    5|     for i in range(len(nums)-2,-1,-1):\n    6|         if nums[i] < nums[i+1]:\n    7|             z = nums[i:]\n    8|             y = min(filter(lambda x: x > z[0], z))\n    9|             z.remove(y)\n   10|             z.sort()\n   11|             nums[i:] = [y] + z\n   12|             return int(\"\".join(nums))\n   13|     return False\n   14| "
+        }
+      ],
+      "tool_names": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_code",
+        "run_command",
+        "submit_tests",
+        "inspect_survivors"
+      ],
+      "response": {
+        "content": "Let me analyze the `rearrange_bigger` function:\n\n**Contract:** Given a positive integer `n`, return the next bigger number that can be formed by rearranging its digits. If no such number exists (digits are in descending order), return `False`.\n\n**Algorithm (next permutation):**\n1. Convert to list of digit characters.\n2. Find the rightmost position `i` where `nums[i] < nums[i+1]` — this is the \"pivot\".\n3. From the suffix starting at `i`, find the smallest digit strictly greater than `nums[i]` (call it `y`).\n4. Swap `nums[i]` with `y`, then sort the remaining suffix in ascending order.\n5. Return the result as an integer.\n6. If no such pivot exists, return `False`.\n\nNow let me create test candidates:",
+        "tool_calls": [
+          {
+            "id": "call_1641aee7d0ab4b10b7e3c9b3",
+            "name": "submit_tests",
+            "arguments": "{\"cases\": \n[{\"name\": \"test_basic_next_permutation\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_basic_next_permutation():\\n    \\\"\\\"\\\"Test basic next permutation: 123 -> 132.\\\"\\\"\\\"\\n    # Contract: next bigger number by rearranging digits.\\n    # For 123, the permutations in order are: 123, 132, 213, 231, 312, 321.\\n    # Next after 123 is 132.\\n    assert rearrange_bigger(123) == 132\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Positive integers whose digits are not all in descending order.\", \"oracle_reason\": \"The next lexicographic permutation of digits [1,2,3] is [1,3,2], which gives 132.\", \"fault_hypothesis\": \"Function might return the wrong permutation or fail on simple ascending sequences.\"}, {\"name\": \"test_descending_returns_false\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_descending_returns_false():\\n    \\\"\\\"\\\"Test that descending-order digits return False.\\\"\\\"\\\"\\n    # Contract: if no bigger rearrangement exists, return False.\\n    # 321 has digits in descending order; no bigger arrangement exists.\\n    assert rearrange_bigger(321) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Positive integers whose digits are in non-increasing (descending) order.\", \"oracle_reason\": \"For 321, every rearrangement (123, 132, 213, 231) is smaller. No next bigger exists, so contract says return False.\", \"fault_hypothesis\": \"Function might incorrectly return a value instead of False for descending inputs.\"}, {\"name\": \"test_single_digit\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_single_digit():\\n    \\\"\\\"\\\"Test single-digit input returns False.\\\"\\\"\\\"\\n    # A single digit has only one permutation, so no bigger number exists.\\n    assert rearrange_bigger(5) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Single-digit positive integers (1-9).\", \"oracle_reason\": \"With only one digit, there is no other permutation, so no bigger number can be formed. Returns False.\", \"fault_hypothesis\": \"Function might crash or return an incorrect value for single-digit inputs.\"}, {\"name\": \"test_duplicate_digits\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_duplicate_digits():\\n    \\\"\\\"\\\"Test input with duplicate digits: 155 -> 515.\\\"\\\"\\\"\\n    # Permutations of {1,5,5}: 155, 515, 551.\\n    # Next after 155 is 515.\\n    assert rearrange_bigger(155) == 515\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Integers with repeated digits where a next permutation exists.\", \"oracle_reason\": \"Sorted unique permutations of digits {1,5,5} are 155, 515, 551. Next after 155 is 515.\", \"fault_hypothesis\": \"Duplicate digits might cause incorrect min selection or sorting in the suffix.\"}, {\"name\": \"test_boundary_two_digits\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_boundary_two_digits():\\n    \\\"\\\"\\\"Test two-digit ascending: 12 -> 21.\\\"\\\"\\\"\\n    # Only two permutations: 12 and 21. Next after 12 is 21.\\n    assert rearrange_bigger(12) == 21\\n    # Two-digit descending: 21 -> False\\n    assert rearrange_bigger(21) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Two-digit positive integers.\", \"oracle_reason\": \"For 12, the only other permutation is 21 which is bigger. For 21, no bigger permutation exists.\", \"fault_hypothesis\": \"Off-by-one errors in the range loop might mishandle two-digit numbers.\"}, {\"name\": \"test_larger_number\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_larger_number():\\n    \\\"\\\"\\\"Test a larger number: 124433 -> 132443.\\\"\\\"\\\"\\n    # Digits: [1,2,4,4,3,3]. Pivot at index 1 (digit 2) since 2<4.\\n    # Suffix from index 1: [2,4,4,3,3]. Smallest > 2 is 3.\\n    # Swap: [1,3,...], remaining suffix [2,4,4,3] sorted -> [2,3,4,4].\\n    # Result: 132443.\\n    assert rearrange_bigger(124433) == 132443\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Multi-digit integers with mixed ascending/descending patterns.\", \"oracle_reason\": \"Applying next-permutation algorithm manually: pivot at position of '2', swap with smallest larger digit '3' in suffix, sort remainder -> 132443.\", \"fault_hypothesis\": \"Complex digit arrangements with multiple pivots might select wrong pivot or mishandle suffix sorting.\"}]\n\n}"
+          }
+        ],
+        "usage": {
+          "completion_tokens": 1551,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "text_tokens": 1551
+          },
+          "prompt_tokens": 2390,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "text_tokens": 2390
+          },
+          "total_tokens": 3941
+        },
+        "raw": {
+          "choices": [
+            {
+              "finish_reason": "tool_calls",
+              "index": 0,
+              "message": {
+                "content": "Let me analyze the `rearrange_bigger` function:\n\n**Contract:** Given a positive integer `n`, return the next bigger number that can be formed by rearranging its digits. If no such number exists (digits are in descending order), return `False`.\n\n**Algorithm (next permutation):**\n1. Convert to list of digit characters.\n2. Find the rightmost position `i` where `nums[i] < nums[i+1]` — this is the \"pivot\".\n3. From the suffix starting at `i`, find the smallest digit strictly greater than `nums[i]` (call it `y`).\n4. Swap `nums[i]` with `y`, then sort the remaining suffix in ascending order.\n5. Return the result as an integer.\n6. If no such pivot exists, return `False`.\n\nNow let me create test candidates:\n\n",
+                "reasoning_content": "",
+                "role": "assistant",
+                "tool_calls": [
+                  {
+                    "function": {
+                      "arguments": "{\"cases\": \n[{\"name\": \"test_basic_next_permutation\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_basic_next_permutation():\\n    \\\"\\\"\\\"Test basic next permutation: 123 -> 132.\\\"\\\"\\\"\\n    # Contract: next bigger number by rearranging digits.\\n    # For 123, the permutations in order are: 123, 132, 213, 231, 312, 321.\\n    # Next after 123 is 132.\\n    assert rearrange_bigger(123) == 132\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Positive integers whose digits are not all in descending order.\", \"oracle_reason\": \"The next lexicographic permutation of digits [1,2,3] is [1,3,2], which gives 132.\", \"fault_hypothesis\": \"Function might return the wrong permutation or fail on simple ascending sequences.\"}, {\"name\": \"test_descending_returns_false\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_descending_returns_false():\\n    \\\"\\\"\\\"Test that descending-order digits return False.\\\"\\\"\\\"\\n    # Contract: if no bigger rearrangement exists, return False.\\n    # 321 has digits in descending order; no bigger arrangement exists.\\n    assert rearrange_bigger(321) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Positive integers whose digits are in non-increasing (descending) order.\", \"oracle_reason\": \"For 321, every rearrangement (123, 132, 213, 231) is smaller. No next bigger exists, so contract says return False.\", \"fault_hypothesis\": \"Function might incorrectly return a value instead of False for descending inputs.\"}, {\"name\": \"test_single_digit\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_single_digit():\\n    \\\"\\\"\\\"Test single-digit input returns False.\\\"\\\"\\\"\\n    # A single digit has only one permutation, so no bigger number exists.\\n    assert rearrange_bigger(5) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Single-digit positive integers (1-9).\", \"oracle_reason\": \"With only one digit, there is no other permutation, so no bigger number can be formed. Returns False.\", \"fault_hypothesis\": \"Function might crash or return an incorrect value for single-digit inputs.\"}, {\"name\": \"test_duplicate_digits\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_duplicate_digits():\\n    \\\"\\\"\\\"Test input with duplicate digits: 155 -> 515.\\\"\\\"\\\"\\n    # Permutations of {1,5,5}: 155, 515, 551.\\n    # Next after 155 is 515.\\n    assert rearrange_bigger(155) == 515\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Integers with repeated digits where a next permutation exists.\", \"oracle_reason\": \"Sorted unique permutations of digits {1,5,5} are 155, 515, 551. Next after 155 is 515.\", \"fault_hypothesis\": \"Duplicate digits might cause incorrect min selection or sorting in the suffix.\"}, {\"name\": \"test_boundary_two_digits\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_boundary_two_digits():\\n    \\\"\\\"\\\"Test two-digit ascending: 12 -> 21.\\\"\\\"\\\"\\n    # Only two permutations: 12 and 21. Next after 12 is 21.\\n    assert rearrange_bigger(12) == 21\\n    # Two-digit descending: 21 -> False\\n    assert rearrange_bigger(21) is False\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Two-digit positive integers.\", \"oracle_reason\": \"For 12, the only other permutation is 21 which is bigger. For 21, no bigger permutation exists.\", \"fault_hypothesis\": \"Off-by-one errors in the range loop might mishandle two-digit numbers.\"}, {\"name\": \"test_larger_number\", \"code\": \"from solution import rearrange_bigger\\n\\ndef test_larger_number():\\n    \\\"\\\"\\\"Test a larger number: 124433 -> 132443.\\\"\\\"\\\"\\n    # Digits: [1,2,4,4,3,3]. Pivot at index 1 (digit 2) since 2<4.\\n    # Suffix from index 1: [2,4,4,3,3]. Smallest > 2 is 3.\\n    # Swap: [1,3,...], remaining suffix [2,4,4,3] sorted -> [2,3,4,4].\\n    # Result: 132443.\\n    assert rearrange_bigger(124433) == 132443\\n\", \"contract_quote\": \"'Write a function to create the next bigger number by rearranging the digits of a given number.'\", \"input_domain\": \"Multi-digit integers with mixed ascending/descending patterns.\", \"oracle_reason\": \"Applying next-permutation algorithm manually: pivot at position of '2', swap with smallest larger digit '3' in suffix, sort remainder -> 132443.\", \"fault_hypothesis\": \"Complex digit arrangements with multiple pivots might select wrong pivot or mishandle suffix sorting.\"}]\n\n}",
+                      "name": "submit_tests"
+                    },
+                    "id": "call_1641aee7d0ab4b10b7e3c9b3",
+                    "index": 0,
+                    "type": "function"
+                  }
+                ]
+              }
+            }
+          ],
+          "created": 1791345613,
+          "id": "chatcmpl-d6fa97b9-7040-9a69-bb3d-7fd337c2dd7a",
+          "model": "qwen3.7-flash",
+          "object": "chat.completion",
+          "usage": {
+            "completion_tokens": 1551,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "text_tokens": 1551
+            },
+            "prompt_tokens": 2390,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 2390
+            },
+            "total_tokens": 3941
+          }
+        }
+      },
+      "finished_at": 1791345629.933543
+    }
+  ],
+  "development_stages": [
+    {
+      "suite_source": "# Accepted by submit_tests; explanations in testgen_report.json.\n\nfrom solution import rearrange_bigger as _case0_rearrange_bigger\n\ndef test_basic_next_permutation():\n    \"\"\"Test basic next permutation: 123 -> 132.\"\"\"\n    assert _case0_rearrange_bigger(123) == 132\n\nfrom solution import rearrange_bigger as _case1_rearrange_bigger\n\ndef test_descending_returns_false():\n    \"\"\"Test that descending-order digits return False.\"\"\"\n    assert _case1_rearrange_bigger(321) is False\n\nfrom solution import rearrange_bigger as _case2_rearrange_bigger\n\ndef test_single_digit():\n    \"\"\"Test single-digit input returns False.\"\"\"\n    assert _case2_rearrange_bigger(5) is False\n\nfrom solution import rearrange_bigger as _case3_rearrange_bigger\n\ndef test_duplicate_digits():\n    \"\"\"Test input with duplicate digits: 155 -> 515.\"\"\"\n    assert _case3_rearrange_bigger(155) == 515\n\nfrom solution import rearrange_bigger as _case4_rearrange_bigger\n\ndef test_boundary_two_digits():\n    \"\"\"Test two-digit ascending: 12 -> 21.\"\"\"\n    assert _case4_rearrange_bigger(12) == 21\n    assert _case4_rearrange_bigger(21) is False\n",
+      "suite_sha256": "47c08508ced46c3da2439c0b73b9e769705bf8ea511bc548e5f7da839bb2e727",
+      "accepted_names": [
+        "test_basic_next_permutation",
+        "test_descending_returns_false",
+        "test_single_digit",
+        "test_duplicate_digits",
+        "test_boundary_two_digits"
+      ],
+      "response": "{\"scope\": \"development-only\", \"round\": 1, \"suite_sha256\": \"47c08508ced46c3da2439c0b73b9e769705bf8ea511bc548e5f7da839bb2e727\", \"detected_faults\": [{\"mutant_id\": \"M1\", \"operator\": \"AOR\", \"line\": 5, \"description\": \"Sub -> Add\", \"fingerprint\": \"b55258a4120b513554ea1718746de02fe8c99fbe8d6e4382945f0805eaf42a10\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M2\", \"operator\": \"CRP\", \"line\": 5, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"e880d476249de62ced8d7e5b323cd1bd6d8a79e2c9b985780fe6e9a5a22ffbef\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M3\", \"operator\": \"CRP\", \"line\": 5, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"e797cb6ece877adf41260bd5e2769d8a466066ef39ce470ae7dde0dbe66fe9c6\", \"status\": \"FAIL\", \"seconds\": 0.216}, {\"mutant_id\": \"M4\", \"operator\": \"AOR\", \"line\": 6, \"description\": \"Add -> Sub\", \"fingerprint\": \"d1880bc4421782ed85c7fe51564c5fde31b56575f60cd04f3a48c4cb43b4c47f\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M5\", \"operator\": \"CRP\", \"line\": 6, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"cad0564a22ddd53a8a170553d90687d0f2af47595522d5e7d898970375c6a8e2\", \"status\": \"FAIL\", \"seconds\": 0.216}, {\"mutant_id\": \"M6\", \"operator\": \"CRP\", \"line\": 8, \"description\": \"constant 0 -> 1\", \"fingerprint\": \"9183d554f61e5c6043de86de824f11b4b8bad5c70d0ed942e390a115536753cc\", \"status\": \"FAIL\", \"seconds\": 0.251}, {\"mutant_id\": \"M7\", \"operator\": \"AOR\", \"line\": 11, \"description\": \"Add -> Sub\", \"fingerprint\": \"e9abe2d7ee3ae49e8e1fda4490ab2f73e17bfdc0083c8e6d096bb0a39087c226\", \"status\": \"FAIL\", \"seconds\": 0.215}], \"newly_detected_faults\": [{\"mutant_id\": \"M1\", \"operator\": \"AOR\", \"line\": 5, \"description\": \"Sub -> Add\", \"fingerprint\": \"b55258a4120b513554ea1718746de02fe8c99fbe8d6e4382945f0805eaf42a10\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M2\", \"operator\": \"CRP\", \"line\": 5, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"e880d476249de62ced8d7e5b323cd1bd6d8a79e2c9b985780fe6e9a5a22ffbef\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M3\", \"operator\": \"CRP\", \"line\": 5, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"e797cb6ece877adf41260bd5e2769d8a466066ef39ce470ae7dde0dbe66fe9c6\", \"status\": \"FAIL\", \"seconds\": 0.216}, {\"mutant_id\": \"M4\", \"operator\": \"AOR\", \"line\": 6, \"description\": \"Add -> Sub\", \"fingerprint\": \"d1880bc4421782ed85c7fe51564c5fde31b56575f60cd04f3a48c4cb43b4c47f\", \"status\": \"FAIL\", \"seconds\": 0.215}, {\"mutant_id\": \"M5\", \"operator\": \"CRP\", \"line\": 6, \"description\": \"constant 1 -> 0\", \"fingerprint\": \"cad0564a22ddd53a8a170553d90687d0f2af47595522d5e7d898970375c6a8e2\", \"status\": \"FAIL\", \"seconds\": 0.216}, {\"mutant_id\": \"M6\", \"operator\": \"CRP\", \"line\": 8, \"description\": \"constant 0 -> 1\", \"fingerprint\": \"9183d554f61e5c6043de86de824f11b4b8bad5c70d0ed942e390a115536753cc\", \"status\": \"FAIL\", \"seconds\": 0.251}, {\"mutant_id\": \"M7\", \"operator\": \"AOR\", \"line\": 11, \"description\": \"Add -> Sub\", \"fingerprint\": \"e9abe2d7ee3ae49e8e1fda4490ab2f73e17bfdc0083c8e6d096bb0a39087c226\", \"status\": \"FAIL\", \"seconds\": 0.215}], \"lost_detections\": [], \"validation_seconds\": 1.709, \"subprocess_runs\": 8, \"reference_passed\": true, \"total\": 7, \"detected\": 7, \"survivors\": [], \"uncertain\": [], \"warning\": \"Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score.\", \"survivors_total\": 0, \"report_file\": \"fault_feedback.json\"}",
+      "report": {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "47c08508ced46c3da2439c0b73b9e769705bf8ea511bc548e5f7da839bb2e727",
+        "detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Sub -> Add",
+            "fingerprint": "b55258a4120b513554ea1718746de02fe8c99fbe8d6e4382945f0805eaf42a10",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "e880d476249de62ced8d7e5b323cd1bd6d8a79e2c9b985780fe6e9a5a22ffbef",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "e797cb6ece877adf41260bd5e2769d8a466066ef39ce470ae7dde0dbe66fe9c6",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "AOR",
+            "line": 6,
+            "description": "Add -> Sub",
+            "fingerprint": "d1880bc4421782ed85c7fe51564c5fde31b56575f60cd04f3a48c4cb43b4c47f",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "CRP",
+            "line": 6,
+            "description": "constant 1 -> 0",
+            "fingerprint": "cad0564a22ddd53a8a170553d90687d0f2af47595522d5e7d898970375c6a8e2",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 8,
+            "description": "constant 0 -> 1",
+            "fingerprint": "9183d554f61e5c6043de86de824f11b4b8bad5c70d0ed942e390a115536753cc",
+            "status": "FAIL",
+            "seconds": 0.251
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 11,
+            "description": "Add -> Sub",
+            "fingerprint": "e9abe2d7ee3ae49e8e1fda4490ab2f73e17bfdc0083c8e6d096bb0a39087c226",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Sub -> Add",
+            "fingerprint": "b55258a4120b513554ea1718746de02fe8c99fbe8d6e4382945f0805eaf42a10",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "e880d476249de62ced8d7e5b323cd1bd6d8a79e2c9b985780fe6e9a5a22ffbef",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "e797cb6ece877adf41260bd5e2769d8a466066ef39ce470ae7dde0dbe66fe9c6",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "AOR",
+            "line": 6,
+            "description": "Add -> Sub",
+            "fingerprint": "d1880bc4421782ed85c7fe51564c5fde31b56575f60cd04f3a48c4cb43b4c47f",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "CRP",
+            "line": 6,
+            "description": "constant 1 -> 0",
+            "fingerprint": "cad0564a22ddd53a8a170553d90687d0f2af47595522d5e7d898970375c6a8e2",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 8,
+            "description": "constant 0 -> 1",
+            "fingerprint": "9183d554f61e5c6043de86de824f11b4b8bad5c70d0ed942e390a115536753cc",
+            "status": "FAIL",
+            "seconds": 0.251
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 11,
+            "description": "Add -> Sub",
+            "fingerprint": "e9abe2d7ee3ae49e8e1fda4490ab2f73e17bfdc0083c8e6d096bb0a39087c226",
+            "status": "FAIL",
+            "seconds": 0.215
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.709,
+        "subprocess_runs": 8,
+        "reference_passed": true,
+        "total": 7,
+        "detected": 7,
+        "survivors": [],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    }
+  ],
+  "previous_partial_traces": [],
+  "events": [
+    {
+      "timestamp": 1791345540.410312,
+      "type": "run_start",
+      "system_prompt_chars": 2544,
+      "tools": [
+        "inspect_survivors",
+        "list_files",
+        "read_file",
+        "run_command",
+        "search_code",
+        "submit_tests",
+        "write_file"
+      ]
+    },
+    {
+      "timestamp": 1791345540.410341,
+      "type": "turn_start",
+      "turn": 1,
+      "request_messages": 2,
+      "request_chars": 2683
+    },
+    {
+      "timestamp": 1791345541.430227,
+      "type": "assistant_message",
+      "turn": 1,
+      "text": "",
+      "tool_calls": [
+        {
+          "kind": "tool_call",
+          "id": "call_d72aeb1a8cf74cdc8a45db0b",
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        }
+      ],
+      "stop_reason": "tool_use",
+      "usage": {
+        "input_tokens": 1876,
+        "output_tokens": 63,
+        "cache_read_tokens": 1536,
+        "cache_write_tokens": 0,
+        "total_tokens": 1939
+      }
+    },
+    {
+      "timestamp": 1791345541.430255,
+      "type": "tool_call_start",
+      "turn": 1,
+      "id": "call_d72aeb1a8cf74cdc8a45db0b",
+      "name": "read_file",
+      "arguments": {
+        "path": "solution.py"
+      }
+    },
+    {
+      "timestamp": 1791345541.4594307,
+      "type": "tool_call_end",
+      "turn": 1,
+      "id": "call_d72aeb1a8cf74cdc8a45db0b",
+      "name": "read_file",
+      "is_error": false,
+      "content": "文件 `solution.py` 共 14 行，显示第 1-14 行：\n    1| \n    2| def rearrange_bigger(n):\n    3|     'Write a function to create the next bigger number by rearranging the digits of a given number.'\n    4|     nums = list(str(n))\n    5|     for i in range(len(nums)-2,-1,-1):\n    6|         if nums[i] < nums[i+1]:\n    7|             z = nums[i:]\n    8|             y = min(filter(lambda x: x > z[0], z))\n    9|             z.remove(y)\n   10|             z.sort()\n   11|             nums[i:] = [y] + z\n   12|             return int(\"\".join(nums))\n   13|     return False\n   14| ",
+      "duration_sec": 0.029162951017497107,
+      "terminate": false
+    },
+    {
+      "timestamp": 1791345541.4594536,
+      "type": "turn_end",
+      "turn": 1,
+      "tool_calls": 1,
+      "errors": 0
+    },
+    {
+      "timestamp": 1791345541.5408614,
+      "type": "turn_start",
+      "turn": 2,
+      "request_messages": 4,
+      "request_chars": 3438
+    },
+    {
+      "timestamp": 1791345553.2746098,
+      "type": "assistant_message",
+      "turn": 2,
+      "text": "",
+      "tool_calls": [
+        {
+          "kind": "tool_call",
+          "id": "call_a729687ed8794e0981625a8c",
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        }
+      ],
+      "stop_reason": "tool_use",
+      "usage": {
+        "input_tokens": 2133,
+        "output_tokens": 937,
+        "cache_read_tokens": 1920,
+        "cache_write_tokens": 0,
+        "total_tokens": 3070
+      }
+    },
+    {
+      "timestamp": 1791345553.2746425,
+      "type": "tool_call_start",
+      "turn": 2,
+      "id": "call_a729687ed8794e0981625a8c",
+      "name": "read_file",
+      "arguments": {
+        "path": "solution.py"
+      }
+    },
+    {
+      "timestamp": 1791345553.3154204,
+      "type": "tool_call_end",
+      "turn": 2,
+      "id": "call_a729687ed8794e0981625a8c",
+      "name": "read_file",
+      "is_error": false,
+      "content": "文件 `solution.py` 共 14 行，显示第 1-14 行：\n    1| \n    2| def rearrange_bigger(n):\n    3|     'Write a function to create the next bigger number by rearranging the digits of a given number.'\n    4|     nums = list(str(n))\n    5|     for i in range(len(nums)-2,-1,-1):\n    6|         if nums[i] < nums[i+1]:\n    7|             z = nums[i:]\n    8|             y = min(filter(lambda x: x > z[0], z))\n    9|             z.remove(y)\n   10|             z.sort()\n   11|             nums[i:] = [y] + z\n   12|             return int(\"\".join(nums))\n   13|     return False\n   14| ",
+      "duration_sec": 0.04076242502196692,
+      "terminate": false
+    },
+    {
+      "timestamp": 1791345553.3154504,
+      "type": "turn_end",
+      "turn": 2,
+      "tool_calls": 1,
+      "errors": 0
+    },
+    {
+      "timestamp": 1791345553.381909,
+      "type": "turn_start",
+      "turn": 3,
+      "request_messages": 6,
+      "request_chars": 4193
+    },
+    {
+      "timestamp": 1791345629.960022,
+      "type": "assistant_message",
+      "turn": 3,
+      "text": "Let me analyze the `rearrange_bigger` function:\n\n**Contract:** Given a positive integer `n`, return the next bigger number that can be formed by rearranging its digits. If no such number exists (digits are in descending order), return `False`.\n\n**Algorithm (next permutation):**\n1. Convert to list of digit characters.\n2. Find the rightmost position `i` where `nums[i] < nums[i+1]` — this is the \"pivot\".\n3. From the suffix starting at `i`, find the smallest digit strictly greater than `nums[i]` (call it `y`).\n4. Swap `nums[i]` with `y`, then sort the remaining suffix in ascending order.\n5. Return the result as an integer.\n6. If no such pivot exists, return `False`.\n\nNow let me create test candidates:",
+      "tool_calls": [
+        {
+          "kind": "tool_call",
+          "id": "call_1641aee7d0ab4b10b7e3c9b3",
+          "name": "submit_tests",
+          "arguments": {
+            "cases": [
+              {
+                "name": "test_basic_next_permutation",
+                "code": "from solution import rearrange_bigger\n\ndef test_basic_next_permutation():\n    \"\"\"Test basic next permutation: 123 -> 132.\"\"\"\n    # Contract: next bigger number by rearranging digits.\n    # For 123, the permutations in order are: 123, 132, 213, 231, 312, 321.\n    # Next after 123 is 132.\n    assert rearrange_bigger(123) == 132\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Positive integers whose digits are not all in descending order.",
+                "oracle_reason": "The next lexicographic permutation of digits [1,2,3] is [1,3,2], which gives 132.",
+                "fault_hypothesis": "Function might return the wrong permutation or fail on simple ascending sequences."
+              },
+              {
+                "name": "test_descending_returns_false",
+                "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    \"\"\"Test that descending-order digits return False.\"\"\"\n    # Contract: if no bigger rearrangement exists, return False.\n    # 321 has digits in descending order; no bigger arrangement exists.\n    assert rearrange_bigger(321) is False\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Positive integers whose digits are in non-increasing (descending) order.",
+                "oracle_reason": "For 321, every rearrangement (123, 132, 213, 231) is smaller. No next bigger exists, so contract says return False.",
+                "fault_hypothesis": "Function might incorrectly return a value instead of False for descending inputs."
+              },
+              {
+                "name": "test_single_digit",
+                "code": "from solution import rearrange_bigger\n\ndef test_single_digit():\n    \"\"\"Test single-digit input returns False.\"\"\"\n    # A single digit has only one permutation, so no bigger number exists.\n    assert rearrange_bigger(5) is False\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Single-digit positive integers (1-9).",
+                "oracle_reason": "With only one digit, there is no other permutation, so no bigger number can be formed. Returns False.",
+                "fault_hypothesis": "Function might crash or return an incorrect value for single-digit inputs."
+              },
+              {
+                "name": "test_duplicate_digits",
+                "code": "from solution import rearrange_bigger\n\ndef test_duplicate_digits():\n    \"\"\"Test input with duplicate digits: 155 -> 515.\"\"\"\n    # Permutations of {1,5,5}: 155, 515, 551.\n    # Next after 155 is 515.\n    assert rearrange_bigger(155) == 515\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Integers with repeated digits where a next permutation exists.",
+                "oracle_reason": "Sorted unique permutations of digits {1,5,5} are 155, 515, 551. Next after 155 is 515.",
+                "fault_hypothesis": "Duplicate digits might cause incorrect min selection or sorting in the suffix."
+              },
+              {
+                "name": "test_boundary_two_digits",
+                "code": "from solution import rearrange_bigger\n\ndef test_boundary_two_digits():\n    \"\"\"Test two-digit ascending: 12 -> 21.\"\"\"\n    # Only two permutations: 12 and 21. Next after 12 is 21.\n    assert rearrange_bigger(12) == 21\n    # Two-digit descending: 21 -> False\n    assert rearrange_bigger(21) is False\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Two-digit positive integers.",
+                "oracle_reason": "For 12, the only other permutation is 21 which is bigger. For 21, no bigger permutation exists.",
+                "fault_hypothesis": "Off-by-one errors in the range loop might mishandle two-digit numbers."
+              },
+              {
+                "name": "test_larger_number",
+                "code": "from solution import rearrange_bigger\n\ndef test_larger_number():\n    \"\"\"Test a larger number: 124433 -> 132443.\"\"\"\n    # Digits: [1,2,4,4,3,3]. Pivot at index 1 (digit 2) since 2<4.\n    # Suffix from index 1: [2,4,4,3,3]. Smallest > 2 is 3.\n    # Swap: [1,3,...], remaining suffix [2,4,4,3] sorted -> [2,3,4,4].\n    # Result: 132443.\n    assert rearrange_bigger(124433) == 132443\n",
+                "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+                "input_domain": "Multi-digit integers with mixed ascending/descending patterns.",
+                "oracle_reason": "Applying next-permutation algorithm manually: pivot at position of '2', swap with smallest larger digit '3' in suffix, sort remainder -> 132443.",
+                "fault_hypothesis": "Complex digit arrangements with multiple pivots might select wrong pivot or mishandle suffix sorting."
+              }
+            ]
+          }
+        }
+      ],
+      "stop_reason": "tool_use",
+      "usage": {
+        "input_tokens": 2390,
+        "output_tokens": 1551,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "total_tokens": 3941
+      }
+    },
+    {
+      "timestamp": 1791345629.9600568,
+      "type": "tool_call_start",
+      "turn": 3,
+      "id": "call_1641aee7d0ab4b10b7e3c9b3",
+      "name": "submit_tests",
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_next_permutation",
+            "code": "from solution import rearrange_bigger\n\ndef test_basic_next_permutation():\n    \"\"\"Test basic next permutation: 123 -> 132.\"\"\"\n    # Contract: next bigger number by rearranging digits.\n    # For 123, the permutations in order are: 123, 132, 213, 231, 312, 321.\n    # Next after 123 is 132.\n    assert rearrange_bigger(123) == 132\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Positive integers whose digits are not all in descending order.",
+            "oracle_reason": "The next lexicographic permutation of digits [1,2,3] is [1,3,2], which gives 132.",
+            "fault_hypothesis": "Function might return the wrong permutation or fail on simple ascending sequences."
+          },
+          {
+            "name": "test_descending_returns_false",
+            "code": "from solution import rearrange_bigger\n\ndef test_descending_returns_false():\n    \"\"\"Test that descending-order digits return False.\"\"\"\n    # Contract: if no bigger rearrangement exists, return False.\n    # 321 has digits in descending order; no bigger arrangement exists.\n    assert rearrange_bigger(321) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Positive integers whose digits are in non-increasing (descending) order.",
+            "oracle_reason": "For 321, every rearrangement (123, 132, 213, 231) is smaller. No next bigger exists, so contract says return False.",
+            "fault_hypothesis": "Function might incorrectly return a value instead of False for descending inputs."
+          },
+          {
+            "name": "test_single_digit",
+            "code": "from solution import rearrange_bigger\n\ndef test_single_digit():\n    \"\"\"Test single-digit input returns False.\"\"\"\n    # A single digit has only one permutation, so no bigger number exists.\n    assert rearrange_bigger(5) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Single-digit positive integers (1-9).",
+            "oracle_reason": "With only one digit, there is no other permutation, so no bigger number can be formed. Returns False.",
+            "fault_hypothesis": "Function might crash or return an incorrect value for single-digit inputs."
+          },
+          {
+            "name": "test_duplicate_digits",
+            "code": "from solution import rearrange_bigger\n\ndef test_duplicate_digits():\n    \"\"\"Test input with duplicate digits: 155 -> 515.\"\"\"\n    # Permutations of {1,5,5}: 155, 515, 551.\n    # Next after 155 is 515.\n    assert rearrange_bigger(155) == 515\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Integers with repeated digits where a next permutation exists.",
+            "oracle_reason": "Sorted unique permutations of digits {1,5,5} are 155, 515, 551. Next after 155 is 515.",
+            "fault_hypothesis": "Duplicate digits might cause incorrect min selection or sorting in the suffix."
+          },
+          {
+            "name": "test_boundary_two_digits",
+            "code": "from solution import rearrange_bigger\n\ndef test_boundary_two_digits():\n    \"\"\"Test two-digit ascending: 12 -> 21.\"\"\"\n    # Only two permutations: 12 and 21. Next after 12 is 21.\n    assert rearrange_bigger(12) == 21\n    # Two-digit descending: 21 -> False\n    assert rearrange_bigger(21) is False\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Two-digit positive integers.",
+            "oracle_reason": "For 12, the only other permutation is 21 which is bigger. For 21, no bigger permutation exists.",
+            "fault_hypothesis": "Off-by-one errors in the range loop might mishandle two-digit numbers."
+          },
+          {
+            "name": "test_larger_number",
+            "code": "from solution import rearrange_bigger\n\ndef test_larger_number():\n    \"\"\"Test a larger number: 124433 -> 132443.\"\"\"\n    # Digits: [1,2,4,4,3,3]. Pivot at index 1 (digit 2) since 2<4.\n    # Suffix from index 1: [2,4,4,3,3]. Smallest > 2 is 3.\n    # Swap: [1,3,...], remaining suffix [2,4,4,3] sorted -> [2,3,4,4].\n    # Result: 132443.\n    assert rearrange_bigger(124433) == 132443\n",
+            "contract_quote": "'Write a function to create the next bigger number by rearranging the digits of a given number.'",
+            "input_domain": "Multi-digit integers with mixed ascending/descending patterns.",
+            "oracle_reason": "Applying next-permutation algorithm manually: pivot at position of '2', swap with smallest larger digit '3' in suffix, sort remainder -> 132443.",
+            "fault_hypothesis": "Complex digit arrangements with multiple pivots might select wrong pivot or mishandle suffix sorting."
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": 1791345631.9337862,
+      "type": "tool_call_end",
+      "turn": 3,
+      "id": "call_1641aee7d0ab4b10b7e3c9b3",
+      "name": "submit_tests",
+      "is_error": false,
+      "content": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_next_permutation\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_errors\": []}, \"status\": \"ACCEPTED\", \"returncode\": 0, \"seconds\": 0.215, \"diagnostic\": \".                                                                        [100%]\\n1 passed in 0.00s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 1, \"total_calls\": 1, \"unchecked_calls\": 1, \"violations\": []}}, {\"name\": \"test_descending_returns_false\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_errors\": []}, \"status\": \"ACCEPTED\", \"returncode\": 0, \"seconds\": 0.165, \"diagnostic\": \".                                                                        [100%]\\n1 passed in 0.00s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 1, \"total_calls\": 1, \"unchecked_calls\": 1, \"violations\": []}}, {\"name\": \"test_single_digit\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_errors\": []}, \"status\": \"ACCEPTED\", \"returncode\": 0, \"seconds\": 0.166, \"diagnostic\": \".                                                                        [100%]\\n1 passed in 0.00s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 1, \"total_calls\": 1, \"unchecked_calls\": 1, \"violations\": []}}, {\"name\": \"test_duplicate_digits\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_errors\": []}, \"status\": \"ACCEPTED\", \"returncode\": 0, \"seconds\": 0.165, \"diagnostic\": \".                                                                        [100%]\\n1 passed in 0.00s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 1, \"total_calls\": 1, \"unchecked_calls\": 1, \"violations\": []}}, {\"name\": \"test_boundary_two_digits\", \"contract_checks\": {\"sut_calls\": 2, \"checked_calls\": 0, \"unchecked_calls\": 2, \"violations\": [], \"assertion_errors\": []}, \"status\": \"ACCEPTED\", \"returncode\": 0, \"seconds\": 0.165, \"diagnostic\": \".                                                                        [100%]\\n1 passed in 0.00s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 2, \"total_calls\": 2, \"unchecked_calls\": 2, \"violations\": []}}, {\"name\": \"test_larger_number\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_errors\": []}, \"status\": \"FAIL\", \"returncode\": 1, \"seconds\": 0.165, \"diagnostic\": \"F                                                                        [100%]\\n=================================== FAILURES ===================================\\n______________________________ test_lar\\n...\\nr_number\\n    assert rearrange_bigger(124433) == 132443\\nE   assert 132344 == 132443\\nE    +  where 132344 = rearrange_bigger(124433)\\n=========================== short test summary info ============================\\nFAILED test_solution.py::test_larger_number - assert 132344 == 132443\\n1 failed in 0.01s\\n\", \"timeout_seconds\": 2.0, \"runtime_contract_checks\": {\"calls\": 1, \"total_calls\": 1, \"unchecked_calls\": 1, \"violations\": []}}]}",
+      "duration_sec": 1.9737104359955993,
+      "terminate": false
+    },
+    {
+      "timestamp": 1791345631.9338095,
+      "type": "turn_end",
+      "turn": 3,
+      "tool_calls": 1,
+      "errors": 0
+    },
+    {
+      "timestamp": 1791345633.8046644,
+      "type": "run_end",
+      "status": "stopped",
+      "turns": 3,
+      "error": "development_targets_exhausted"
+    }
+  ],
+  "generation_finished_at": 1791345633.804677,
+  "finished_at": 1791345635.8807843,
+  "status": "all_pass"
+}

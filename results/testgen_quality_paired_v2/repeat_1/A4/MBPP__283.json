@@ -1,0 +1,540 @@
+{
+  "instance_id": "MBPP/283",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 14862,
+    "output_tokens": 4880,
+    "total_tokens": 19742,
+    "final_text": "All 6 test candidates were **accepted**. Here's a summary of the suite:\n\n## Accepted Test Suite\n\n| # | Test Name | What It Checks | Fault Hypothesis Detected |\n|---|-----------|---------------|--------------------------|\n| 1 | `test_single_digit_valid` | Single digit (5) — frequency 1 ≤ 5 | Rejecting valid single digits |\n| 2 | `test_repeated_digit_exceeds_limit` | Digit 1 repeated twice — 2 > 1 | Failing to detect over-count violations |\n| 3 | `test_contains_zero_digit` | Number containing digit 0 | Incorrectly allowing digit 0 |\n| 4 | `test_zero_input` | Input 0 — vacuously true | Misbehaving on empty/zero input |\n| 5 | `test_three_of_digit_3_boundary` | Digit 3 at boundary (3 times = valid, 4 times = invalid) | Off-by-one errors at the ≤ threshold |\n| 6 | `test_mixed_digits_all_valid` | Multi-digit numbers with mixed valid/violating digits | Early termination or missing multi-type violations |\n\n## Remaining Limitations\n\n1. **Negative integers**: The contract says \"takes in an integer\" but doesn't specify behavior for negatives. The implementation uses `while (temp)` which would exit immediately for negative `n`, returning `True`. This edge case is untested.\n\n2. **Digit 0 specifically**: Only tested via `10`. A number like `007` (which as an int is just `7`) isn't distinct from `7`. Testing pure-zero scenarios more thoroughly could help.\n\n3. **Larger numbers with multiple violating digits**: We test one violation among valid digits, but not cases where multiple different digits simultaneously violate their limits.\n\n4. **Return type enforcement**: No explicit assertion that the return value is `bool` (though Python convention ensures this).\n\n5. **The implementation has a subtle bug**: The `if (count > i)` check is inside the `while (temp)` loop, meaning it checks after *each* digit extraction rather than after counting all occurrences. For most inputs this produces correct results, but the logic is non-idiomatic and could fail in edge cases with certain implementations. Our tests don't exercise this specific structural issue directly.",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.079,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.015,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "def test_single_digit_valid():\n    \"\"\"Test that a single digit within its own fr…",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（3032 字符，91 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.011,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.15,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_single_digit_valid",
+              "code": "def test_single_digit_valid():\n    from solution import validate\n    # Digit 5 appears once; 1 <= 5, so valid\n    assert validate(5) is True",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "single-digit positive integers where count=1 <= digit",
+              "oracle_reason": "Digit d appearing once means frequency 1 <= d for d>=1, so must return True.",
+              "fault_hypothesis": "Function incorrectly rejects single valid digits."
+            },
+            {
+              "name": "test_repeated_digit_exceeds_limit",
+              "code": "def test_repeated_digit_exceeds_limit():\n    from solution import validate\n    # Digit 1 appears twice; 2 > 1, so invalid\n    assert validate(11) is False",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "digit 1 repeated beyond its limit of 1",
+              "oracle_reason": "Digit 1 can appear at most 1 time. Two occurrences violate the constraint.",
+              "fault_hypothesis": "Function fails to detect digit frequency exceeding its value."
+            },
+            {
+              "name": "test_contains_zero_digit",
+              "code": "def test_contains_zero_digit():\n    from solution import validate\n    # Digit 0 appears once; 1 > 0, so invalid\n    assert validate(10) is False",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "any number containing digit 0",
+              "oracle_reason": "Digit 0 can appear at most 0 times. Any occurrence violates the constraint.",
+              "fault_hypothesis": "Function incorrectly allows digit 0 to appear."
+            },
+            {
+              "name": "test_zero_input",
+              "code": "def test_zero_input():\n    from solution import validate\n    # No digits present; vacuously true\n    assert validate(0) is True",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "the integer 0",
+              "oracle_reason": "Number 0 has no digits to check; vacuously satisfies the condition.",
+              "fault_hypothesis": "Function incorrectly returns False for input 0 due to empty digit set."
+            },
+            {
+              "name": "test_three_of_digit_3_boundary",
+              "code": "def test_three_of_digit_3_boundary():\n    from solution import validate\n    # Digit 3 appears three times; 3 <= 3, boundary-valid\n    assert validate(333) is True\n    # Digit 3 appears four times; 4 > 3, boundary-invalid\n    assert validate(3333) is False",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "digit 3 repeated exactly at and just past its limit",
+              "oracle_reason": "At boundary: 3 occurrences equals digit value (valid). Just past: 4 > 3 (invalid). Tests both sides of the <= threshold.",
+              "fault_hypothesis": "Off-by-one error at the boundary where count equals digit value."
+            },
+            {
+              "name": "test_mixed_digits_all_valid",
+              "code": "def test_mixed_digits_all_valid():\n    from solution import validate\n    # Digits: two 2s (2<=2), one 3 (1<=3), one 4 (1<=4), one 5 (1<=5)\n    assert validate(22345) is True\n    # Same digits plus a violating digit 1 appearing twice\n    assert validate(2234511) is False",
+              "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+              "input_domain": "multi-digit numbers with mixed digits, some valid and some violating",
+              "oracle_reason": "First number: all digits satisfy their frequency constraints. Second adds digit 1 twice (2>1 violation).",
+              "fault_hypothesis": "Function stops checking early or misses violations among multiple digit types."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_single_digit_valid\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asserti"
+      }
+    ],
+    "generation_seconds": 62.959,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_single_digit_valid",
+          "code": "def test_single_digit_valid():\n    from solution import validate\n    # Digit 5 appears once; 1 <= 5, so valid\n    assert validate(5) is True",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "single-digit positive integers where count=1 <= digit",
+          "oracle_reason": "Digit d appearing once means frequency 1 <= d for d>=1, so must return True.",
+          "fault_hypothesis": "Function incorrectly rejects single valid digits."
+        },
+        {
+          "name": "test_repeated_digit_exceeds_limit",
+          "code": "def test_repeated_digit_exceeds_limit():\n    from solution import validate\n    # Digit 1 appears twice; 2 > 1, so invalid\n    assert validate(11) is False",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "digit 1 repeated beyond its limit of 1",
+          "oracle_reason": "Digit 1 can appear at most 1 time. Two occurrences violate the constraint.",
+          "fault_hypothesis": "Function fails to detect digit frequency exceeding its value."
+        },
+        {
+          "name": "test_contains_zero_digit",
+          "code": "def test_contains_zero_digit():\n    from solution import validate\n    # Digit 0 appears once; 1 > 0, so invalid\n    assert validate(10) is False",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "any number containing digit 0",
+          "oracle_reason": "Digit 0 can appear at most 0 times. Any occurrence violates the constraint.",
+          "fault_hypothesis": "Function incorrectly allows digit 0 to appear."
+        },
+        {
+          "name": "test_zero_input",
+          "code": "def test_zero_input():\n    from solution import validate\n    # No digits present; vacuously true\n    assert validate(0) is True",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "the integer 0",
+          "oracle_reason": "Number 0 has no digits to check; vacuously satisfies the condition.",
+          "fault_hypothesis": "Function incorrectly returns False for input 0 due to empty digit set."
+        },
+        {
+          "name": "test_three_of_digit_3_boundary",
+          "code": "def test_three_of_digit_3_boundary():\n    from solution import validate\n    # Digit 3 appears three times; 3 <= 3, boundary-valid\n    assert validate(333) is True\n    # Digit 3 appears four times; 4 > 3, boundary-invalid\n    assert validate(3333) is False",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "digit 3 repeated exactly at and just past its limit",
+          "oracle_reason": "At boundary: 3 occurrences equals digit value (valid). Just past: 4 > 3 (invalid). Tests both sides of the <= threshold.",
+          "fault_hypothesis": "Off-by-one error at the boundary where count equals digit value."
+        },
+        {
+          "name": "test_mixed_digits_all_valid",
+          "code": "def test_mixed_digits_all_valid():\n    from solution import validate\n    # Digits: two 2s (2<=2), one 3 (1<=3), one 4 (1<=4), one 5 (1<=5)\n    assert validate(22345) is True\n    # Same digits plus a violating digit 1 appearing twice\n    assert validate(2234511) is False",
+          "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+          "input_domain": "multi-digit numbers with mixed digits, some valid and some violating",
+          "oracle_reason": "First number: all digits satisfy their frequency constraints. Second adds digit 1 twice (2>1 violation).",
+          "fault_hypothesis": "Function stops checking early or misses violations among multiple digit types."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_single_digit_valid",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_repeated_digit_exceeds_limit",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_contains_zero_digit",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_input",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.164,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_three_of_digit_3_boundary",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_mixed_digits_all_valid",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.032,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_1/A4/MBPP__283.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 11,
+    "executable_lines": 11,
+    "mutation_score": 1.0,
+    "mutants_total": 4,
+    "mutants_killed": 4,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 2,
+      "BCR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 2,
+      "BCR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 8,
+        "column": 16,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_single_digit_valid",
+          "test_solution.py::test_three_of_digit_3_boundary",
+          "test_solution.py::test_mixed_digits_all_valid"
+        ],
+        "duration_sec": 0.25200312299421057,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 3,
+        "errors": 0,
+        "summary": "3 failed, 3 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 10,
+        "column": 16,
+        "description": "Gt -> GtE",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_single_digit_valid",
+          "test_solution.py::test_three_of_digit_3_boundary",
+          "test_solution.py::test_mixed_digits_all_valid"
+        ],
+        "duration_sec": 0.25211126598878764,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 3,
+        "failed": 3,
+        "errors": 0,
+        "summary": "3 failed, 3 passed in 0.04s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "BCR",
+        "line": 11,
+        "column": 23,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_repeated_digit_exceeds_limit",
+          "test_solution.py::test_contains_zero_digit",
+          "test_solution.py::test_three_of_digit_3_boundary",
+          "test_solution.py::test_mixed_digits_all_valid"
+        ],
+        "duration_sec": 0.2526062639954034,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M4",
+        "operator": "BCR",
+        "line": 13,
+        "column": 11,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_single_digit_valid",
+          "test_solution.py::test_zero_input",
+          "test_solution.py::test_three_of_digit_3_boundary",
+          "test_solution.py::test_mixed_digits_all_valid"
+        ],
+        "duration_sec": 0.25225783602218144,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.314
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 4
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.079,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.015,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "def test_single_digit_valid():\n    \"\"\"Test that a single digit within its own fr…",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（3032 字符，91 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.011,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 14 行，显示第 1-14 行："
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.15,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_single_digit_valid",
+            "code": "def test_single_digit_valid():\n    from solution import validate\n    # Digit 5 appears once; 1 <= 5, so valid\n    assert validate(5) is True",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "single-digit positive integers where count=1 <= digit",
+            "oracle_reason": "Digit d appearing once means frequency 1 <= d for d>=1, so must return True.",
+            "fault_hypothesis": "Function incorrectly rejects single valid digits."
+          },
+          {
+            "name": "test_repeated_digit_exceeds_limit",
+            "code": "def test_repeated_digit_exceeds_limit():\n    from solution import validate\n    # Digit 1 appears twice; 2 > 1, so invalid\n    assert validate(11) is False",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "digit 1 repeated beyond its limit of 1",
+            "oracle_reason": "Digit 1 can appear at most 1 time. Two occurrences violate the constraint.",
+            "fault_hypothesis": "Function fails to detect digit frequency exceeding its value."
+          },
+          {
+            "name": "test_contains_zero_digit",
+            "code": "def test_contains_zero_digit():\n    from solution import validate\n    # Digit 0 appears once; 1 > 0, so invalid\n    assert validate(10) is False",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "any number containing digit 0",
+            "oracle_reason": "Digit 0 can appear at most 0 times. Any occurrence violates the constraint.",
+            "fault_hypothesis": "Function incorrectly allows digit 0 to appear."
+          },
+          {
+            "name": "test_zero_input",
+            "code": "def test_zero_input():\n    from solution import validate\n    # No digits present; vacuously true\n    assert validate(0) is True",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "the integer 0",
+            "oracle_reason": "Number 0 has no digits to check; vacuously satisfies the condition.",
+            "fault_hypothesis": "Function incorrectly returns False for input 0 due to empty digit set."
+          },
+          {
+            "name": "test_three_of_digit_3_boundary",
+            "code": "def test_three_of_digit_3_boundary():\n    from solution import validate\n    # Digit 3 appears three times; 3 <= 3, boundary-valid\n    assert validate(333) is True\n    # Digit 3 appears four times; 4 > 3, boundary-invalid\n    assert validate(3333) is False",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "digit 3 repeated exactly at and just past its limit",
+            "oracle_reason": "At boundary: 3 occurrences equals digit value (valid). Just past: 4 > 3 (invalid). Tests both sides of the <= threshold.",
+            "fault_hypothesis": "Off-by-one error at the boundary where count equals digit value."
+          },
+          {
+            "name": "test_mixed_digits_all_valid",
+            "code": "def test_mixed_digits_all_valid():\n    from solution import validate\n    # Digits: two 2s (2<=2), one 3 (1<=3), one 4 (1<=4), one 5 (1<=5)\n    assert validate(22345) is True\n    # Same digits plus a violating digit 1 appearing twice\n    assert validate(2234511) is False",
+            "contract_quote": "'Write a python function takes in an integer and check whether the frequency of each digit in the integer is less than or equal to the digit itself.'",
+            "input_domain": "multi-digit numbers with mixed digits, some valid and some violating",
+            "oracle_reason": "First number: all digits satisfy their frequency constraints. Second adds digit 1 twice (2>1 violation).",
+            "fault_hypothesis": "Function stops checking early or misses violations among multiple digit types."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_single_digit_valid\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"asserti"
+    }
+  ],
+  "started_at": 1791344488.8479733,
+  "duration_sec": 65.401,
+  "tests_chars": 744
+}

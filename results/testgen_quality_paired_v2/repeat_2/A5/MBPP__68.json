@@ -1,0 +1,960 @@
+{
+  "instance_id": "MBPP/68",
+  "variant": "A5",
+  "status": "all_pass",
+  "agent": {
+    "status": "stopped",
+    "turns": 4,
+    "llm_calls": 4,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 14668,
+    "output_tokens": 6031,
+    "total_tokens": 20699,
+    "final_text": "Looking at the surviving mutant **M5**: `A[i + 1]` → `A[i - 1]` on line 5. This changes the non-increasing check from comparing consecutive forward pairs `(A[i], A[i+1])` to comparing `(A[i], A[i-1])`. For a strictly decreasing sequence like `[5, 4, 3, 2, 1]`, the mutant would check `A[1] >= A[0]` (i.e., `4 >= 5`) which fails, causing the entire function to return `False` instead of the correct `True`.\n\nLet me submit a targeted test to detect this:",
+    "error": null,
+    "stop_reason": "development_targets_exhausted",
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.028,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 6 行，显示第 1-6 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.027,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\ndef test_empty_list():\n    'Write a python function to check whether the given …",
+          "overwrite": false
+        },
+        "first_line": "已写入 `test_solution.py`（3730 字符，86 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.104,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "import solution\n\ndef test_empty_list():\n    # An empty sequence has no violating consecutive pair; vacuously monotonic.\n    assert solution.is_Monotonic([]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Empty list []",
+              "oracle_reason": "all() on an empty iterable returns True, so both non-decreasing and non-increasing checks return True; the OR yields True.",
+              "fault_hypothesis": "A buggy implementation might return False for empty lists by treating them as invalid input."
+            },
+            {
+              "name": "test_single_element",
+              "code": "import solution\n\ndef test_single_element():\n    # A single element has no consecutive pairs; vacuously monotonic.\n    assert solution.is_Monotonic([42]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Single-element list [42]",
+              "oracle_reason": "range(len(A)-1) = range(0) produces no iterations; all() over empty iterable returns True.",
+              "fault_hypothesis": "An off-by-one error might index out of bounds or incorrectly handle length-1 arrays."
+            },
+            {
+              "name": "test_strictly_increasing",
+              "code": "import solution\n\ndef test_strictly_increasing():\n    # Every consecutive pair satisfies A[i] < A[i+1], hence non-decreasing holds.\n    assert solution.is_Monotonic([1, 2, 3, 4, 5]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Strictly increasing list [1,2,3,4,5]",
+              "oracle_reason": "For every i in 0..3, A[i] <= A[i+1] is true, so the first all() returns True.",
+              "fault_hypothesis": "Using strict < instead of <= would still pass, but using > or >= incorrectly could flip the result."
+            },
+            {
+              "name": "test_not_monotonic_up_then_down",
+              "code": "import solution\n\ndef test_not_monotonic_up_then_down():\n    # Goes up (1->3) then down (3->2): neither non-decreasing nor non-increasing.\n    assert solution.is_Monotonic([1, 3, 2]) is False",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "List [1, 3, 2] that increases then decreases",
+              "oracle_reason": "Non-decreasing fails at i=1 (3<=2 is false). Non-increasing fails at i=0 (1>=3 is false). Both all() calls return False; OR yields False.",
+              "fault_hypothesis": "A bug that only checks one direction (e.g., only non-decreasing) would incorrectly return False here, but a more subtle bug like returning early after finding one violation in the wrong direction could also fail."
+            },
+            {
+              "name": "test_plateau_then_drop",
+              "code": "import solution\n\ndef test_plateau_then_drop():\n    # [3,3,2]: non-decreasing fails (3<=2 is false), but non-increasing holds (3>=3, 3>=2).\n    assert solution.is_Monotonic([3, 3, 2]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "List [3, 3, 2] with a plateau followed by a drop",
+              "oracle_reason": "First all() checks 3<=3 (True) then 3<=2 (False) => False. Second all() checks 3>=3 (True) then 3>=2 (True) => True. OR gives True.",
+              "fault_hypothesis": "If the implementation used strict inequality (< or >) instead of non-strict (<= or >=), it would incorrectly return False because 3<3 fails."
+            },
+            {
+              "name": "test_type_return_is_bool",
+              "code": "import solution\n\ndef test_type_return_is_bool():\n    # The function must return a Python bool type, not just a truthy/falsy value.\n    result = solution.is_Monotonic([1, 2, 3])\n    assert isinstance(result, bool)",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Any valid list, e.g., [1, 2, 3]",
+              "oracle_reason": "Python's all() and boolean operators produce bool objects; the function should return a proper bool.",
+              "fault_hypothesis": "Some implementations might return an int (0/1) or other truthy value instead of a strict bool, which could cause issues in strict type-checking contexts."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.765,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_strictly_decreasing_detects_m5",
+              "code": "import solution\n\ndef test_strictly_decreasing_detects_m5():\n    # Strictly decreasing: [5, 4, 3, 2, 1].\n    # Original non-increasing: 5>=4, 4>=3, 3>=2, 2>=1 => True.\n    # Mutant M5 (A[i] >= A[i-1]): i=0: A[0]>=A[-1] => 5>=1 ok; i=1: A[1]>=A[0] => 4>=5 FAILS.\n    # So mutant returns False for second all(), giving False overall.\n    assert solution.is_Monotonic([5, 4, 3, 2, 1]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Strictly decreasing list [5, 4, 3, 2, 1]",
+              "oracle_reason": "Every consecutive pair satisfies A[i] > A[i+1], so non-increasing holds. The function should return True.",
+              "fault_hypothesis": "Mutant M5 replaces A[i+1] with A[i-1] in the non-increasing check. For i=1, this compares A[1] >= A[0] (4 >= 5), which fails for a decreasing sequence, incorrectly returning False."
+            },
+            {
+              "name": "test_two_element_decreasing",
+              "code": "import solution\n\ndef test_two_element_decreasing():\n    # Two-element decreasing: [3, 1].\n    # Original: non-increasing 3>=1 => True.\n    # Mutant M5: i=0 only, A[0]>=A[-1] => 3>=1 => True.\n    # Both agree here, so this alone won't catch M5, but it's a boundary case.\n    assert solution.is_Monotonic([3, 1]) is True",
+              "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+              "input_domain": "Two-element decreasing list [3, 1]",
+              "oracle_reason": "Single consecutive pair 3>=1 satisfies non-increasing. Returns True.",
+              "fault_hypothesis": "Boundary case with minimal length; both original and mutant agree, serving as a sanity check for basic functionality."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 8, \"attempts_remaining\": 16, \"results\": [{\"name\": \"test_strictly_decreasing_detects_m5\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": "
+      }
+    ],
+    "generation_seconds": 71.249,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list",
+          "code": "import solution\n\ndef test_empty_list():\n    # An empty sequence has no violating consecutive pair; vacuously monotonic.\n    assert solution.is_Monotonic([]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Empty list []",
+          "oracle_reason": "all() on an empty iterable returns True, so both non-decreasing and non-increasing checks return True; the OR yields True.",
+          "fault_hypothesis": "A buggy implementation might return False for empty lists by treating them as invalid input."
+        },
+        {
+          "name": "test_single_element",
+          "code": "import solution\n\ndef test_single_element():\n    # A single element has no consecutive pairs; vacuously monotonic.\n    assert solution.is_Monotonic([42]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Single-element list [42]",
+          "oracle_reason": "range(len(A)-1) = range(0) produces no iterations; all() over empty iterable returns True.",
+          "fault_hypothesis": "An off-by-one error might index out of bounds or incorrectly handle length-1 arrays."
+        },
+        {
+          "name": "test_strictly_increasing",
+          "code": "import solution\n\ndef test_strictly_increasing():\n    # Every consecutive pair satisfies A[i] < A[i+1], hence non-decreasing holds.\n    assert solution.is_Monotonic([1, 2, 3, 4, 5]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Strictly increasing list [1,2,3,4,5]",
+          "oracle_reason": "For every i in 0..3, A[i] <= A[i+1] is true, so the first all() returns True.",
+          "fault_hypothesis": "Using strict < instead of <= would still pass, but using > or >= incorrectly could flip the result."
+        },
+        {
+          "name": "test_not_monotonic_up_then_down",
+          "code": "import solution\n\ndef test_not_monotonic_up_then_down():\n    # Goes up (1->3) then down (3->2): neither non-decreasing nor non-increasing.\n    assert solution.is_Monotonic([1, 3, 2]) is False",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "List [1, 3, 2] that increases then decreases",
+          "oracle_reason": "Non-decreasing fails at i=1 (3<=2 is false). Non-increasing fails at i=0 (1>=3 is false). Both all() calls return False; OR yields False.",
+          "fault_hypothesis": "A bug that only checks one direction (e.g., only non-decreasing) would incorrectly return False here, but a more subtle bug like returning early after finding one violation in the wrong direction could also fail."
+        },
+        {
+          "name": "test_plateau_then_drop",
+          "code": "import solution\n\ndef test_plateau_then_drop():\n    # [3,3,2]: non-decreasing fails (3<=2 is false), but non-increasing holds (3>=3, 3>=2).\n    assert solution.is_Monotonic([3, 3, 2]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "List [3, 3, 2] with a plateau followed by a drop",
+          "oracle_reason": "First all() checks 3<=3 (True) then 3<=2 (False) => False. Second all() checks 3>=3 (True) then 3>=2 (True) => True. OR gives True.",
+          "fault_hypothesis": "If the implementation used strict inequality (< or >) instead of non-strict (<= or >=), it would incorrectly return False because 3<3 fails."
+        },
+        {
+          "name": "test_type_return_is_bool",
+          "code": "import solution\n\ndef test_type_return_is_bool():\n    # The function must return a Python bool type, not just a truthy/falsy value.\n    result = solution.is_Monotonic([1, 2, 3])\n    assert isinstance(result, bool)",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Any valid list, e.g., [1, 2, 3]",
+          "oracle_reason": "Python's all() and boolean operators produce bool objects; the function should return a proper bool.",
+          "fault_hypothesis": "Some implementations might return an int (0/1) or other truthy value instead of a strict bool, which could cause issues in strict type-checking contexts."
+        },
+        {
+          "name": "test_strictly_decreasing_detects_m5",
+          "code": "import solution\n\ndef test_strictly_decreasing_detects_m5():\n    # Strictly decreasing: [5, 4, 3, 2, 1].\n    # Original non-increasing: 5>=4, 4>=3, 3>=2, 2>=1 => True.\n    # Mutant M5 (A[i] >= A[i-1]): i=0: A[0]>=A[-1] => 5>=1 ok; i=1: A[1]>=A[0] => 4>=5 FAILS.\n    # So mutant returns False for second all(), giving False overall.\n    assert solution.is_Monotonic([5, 4, 3, 2, 1]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Strictly decreasing list [5, 4, 3, 2, 1]",
+          "oracle_reason": "Every consecutive pair satisfies A[i] > A[i+1], so non-increasing holds. The function should return True.",
+          "fault_hypothesis": "Mutant M5 replaces A[i+1] with A[i-1] in the non-increasing check. For i=1, this compares A[1] >= A[0] (4 >= 5), which fails for a decreasing sequence, incorrectly returning False."
+        },
+        {
+          "name": "test_two_element_decreasing",
+          "code": "import solution\n\ndef test_two_element_decreasing():\n    # Two-element decreasing: [3, 1].\n    # Original: non-increasing 3>=1 => True.\n    # Mutant M5: i=0 only, A[0]>=A[-1] => 3>=1 => True.\n    # Both agree here, so this alone won't catch M5, but it's a boundary case.\n    assert solution.is_Monotonic([3, 1]) is True",
+          "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+          "input_domain": "Two-element decreasing list [3, 1]",
+          "oracle_reason": "Single consecutive pair 3>=1 satisfies non-increasing. Returns True.",
+          "fault_hypothesis": "Boundary case with minimal length; both original and mutant agree, serving as a sanity check for basic functionality."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_element",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_strictly_increasing",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_not_monotonic_up_then_down",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_plateau_then_drop",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_type_return_is_bool",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_strictly_decreasing_detects_m5",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_two_element_decreasing",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 34,
+      "validation_seconds": 5.924,
+      "quality_actions": [
+        {
+          "turn": 3,
+          "decision": "development_feedback",
+          "suite_sha256": "f98005b849b288e9ac938bc4c1c046834045c7b1f8c952c1330fa3c813a28b78",
+          "current_suite_checked": true,
+          "feedback_rounds": 1,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M1",
+              "operator": "AOR",
+              "line": 4,
+              "description": "Add -> Sub",
+              "fingerprint": "c26137850fddf8714c26e53ce625b9af6d662e133c7d44d0c67058e2d08e5194",
+              "status": "FAIL",
+              "seconds": 0.166
+            },
+            {
+              "mutant_id": "M2",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "fce505f81dd70982b87a49b515fd179bf38cc3727559cf36ce8d38e78480362d",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M3",
+              "operator": "AOR",
+              "line": 4,
+              "description": "Sub -> Add",
+              "fingerprint": "d936a273d066c501ad459cba175350108bba959a8083f71e5e6beac42a8430e8",
+              "status": "FAIL",
+              "seconds": 0.215
+            },
+            {
+              "mutant_id": "M4",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "60e3186eb0dd4def2ea60fe67b934e515b36d0eb6efeffdd53576dbdfd417d83",
+              "status": "FAIL",
+              "seconds": 0.216
+            },
+            {
+              "mutant_id": "M6",
+              "operator": "CRP",
+              "line": 5,
+              "description": "constant 1 -> 0",
+              "fingerprint": "063d9de2f946474847d5b86b7311401f176a705cb08e25a29d59b65632d3d26b",
+              "status": "FAIL",
+              "seconds": 0.168
+            },
+            {
+              "mutant_id": "M7",
+              "operator": "AOR",
+              "line": 5,
+              "description": "Sub -> Add",
+              "fingerprint": "e0cc03470ffece04672bb1bed9a5825942d0361d93b129126e7825c5eae78fcd",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M8",
+              "operator": "CRP",
+              "line": 5,
+              "description": "constant 1 -> 0",
+              "fingerprint": "2d92d1216160e72bbb533ab877dd22d3a1da8b0e30fb87af6b47bcebacd93ab3",
+              "status": "FAIL",
+              "seconds": 0.165
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "decision": "development_targets_exhausted",
+          "suite_sha256": "20f3cc5cedb7a7b99a5221aed2cfc773f25f603d126039d8e0089673a797aca5",
+          "current_suite_checked": true,
+          "feedback_rounds": 2,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M5",
+              "operator": "AOR",
+              "line": 5,
+              "description": "Add -> Sub",
+              "fingerprint": "7e6d91c6603ddb1490913de28de29a4e059f429d7f14e19b05ab0b2a15861cdc",
+              "status": "FAIL",
+              "seconds": 0.165
+            }
+          ]
+        }
+      ]
+    },
+    "fault_feedback": [
+      {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "f98005b849b288e9ac938bc4c1c046834045c7b1f8c952c1330fa3c813a28b78",
+        "detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Add -> Sub",
+            "fingerprint": "c26137850fddf8714c26e53ce625b9af6d662e133c7d44d0c67058e2d08e5194",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "fce505f81dd70982b87a49b515fd179bf38cc3727559cf36ce8d38e78480362d",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "d936a273d066c501ad459cba175350108bba959a8083f71e5e6beac42a8430e8",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "60e3186eb0dd4def2ea60fe67b934e515b36d0eb6efeffdd53576dbdfd417d83",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "063d9de2f946474847d5b86b7311401f176a705cb08e25a29d59b65632d3d26b",
+            "status": "FAIL",
+            "seconds": 0.168
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Sub -> Add",
+            "fingerprint": "e0cc03470ffece04672bb1bed9a5825942d0361d93b129126e7825c5eae78fcd",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "2d92d1216160e72bbb533ab877dd22d3a1da8b0e30fb87af6b47bcebacd93ab3",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Add -> Sub",
+            "fingerprint": "c26137850fddf8714c26e53ce625b9af6d662e133c7d44d0c67058e2d08e5194",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "fce505f81dd70982b87a49b515fd179bf38cc3727559cf36ce8d38e78480362d",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "d936a273d066c501ad459cba175350108bba959a8083f71e5e6beac42a8430e8",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "60e3186eb0dd4def2ea60fe67b934e515b36d0eb6efeffdd53576dbdfd417d83",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "063d9de2f946474847d5b86b7311401f176a705cb08e25a29d59b65632d3d26b",
+            "status": "FAIL",
+            "seconds": 0.168
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Sub -> Add",
+            "fingerprint": "e0cc03470ffece04672bb1bed9a5825942d0361d93b129126e7825c5eae78fcd",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "2d92d1216160e72bbb533ab877dd22d3a1da8b0e30fb87af6b47bcebacd93ab3",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.592,
+        "subprocess_runs": 9,
+        "reference_passed": true,
+        "total": 8,
+        "detected": 7,
+        "survivors": [
+          {
+            "mutant_id": "M5",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Add -> Sub",
+            "fingerprint": "7e6d91c6603ddb1490913de28de29a4e059f429d7f14e19b05ab0b2a15861cdc",
+            "status": "PASS",
+            "seconds": 0.166,
+            "change": "--- \n+++ \n@@ -2,2 +2,2 @@\n     \"\"\"Write a python function to check whether the given array is monotonic or not.\"\"\"\n-    return all((A[i] <= A[i + 1] for i in range(len(A) - 1))) or all((A[i] >= A[i + 1] for i in range(len(A) - 1)))\n+    return all((A[i] <= A[i + 1] for i in range(len(A) - 1))) or all((A[i] >= A[i - 1] for i in range(len(A) - 1)))"
+          }
+        ],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      },
+      {
+        "scope": "development-only",
+        "round": 2,
+        "suite_sha256": "20f3cc5cedb7a7b99a5221aed2cfc773f25f603d126039d8e0089673a797aca5",
+        "detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Add -> Sub",
+            "fingerprint": "c26137850fddf8714c26e53ce625b9af6d662e133c7d44d0c67058e2d08e5194",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "fce505f81dd70982b87a49b515fd179bf38cc3727559cf36ce8d38e78480362d",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "d936a273d066c501ad459cba175350108bba959a8083f71e5e6beac42a8430e8",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "60e3186eb0dd4def2ea60fe67b934e515b36d0eb6efeffdd53576dbdfd417d83",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Add -> Sub",
+            "fingerprint": "7e6d91c6603ddb1490913de28de29a4e059f429d7f14e19b05ab0b2a15861cdc",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "063d9de2f946474847d5b86b7311401f176a705cb08e25a29d59b65632d3d26b",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Sub -> Add",
+            "fingerprint": "e0cc03470ffece04672bb1bed9a5825942d0361d93b129126e7825c5eae78fcd",
+            "status": "FAIL",
+            "seconds": 0.215
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "CRP",
+            "line": 5,
+            "description": "constant 1 -> 0",
+            "fingerprint": "2d92d1216160e72bbb533ab877dd22d3a1da8b0e30fb87af6b47bcebacd93ab3",
+            "status": "FAIL",
+            "seconds": 0.218
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M5",
+            "operator": "AOR",
+            "line": 5,
+            "description": "Add -> Sub",
+            "fingerprint": "7e6d91c6603ddb1490913de28de29a4e059f429d7f14e19b05ab0b2a15861cdc",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.689,
+        "subprocess_runs": 9,
+        "reference_passed": true,
+        "total": 8,
+        "detected": 8,
+        "survivors": [],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    ],
+    "generation_trace_file": "generation/repeat_2/A5/MBPP__68.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 8,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "8 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 2,
+    "executable_lines": 2,
+    "mutation_score": 0.6667,
+    "mutants_total": 3,
+    "mutants_killed": 2,
+    "mutants_errors": 0,
+    "mutants_survived": [
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 4,
+        "column": 16,
+        "description": "LtE -> Lt"
+      }
+    ],
+    "mutant_operators": {
+      "LCR": 1,
+      "ROR": 2
+    },
+    "killed_by_operator": {
+      "LCR": 1,
+      "ROR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 4,
+        "column": 12,
+        "description": "Or -> And",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_strictly_increasing",
+          "test_solution.py::test_plateau_then_drop",
+          "test_solution.py::test_strictly_decreasing_detects_m5",
+          "test_solution.py::test_two_element_decreasing"
+        ],
+        "duration_sec": 0.2522270979825407,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 4,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 4 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 4,
+        "column": 16,
+        "description": "LtE -> Lt",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.25257491299998946,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 8,
+        "failed": 0,
+        "errors": 0,
+        "summary": "8 passed in 0.03s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 5,
+        "column": 16,
+        "description": "GtE -> Gt",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_plateau_then_drop"
+        ],
+        "duration_sec": 0.2520193670061417,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 7,
+        "failed": 1,
+        "errors": 0,
+        "summary": "1 failed, 7 passed in 0.04s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 0.6666666666666666,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.086
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.028,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 6 行，显示第 1-6 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.027,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\ndef test_empty_list():\n    'Write a python function to check whether the given …",
+        "overwrite": false
+      },
+      "first_line": "已写入 `test_solution.py`（3730 字符，86 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.104,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "import solution\n\ndef test_empty_list():\n    # An empty sequence has no violating consecutive pair; vacuously monotonic.\n    assert solution.is_Monotonic([]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Empty list []",
+            "oracle_reason": "all() on an empty iterable returns True, so both non-decreasing and non-increasing checks return True; the OR yields True.",
+            "fault_hypothesis": "A buggy implementation might return False for empty lists by treating them as invalid input."
+          },
+          {
+            "name": "test_single_element",
+            "code": "import solution\n\ndef test_single_element():\n    # A single element has no consecutive pairs; vacuously monotonic.\n    assert solution.is_Monotonic([42]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Single-element list [42]",
+            "oracle_reason": "range(len(A)-1) = range(0) produces no iterations; all() over empty iterable returns True.",
+            "fault_hypothesis": "An off-by-one error might index out of bounds or incorrectly handle length-1 arrays."
+          },
+          {
+            "name": "test_strictly_increasing",
+            "code": "import solution\n\ndef test_strictly_increasing():\n    # Every consecutive pair satisfies A[i] < A[i+1], hence non-decreasing holds.\n    assert solution.is_Monotonic([1, 2, 3, 4, 5]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Strictly increasing list [1,2,3,4,5]",
+            "oracle_reason": "For every i in 0..3, A[i] <= A[i+1] is true, so the first all() returns True.",
+            "fault_hypothesis": "Using strict < instead of <= would still pass, but using > or >= incorrectly could flip the result."
+          },
+          {
+            "name": "test_not_monotonic_up_then_down",
+            "code": "import solution\n\ndef test_not_monotonic_up_then_down():\n    # Goes up (1->3) then down (3->2): neither non-decreasing nor non-increasing.\n    assert solution.is_Monotonic([1, 3, 2]) is False",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "List [1, 3, 2] that increases then decreases",
+            "oracle_reason": "Non-decreasing fails at i=1 (3<=2 is false). Non-increasing fails at i=0 (1>=3 is false). Both all() calls return False; OR yields False.",
+            "fault_hypothesis": "A bug that only checks one direction (e.g., only non-decreasing) would incorrectly return False here, but a more subtle bug like returning early after finding one violation in the wrong direction could also fail."
+          },
+          {
+            "name": "test_plateau_then_drop",
+            "code": "import solution\n\ndef test_plateau_then_drop():\n    # [3,3,2]: non-decreasing fails (3<=2 is false), but non-increasing holds (3>=3, 3>=2).\n    assert solution.is_Monotonic([3, 3, 2]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "List [3, 3, 2] with a plateau followed by a drop",
+            "oracle_reason": "First all() checks 3<=3 (True) then 3<=2 (False) => False. Second all() checks 3>=3 (True) then 3>=2 (True) => True. OR gives True.",
+            "fault_hypothesis": "If the implementation used strict inequality (< or >) instead of non-strict (<= or >=), it would incorrectly return False because 3<3 fails."
+          },
+          {
+            "name": "test_type_return_is_bool",
+            "code": "import solution\n\ndef test_type_return_is_bool():\n    # The function must return a Python bool type, not just a truthy/falsy value.\n    result = solution.is_Monotonic([1, 2, 3])\n    assert isinstance(result, bool)",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Any valid list, e.g., [1, 2, 3]",
+            "oracle_reason": "Python's all() and boolean operators produce bool objects; the function should return a proper bool.",
+            "fault_hypothesis": "Some implementations might return an int (0/1) or other truthy value instead of a strict bool, which could cause issues in strict type-checking contexts."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.765,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_strictly_decreasing_detects_m5",
+            "code": "import solution\n\ndef test_strictly_decreasing_detects_m5():\n    # Strictly decreasing: [5, 4, 3, 2, 1].\n    # Original non-increasing: 5>=4, 4>=3, 3>=2, 2>=1 => True.\n    # Mutant M5 (A[i] >= A[i-1]): i=0: A[0]>=A[-1] => 5>=1 ok; i=1: A[1]>=A[0] => 4>=5 FAILS.\n    # So mutant returns False for second all(), giving False overall.\n    assert solution.is_Monotonic([5, 4, 3, 2, 1]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Strictly decreasing list [5, 4, 3, 2, 1]",
+            "oracle_reason": "Every consecutive pair satisfies A[i] > A[i+1], so non-increasing holds. The function should return True.",
+            "fault_hypothesis": "Mutant M5 replaces A[i+1] with A[i-1] in the non-increasing check. For i=1, this compares A[1] >= A[0] (4 >= 5), which fails for a decreasing sequence, incorrectly returning False."
+          },
+          {
+            "name": "test_two_element_decreasing",
+            "code": "import solution\n\ndef test_two_element_decreasing():\n    # Two-element decreasing: [3, 1].\n    # Original: non-increasing 3>=1 => True.\n    # Mutant M5: i=0 only, A[0]>=A[-1] => 3>=1 => True.\n    # Both agree here, so this alone won't catch M5, but it's a boundary case.\n    assert solution.is_Monotonic([3, 1]) is True",
+            "contract_quote": "'Write a python function to check whether the given array is monotonic or not.'",
+            "input_domain": "Two-element decreasing list [3, 1]",
+            "oracle_reason": "Single consecutive pair 3>=1 satisfies non-increasing. Returns True.",
+            "fault_hypothesis": "Boundary case with minimal length; both original and mutant agree, serving as a sanity check for basic functionality."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 8, \"attempts_remaining\": 16, \"results\": [{\"name\": \"test_strictly_decreasing_detects_m5\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": "
+    }
+  ],
+  "started_at": 1791346691.0589764,
+  "duration_sec": 73.462,
+  "tests_chars": 1122
+}

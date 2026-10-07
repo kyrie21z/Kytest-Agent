@@ -1,0 +1,1173 @@
+{
+  "instance_id": "MBPP/438",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "max_tokens",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 6,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 26800,
+    "output_tokens": 6883,
+    "total_tokens": 33683,
+    "final_text": "All 5 tests passed, bringing us to **17 accepted tests**. Let me verify the final state:",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.026,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.937,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_empty_list",
+              "code": "def test_empty_list():\n    from solution import count_bidirectional\n    # An empty list has no pairs, so result should be 0.\n    assert count_bidirectional([]) == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Empty list []",
+              "oracle_reason": "With zero elements there are no pairs to consider; the count of bidirectional pairs must be 0.",
+              "fault_hypothesis": "Function might return a non-zero value or raise an error on empty input."
+            },
+            {
+              "name": "test_single_tuple",
+              "code": "def test_single_tuple():\n    from solution import count_bidirectional\n    # A single tuple cannot form any pair, so result should be 0.\n    assert count_bidirectional([(1, 2)]) == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List with exactly one tuple [(1, 2)]",
+              "oracle_reason": "No pair of distinct indices exists; count must be 0.",
+              "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+            },
+            {
+              "name": "test_true_bidirectional_pair",
+              "code": "def test_true_bidirectional_pair():\n    from solution import count_bidirectional\n    # The pair ((1, 2), (2, 1)) is truly bidirectional:\n    #   (1,2) reversed is (2,1) which exists in the list.\n    # Expected count = 1.\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (2, 1)] containing one true bidirectional pair",
+              "oracle_reason": "The two tuples are reverses of each other, forming exactly one bidirectional pair.",
+              "fault_hypothesis": "If the implementation only checks one direction (buggy), it would still pass this case since both directions happen to hold. But this validates the happy path."
+            },
+            {
+              "name": "test_asymmetric_nonpair",
+              "code": "def test_asymmetric_nonpair():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4)): neither tuple's first element matches the other's second,\n    # nor vice versa. No bidirectional relationship exists.\n    result = count_bidirectional([(1, 2), (3, 4)])\n    assert result == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (3, 4)] with no matching elements between tuples",
+              "oracle_reason": "Neither (1,2)->(2,1) nor (3,4)->(4,3) pattern exists; count must be 0.",
+              "fault_hypothesis": "A buggy implementation might incorrectly match unrelated values."
+            },
+            {
+              "name": "test_one_direction_match_only",
+              "code": "def test_one_direction_match_only():\n    from solution import count_bidirectional\n    # ((1, 2), (2, 3)): test_list[0]=(1,2), test_list[1]=(2,3)\n    # Bidirectional requires BOTH (1,2)<->(2,1) AND (2,3)<->(3,2).\n    # Here only test_list[1][0]==test_list[0][1] (2==2), but NOT\n    # test_list[0][0]==test_list[1][1] (1!=3). So NOT bidirectional.\n    # The BUGGY code checks: test_list[1][0]==test_list[0][1] AND test_list[0][1]==test_list[1][0]\n    # which is 2==2 AND 2==2 => True (wrongly counts it).\n    # Correct answer: 0 (not truly bidirectional).\n    result = count_bidirectional([(1, 2), (2, 3)])\n    assert result == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (2, 3)] where only one directional match exists",
+              "oracle_reason": "For a true bidirectional pair we need (a,b) and (b,a). Here we have (1,2) and (2,3) — they are not reverses. Count must be 0.",
+              "fault_hypothesis": "The buggy implementation checks the same condition twice (test_list[iidx][0]==test_list[idx][1] repeated), so it incorrectly returns 1 instead of 0."
+            },
+            {
+              "name": "test_multiple_pairs_count",
+              "code": "def test_multiple_pairs_count():\n    from solution import count_bidirectional\n    # Three tuples: (1,2), (2,1), (3,4)\n    # Pairs: ((1,2),(2,1)) -> bidirectional (count 1)\n    #        ((1,2),(3,4))  -> not bidirectional\n    #        ((2,1),(3,4))  -> not bidirectional\n    # Total expected: 1\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (2, 1), (3, 4)] with one bidirectional pair among three tuples",
+              "oracle_reason": "Only the pair ((1,2),(2,1)) forms a bidirectional relationship. The other two pairs involve (3,4) which has no reverse partner.",
+              "fault_hypothesis": "Buggy implementation might miscount due to the double-equality bug affecting cross-tuple comparisons."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.437,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_same_element_tuples",
+              "code": "def test_same_element_tuples():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): Both tuples are (1,1).\n    # Buggy check: test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # So buggy impl returns 1. A truly bidirectional interpretation would also\n    # say (1,1) reversed is (1,1), so it IS bidirectional. Either way = 1.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 1), (1, 1)] with identical self-reversing tuples",
+              "oracle_reason": "(1,1) reversed is (1,1), so this is a valid bidirectional pair regardless of whether the implementation is correct.",
+              "fault_hypothesis": "Function might incorrectly handle identical tuples or fail on edge case."
+            },
+            {
+              "name": "test_return_type_int",
+              "code": "def test_return_type_int():\n    from solution import count_bidirectional\n    # The function should always return an integer (count).\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Any valid input producing a count",
+              "oracle_reason": "A count function must return an integer type, not a boolean or other type.",
+              "fault_hypothesis": "Function might return a float, string, or boolean instead of int."
+            },
+            {
+              "name": "test_no_matching_elements",
+              "code": "def test_no_matching_elements():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4), (5, 6)): No element in any tuple matches another tuple's corresponding position.\n    # Buggy check for each pair:\n    #   (0,1): test_list[1][0]==test_list[0][1] => 3==2 => False\n    #   (0,2): test_list[2][0]==test_list[0][1] => 5==2 => False\n    #   (1,2): test_list[2][0]==test_list[1][1] => 5==4 => False\n    # All false, so result = 0.\n    result = count_bidirectional([(1, 2), (3, 4), (5, 6)])\n    assert result == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (3, 4), (5, 6)] with no cross-tuple element matches",
+              "oracle_reason": "No tuple's first element equals another tuple's second element, so count must be 0.",
+              "fault_hypothesis": "Function might overcount due to incorrect comparison logic."
+            },
+            {
+              "name": "test_three_bidirectional_pairs",
+              "code": "def test_three_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Three bidirectional pairs: (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    # Each pair is truly bidirectional, and the buggy one-direction check also passes\n    # because both directions happen to hold.\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3), (5, 6), (6, 5)])\n    assert result == 3",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List of 6 tuples forming 3 bidirectional pairs",
+              "oracle_reason": "Each (a,b)-(b,a) pair is bidirectional. With 3 such pairs, count = 3.",
+              "fault_hypothesis": "Function might undercount by missing some pairs or overcount due to the double-equality bug."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 9, \"attempts_remaining\": 14, \"results\": [{\"name\": \"test_same_element_tuples\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assert"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.273,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_return_type_int",
+              "code": "def test_return_type_int():\n    from solution import count_bidirectional\n    # The function must always return an integer.\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert isinstance(result, int)",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Any valid list of tuples",
+              "oracle_reason": "A counter function must return an integer type.",
+              "fault_hypothesis": "Function might return a non-integer (e.g., float, None, or string)."
+            },
+            {
+              "name": "test_identical_tuples_not_counted",
+              "code": "def test_identical_tuples_not_counted():\n    from solution import count_bidirectional\n    # ((1, 2), (1, 2)): same tuple twice.\n    # Buggy code checks: test_list[1][0]==test_list[0][1] => 1==2 => False.\n    # Correctly returns 0 (not bidirectional).\n    result = count_bidirectional([(1, 2), (1, 2)])\n    assert result == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (1, 2)] with two identical tuples",
+              "oracle_reason": "Identical tuples (1,2) and (1,2) are not reverses of each other; no bidirectional pair exists.",
+              "fault_hypothesis": "Buggy implementation might incorrectly count identical tuples as bidirectional."
+            },
+            {
+              "name": "test_duplicate_bidirectional_pairs",
+              "code": "def test_duplicate_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Four tuples: (1,2), (2,1), (3,4), (4,3)\n    # Pairs: ((1,2),(2,1)) -> bidirectional\n    #        ((1,2),(3,4))  -> not\n    #        ((1,2),(4,3))  -> not\n    #        ((2,1),(3,4))  -> not\n    #        ((2,1),(4,3))  -> not\n    #        ((3,4),(4,3))  -> bidirectional\n    # Total expected: 2\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3)])\n    assert result == 2",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (2, 1), (3, 4), (4, 3)] with two bidirectional pairs",
+              "oracle_reason": "Two independent bidirectional pairs exist: (1,2)<->(2,1) and (3,4)<->(4,3). Count must be 2.",
+              "fault_hypothesis": "Implementation might miss one pair or double-count due to index logic errors."
+            },
+            {
+              "name": "test_self_reverse_tuple",
+              "code": "def test_self_reverse_tuple():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): both elements equal within each tuple.\n    # test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # Under buggy code this would count as 1.\n    # Under correct bidirectional logic: (1,1) reversed is (1,1) which exists.\n    # So this IS a valid bidirectional pair either way.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 1), (1, 1)] with palindromic tuples",
+              "oracle_reason": "(1,1) reversed is (1,1), so two copies form a valid bidirectional pair. Count = 1.",
+              "fault_hypothesis": "Edge case where both directions happen to agree even under buggy code; validates boundary behavior."
+            },
+            {
+              "name": "test_three_way_no_bidirectional",
+              "code": "def test_three_way_no_bidirectional():\n    from solution import count_bidirectional\n    # Three tuples all sharing element 1 but none forming reverse pairs:\n    # (1,2), (2,3), (3,1)\n    # Check all pairs:\n    #   ((1,2),(2,3)): 2==2 but 1!=3 => not bidirectional\n    #   ((1,2),(3,1)): 3!=2 => not bidirectional  \n    #   ((2,3),(3,1)): 3==3 but 2!=1 => not bidirectional\n    # Expected: 0\n    result = count_bidirectional([(1, 2), (2, 3), (3, 1)])\n    assert result == 0",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, 2), (2, 3), (3, 1)] forming a cycle but no reverse pairs",
+              "oracle_reason": "No tuple is the reverse of another. Each pair has at most one directional match. Count must be 0.",
+              "fault_hypothesis": "Buggy code may overcount due to checking only one direction repeatedly."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 12, \"attempts_remaining\": 9, \"results\": [{\"name\": \"test_return_type_int\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.857,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_strings_as_elements",
+              "code": "def test_strings_as_elements():\n    from solution import count_bidirectional\n    # Using string elements: ('a','b') and ('b','a') form a bidirectional pair.\n    result = count_bidirectional([('a', 'b'), ('b', 'a')])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List of tuples with string elements [('a', 'b'), ('b', 'a')]",
+              "oracle_reason": "('a','b') reversed is ('b','a'), forming one bidirectional pair.",
+              "fault_hypothesis": "Function might fail or miscount when elements are strings instead of integers."
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "def test_negative_numbers():\n    from solution import count_bidirectional\n    # Negative numbers: (-1, -2) and (-2, -1) are reverses.\n    result = count_bidirectional([(-1, -2), (-2, -1)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(-1, -2), (-2, -1)] with negative number tuples",
+              "oracle_reason": "(-1,-2) reversed is (-2,-1), forming one valid bidirectional pair.",
+              "fault_hypothesis": "Function might mishandle negative numbers due to sign-related comparison issues."
+            },
+            {
+              "name": "test_mixed_positive_negative",
+              "code": "def test_mixed_positive_negative():\n    from solution import count_bidirectional\n    # Mixed signs: (1, -1) and (-1, 1) are reverses.\n    result = count_bidirectional([(1, -1), (-1, 1)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(1, -1), (-1, 1)] mixing positive and negative values",
+              "oracle_reason": "(1,-1) reversed is (-1,1), forming one bidirectional pair.",
+              "fault_hypothesis": "Function might incorrectly compare values across sign boundaries."
+            },
+            {
+              "name": "test_large_count",
+              "code": "def test_large_count():\n    from solution import count_bidirectional\n    # Six tuples forming three bidirectional pairs:\n    # (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    result = count_bidirectional([\n        (1, 2), (2, 1),\n        (3, 4), (4, 3),\n        (5, 6), (6, 5)\n    ])\n    assert result == 3",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "Six tuples forming three independent bidirectional pairs",
+              "oracle_reason": "Three distinct bidirectional pairs exist; count must be 3.",
+              "fault_hypothesis": "Implementation might undercount by missing pairs or overcount due to index errors."
+            },
+            {
+              "name": "test_zero_elements",
+              "code": "def test_zero_elements():\n    from solution import count_bidirectional\n    # Tuples containing zero: (0, 0) reversed is (0, 0).\n    result = count_bidirectional([(0, 0), (0, 0)])\n    assert result == 1",
+              "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+              "input_domain": "List [(0, 0), (0, 0)] with zero-valued tuples",
+              "oracle_reason": "(0,0) reversed is (0,0), so two copies form a valid bidirectional pair.",
+              "fault_hypothesis": "Function might treat zero as falsy and skip comparisons incorrectly."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 17, \"attempts_remaining\": 4, \"results\": [{\"name\": \"test_strings_as_elements\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assert"
+      },
+      {
+        "turn": 5,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.026,
+        "arguments": {
+          "path": "test_solution.py"
+        },
+        "first_line": "文件 `test_solution.py` 共 85 行，显示第 1-85 行："
+      }
+    ],
+    "generation_seconds": 74.242,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_empty_list",
+          "code": "def test_empty_list():\n    from solution import count_bidirectional\n    # An empty list has no pairs, so result should be 0.\n    assert count_bidirectional([]) == 0",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "Empty list []",
+          "oracle_reason": "With zero elements there are no pairs to consider; the count of bidirectional pairs must be 0.",
+          "fault_hypothesis": "Function might return a non-zero value or raise an error on empty input."
+        },
+        {
+          "name": "test_single_tuple",
+          "code": "def test_single_tuple():\n    from solution import count_bidirectional\n    # A single tuple cannot form any pair, so result should be 0.\n    assert count_bidirectional([(1, 2)]) == 0",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List with exactly one tuple [(1, 2)]",
+          "oracle_reason": "No pair of distinct indices exists; count must be 0.",
+          "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+        },
+        {
+          "name": "test_true_bidirectional_pair",
+          "code": "def test_true_bidirectional_pair():\n    from solution import count_bidirectional\n    # The pair ((1, 2), (2, 1)) is truly bidirectional:\n    #   (1,2) reversed is (2,1) which exists in the list.\n    # Expected count = 1.\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (2, 1)] containing one true bidirectional pair",
+          "oracle_reason": "The two tuples are reverses of each other, forming exactly one bidirectional pair.",
+          "fault_hypothesis": "If the implementation only checks one direction (buggy), it would still pass this case since both directions happen to hold. But this validates the happy path."
+        },
+        {
+          "name": "test_asymmetric_nonpair",
+          "code": "def test_asymmetric_nonpair():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4)): neither tuple's first element matches the other's second,\n    # nor vice versa. No bidirectional relationship exists.\n    result = count_bidirectional([(1, 2), (3, 4)])\n    assert result == 0",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (3, 4)] with no matching elements between tuples",
+          "oracle_reason": "Neither (1,2)->(2,1) nor (3,4)->(4,3) pattern exists; count must be 0.",
+          "fault_hypothesis": "A buggy implementation might incorrectly match unrelated values."
+        },
+        {
+          "name": "test_multiple_pairs_count",
+          "code": "def test_multiple_pairs_count():\n    from solution import count_bidirectional\n    # Three tuples: (1,2), (2,1), (3,4)\n    # Pairs: ((1,2),(2,1)) -> bidirectional (count 1)\n    #        ((1,2),(3,4))  -> not bidirectional\n    #        ((2,1),(3,4))  -> not bidirectional\n    # Total expected: 1\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (2, 1), (3, 4)] with one bidirectional pair among three tuples",
+          "oracle_reason": "Only the pair ((1,2),(2,1)) forms a bidirectional relationship. The other two pairs involve (3,4) which has no reverse partner.",
+          "fault_hypothesis": "Buggy implementation might miscount due to the double-equality bug affecting cross-tuple comparisons."
+        },
+        {
+          "name": "test_same_element_tuples",
+          "code": "def test_same_element_tuples():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): Both tuples are (1,1).\n    # Buggy check: test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # So buggy impl returns 1. A truly bidirectional interpretation would also\n    # say (1,1) reversed is (1,1), so it IS bidirectional. Either way = 1.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 1), (1, 1)] with identical self-reversing tuples",
+          "oracle_reason": "(1,1) reversed is (1,1), so this is a valid bidirectional pair regardless of whether the implementation is correct.",
+          "fault_hypothesis": "Function might incorrectly handle identical tuples or fail on edge case."
+        },
+        {
+          "name": "test_return_type_int",
+          "code": "def test_return_type_int():\n    from solution import count_bidirectional\n    # The function should always return an integer (count).\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "Any valid input producing a count",
+          "oracle_reason": "A count function must return an integer type, not a boolean or other type.",
+          "fault_hypothesis": "Function might return a float, string, or boolean instead of int."
+        },
+        {
+          "name": "test_no_matching_elements",
+          "code": "def test_no_matching_elements():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4), (5, 6)): No element in any tuple matches another tuple's corresponding position.\n    # Buggy check for each pair:\n    #   (0,1): test_list[1][0]==test_list[0][1] => 3==2 => False\n    #   (0,2): test_list[2][0]==test_list[0][1] => 5==2 => False\n    #   (1,2): test_list[2][0]==test_list[1][1] => 5==4 => False\n    # All false, so result = 0.\n    result = count_bidirectional([(1, 2), (3, 4), (5, 6)])\n    assert result == 0",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (3, 4), (5, 6)] with no cross-tuple element matches",
+          "oracle_reason": "No tuple's first element equals another tuple's second element, so count must be 0.",
+          "fault_hypothesis": "Function might overcount due to incorrect comparison logic."
+        },
+        {
+          "name": "test_three_bidirectional_pairs",
+          "code": "def test_three_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Three bidirectional pairs: (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    # Each pair is truly bidirectional, and the buggy one-direction check also passes\n    # because both directions happen to hold.\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3), (5, 6), (6, 5)])\n    assert result == 3",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List of 6 tuples forming 3 bidirectional pairs",
+          "oracle_reason": "Each (a,b)-(b,a) pair is bidirectional. With 3 such pairs, count = 3.",
+          "fault_hypothesis": "Function might undercount by missing some pairs or overcount due to the double-equality bug."
+        },
+        {
+          "name": "test_identical_tuples_not_counted",
+          "code": "def test_identical_tuples_not_counted():\n    from solution import count_bidirectional\n    # ((1, 2), (1, 2)): same tuple twice.\n    # Buggy code checks: test_list[1][0]==test_list[0][1] => 1==2 => False.\n    # Correctly returns 0 (not bidirectional).\n    result = count_bidirectional([(1, 2), (1, 2)])\n    assert result == 0",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (1, 2)] with two identical tuples",
+          "oracle_reason": "Identical tuples (1,2) and (1,2) are not reverses of each other; no bidirectional pair exists.",
+          "fault_hypothesis": "Buggy implementation might incorrectly count identical tuples as bidirectional."
+        },
+        {
+          "name": "test_duplicate_bidirectional_pairs",
+          "code": "def test_duplicate_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Four tuples: (1,2), (2,1), (3,4), (4,3)\n    # Pairs: ((1,2),(2,1)) -> bidirectional\n    #        ((1,2),(3,4))  -> not\n    #        ((1,2),(4,3))  -> not\n    #        ((2,1),(3,4))  -> not\n    #        ((2,1),(4,3))  -> not\n    #        ((3,4),(4,3))  -> bidirectional\n    # Total expected: 2\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3)])\n    assert result == 2",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 2), (2, 1), (3, 4), (4, 3)] with two bidirectional pairs",
+          "oracle_reason": "Two independent bidirectional pairs exist: (1,2)<->(2,1) and (3,4)<->(4,3). Count must be 2.",
+          "fault_hypothesis": "Implementation might miss one pair or double-count due to index logic errors."
+        },
+        {
+          "name": "test_self_reverse_tuple",
+          "code": "def test_self_reverse_tuple():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): both elements equal within each tuple.\n    # test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # Under buggy code this would count as 1.\n    # Under correct bidirectional logic: (1,1) reversed is (1,1) which exists.\n    # So this IS a valid bidirectional pair either way.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, 1), (1, 1)] with palindromic tuples",
+          "oracle_reason": "(1,1) reversed is (1,1), so two copies form a valid bidirectional pair. Count = 1.",
+          "fault_hypothesis": "Edge case where both directions happen to agree even under buggy code; validates boundary behavior."
+        },
+        {
+          "name": "test_strings_as_elements",
+          "code": "def test_strings_as_elements():\n    from solution import count_bidirectional\n    # Using string elements: ('a','b') and ('b','a') form a bidirectional pair.\n    result = count_bidirectional([('a', 'b'), ('b', 'a')])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List of tuples with string elements [('a', 'b'), ('b', 'a')]",
+          "oracle_reason": "('a','b') reversed is ('b','a'), forming one bidirectional pair.",
+          "fault_hypothesis": "Function might fail or miscount when elements are strings instead of integers."
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "def test_negative_numbers():\n    from solution import count_bidirectional\n    # Negative numbers: (-1, -2) and (-2, -1) are reverses.\n    result = count_bidirectional([(-1, -2), (-2, -1)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(-1, -2), (-2, -1)] with negative number tuples",
+          "oracle_reason": "(-1,-2) reversed is (-2,-1), forming one valid bidirectional pair.",
+          "fault_hypothesis": "Function might mishandle negative numbers due to sign-related comparison issues."
+        },
+        {
+          "name": "test_mixed_positive_negative",
+          "code": "def test_mixed_positive_negative():\n    from solution import count_bidirectional\n    # Mixed signs: (1, -1) and (-1, 1) are reverses.\n    result = count_bidirectional([(1, -1), (-1, 1)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(1, -1), (-1, 1)] mixing positive and negative values",
+          "oracle_reason": "(1,-1) reversed is (-1,1), forming one bidirectional pair.",
+          "fault_hypothesis": "Function might incorrectly compare values across sign boundaries."
+        },
+        {
+          "name": "test_large_count",
+          "code": "def test_large_count():\n    from solution import count_bidirectional\n    # Six tuples forming three bidirectional pairs:\n    # (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    result = count_bidirectional([\n        (1, 2), (2, 1),\n        (3, 4), (4, 3),\n        (5, 6), (6, 5)\n    ])\n    assert result == 3",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "Six tuples forming three independent bidirectional pairs",
+          "oracle_reason": "Three distinct bidirectional pairs exist; count must be 3.",
+          "fault_hypothesis": "Implementation might undercount by missing pairs or overcount due to index errors."
+        },
+        {
+          "name": "test_zero_elements",
+          "code": "def test_zero_elements():\n    from solution import count_bidirectional\n    # Tuples containing zero: (0, 0) reversed is (0, 0).\n    result = count_bidirectional([(0, 0), (0, 0)])\n    assert result == 1",
+          "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+          "input_domain": "List [(0, 0), (0, 0)] with zero-valued tuples",
+          "oracle_reason": "(0,0) reversed is (0,0), so two copies form a valid bidirectional pair.",
+          "fault_hypothesis": "Function might treat zero as falsy and skip comparisons incorrectly."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_empty_list",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_tuple",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_true_bidirectional_pair",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.167,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_asymmetric_nonpair",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_one_direction_match_only",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.214,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________ test_one_direction_match_only _________________________\ntest_solution.py:11: in test_one_direction_match_only\n    assert result == 0\nE   assert 1 == 0\n=========================== short test summary info ============================\nFAILED test_solution.py::test_one_direction_match_only - assert 1 == 0\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_multiple_pairs_count",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_same_element_tuples",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_int",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_no_matching_elements",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_three_bidirectional_pairs",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_int",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "NAME_LOCKED"
+        },
+        {
+          "name": "test_identical_tuples_not_counted",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_duplicate_bidirectional_pairs",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_self_reverse_tuple",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_three_way_no_bidirectional",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.165,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_______________________ test_three_way_no_bidirectional ________________________\ntest_solution.py:11: in test_three_way_no_bidirectional\n    assert result == 0\nE   assert 2 == 0\n=========================== short test summary info ============================\nFAILED test_solution.py::test_three_way_no_bidirectional - assert 2 == 0\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_strings_as_elements",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_mixed_positive_negative",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_large_count",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_elements",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 36,
+      "validation_seconds": 6.042,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_1/A4/MBPP__438.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 17,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "17 passed in 0.04s",
+    "line_coverage": 1.0,
+    "covered_lines": 7,
+    "executable_lines": 7,
+    "mutation_score": 0.6667,
+    "mutants_total": 3,
+    "mutants_killed": 2,
+    "mutants_errors": 0,
+    "mutants_survived": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 7,
+        "column": 9,
+        "description": "And -> Or"
+      }
+    ],
+    "mutant_operators": {
+      "LCR": 1,
+      "ROR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 7,
+        "column": 9,
+        "description": "And -> Or",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 0.2519766270124819,
+        "timed_out": false,
+        "returncode": 0,
+        "passed": 17,
+        "failed": 0,
+        "errors": 0,
+        "summary": "17 passed in 0.04s",
+        "status": "SURVIVED",
+        "reason": "Reference and mutant both pass"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 7,
+        "column": 9,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_true_bidirectional_pair",
+          "test_solution.py::test_multiple_pairs_count",
+          "test_solution.py::test_same_element_tuples",
+          "test_solution.py::test_three_bidirectional_pairs",
+          "test_solution.py::test_duplicate_bidirectional_pairs",
+          "test_solution.py::test_self_reverse_tuple",
+          "test_solution.py::test_strings_as_elements",
+          "test_solution.py::test_negative_numbers",
+          "test_solution.py::test_mixed_positive_negative",
+          "test_solution.py::test_large_count",
+          "test_solution.py::test_zero_elements"
+        ],
+        "duration_sec": 0.2843046339985449,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 6,
+        "failed": 11,
+        "errors": 0,
+        "summary": "11 failed, 6 passed in 0.09s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "ROR",
+        "line": 7,
+        "column": 53,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_true_bidirectional_pair",
+          "test_solution.py::test_multiple_pairs_count",
+          "test_solution.py::test_same_element_tuples",
+          "test_solution.py::test_three_bidirectional_pairs",
+          "test_solution.py::test_duplicate_bidirectional_pairs",
+          "test_solution.py::test_self_reverse_tuple",
+          "test_solution.py::test_strings_as_elements",
+          "test_solution.py::test_negative_numbers",
+          "test_solution.py::test_mixed_positive_negative",
+          "test_solution.py::test_large_count",
+          "test_solution.py::test_zero_elements"
+        ],
+        "duration_sec": 0.31584448501234874,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 6,
+        "failed": 11,
+        "errors": 0,
+        "summary": "11 failed, 6 passed in 0.09s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 0.6666666666666666,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.165
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.026,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 10 行，显示第 1-10 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.937,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_empty_list",
+            "code": "def test_empty_list():\n    from solution import count_bidirectional\n    # An empty list has no pairs, so result should be 0.\n    assert count_bidirectional([]) == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Empty list []",
+            "oracle_reason": "With zero elements there are no pairs to consider; the count of bidirectional pairs must be 0.",
+            "fault_hypothesis": "Function might return a non-zero value or raise an error on empty input."
+          },
+          {
+            "name": "test_single_tuple",
+            "code": "def test_single_tuple():\n    from solution import count_bidirectional\n    # A single tuple cannot form any pair, so result should be 0.\n    assert count_bidirectional([(1, 2)]) == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List with exactly one tuple [(1, 2)]",
+            "oracle_reason": "No pair of distinct indices exists; count must be 0.",
+            "fault_hypothesis": "Function might incorrectly count self-pairs or return non-zero."
+          },
+          {
+            "name": "test_true_bidirectional_pair",
+            "code": "def test_true_bidirectional_pair():\n    from solution import count_bidirectional\n    # The pair ((1, 2), (2, 1)) is truly bidirectional:\n    #   (1,2) reversed is (2,1) which exists in the list.\n    # Expected count = 1.\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (2, 1)] containing one true bidirectional pair",
+            "oracle_reason": "The two tuples are reverses of each other, forming exactly one bidirectional pair.",
+            "fault_hypothesis": "If the implementation only checks one direction (buggy), it would still pass this case since both directions happen to hold. But this validates the happy path."
+          },
+          {
+            "name": "test_asymmetric_nonpair",
+            "code": "def test_asymmetric_nonpair():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4)): neither tuple's first element matches the other's second,\n    # nor vice versa. No bidirectional relationship exists.\n    result = count_bidirectional([(1, 2), (3, 4)])\n    assert result == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (3, 4)] with no matching elements between tuples",
+            "oracle_reason": "Neither (1,2)->(2,1) nor (3,4)->(4,3) pattern exists; count must be 0.",
+            "fault_hypothesis": "A buggy implementation might incorrectly match unrelated values."
+          },
+          {
+            "name": "test_one_direction_match_only",
+            "code": "def test_one_direction_match_only():\n    from solution import count_bidirectional\n    # ((1, 2), (2, 3)): test_list[0]=(1,2), test_list[1]=(2,3)\n    # Bidirectional requires BOTH (1,2)<->(2,1) AND (2,3)<->(3,2).\n    # Here only test_list[1][0]==test_list[0][1] (2==2), but NOT\n    # test_list[0][0]==test_list[1][1] (1!=3). So NOT bidirectional.\n    # The BUGGY code checks: test_list[1][0]==test_list[0][1] AND test_list[0][1]==test_list[1][0]\n    # which is 2==2 AND 2==2 => True (wrongly counts it).\n    # Correct answer: 0 (not truly bidirectional).\n    result = count_bidirectional([(1, 2), (2, 3)])\n    assert result == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (2, 3)] where only one directional match exists",
+            "oracle_reason": "For a true bidirectional pair we need (a,b) and (b,a). Here we have (1,2) and (2,3) — they are not reverses. Count must be 0.",
+            "fault_hypothesis": "The buggy implementation checks the same condition twice (test_list[iidx][0]==test_list[idx][1] repeated), so it incorrectly returns 1 instead of 0."
+          },
+          {
+            "name": "test_multiple_pairs_count",
+            "code": "def test_multiple_pairs_count():\n    from solution import count_bidirectional\n    # Three tuples: (1,2), (2,1), (3,4)\n    # Pairs: ((1,2),(2,1)) -> bidirectional (count 1)\n    #        ((1,2),(3,4))  -> not bidirectional\n    #        ((2,1),(3,4))  -> not bidirectional\n    # Total expected: 1\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (2, 1), (3, 4)] with one bidirectional pair among three tuples",
+            "oracle_reason": "Only the pair ((1,2),(2,1)) forms a bidirectional relationship. The other two pairs involve (3,4) which has no reverse partner.",
+            "fault_hypothesis": "Buggy implementation might miscount due to the double-equality bug affecting cross-tuple comparisons."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_empty_list\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_error"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.437,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_same_element_tuples",
+            "code": "def test_same_element_tuples():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): Both tuples are (1,1).\n    # Buggy check: test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # So buggy impl returns 1. A truly bidirectional interpretation would also\n    # say (1,1) reversed is (1,1), so it IS bidirectional. Either way = 1.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 1), (1, 1)] with identical self-reversing tuples",
+            "oracle_reason": "(1,1) reversed is (1,1), so this is a valid bidirectional pair regardless of whether the implementation is correct.",
+            "fault_hypothesis": "Function might incorrectly handle identical tuples or fail on edge case."
+          },
+          {
+            "name": "test_return_type_int",
+            "code": "def test_return_type_int():\n    from solution import count_bidirectional\n    # The function should always return an integer (count).\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Any valid input producing a count",
+            "oracle_reason": "A count function must return an integer type, not a boolean or other type.",
+            "fault_hypothesis": "Function might return a float, string, or boolean instead of int."
+          },
+          {
+            "name": "test_no_matching_elements",
+            "code": "def test_no_matching_elements():\n    from solution import count_bidirectional\n    # ((1, 2), (3, 4), (5, 6)): No element in any tuple matches another tuple's corresponding position.\n    # Buggy check for each pair:\n    #   (0,1): test_list[1][0]==test_list[0][1] => 3==2 => False\n    #   (0,2): test_list[2][0]==test_list[0][1] => 5==2 => False\n    #   (1,2): test_list[2][0]==test_list[1][1] => 5==4 => False\n    # All false, so result = 0.\n    result = count_bidirectional([(1, 2), (3, 4), (5, 6)])\n    assert result == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (3, 4), (5, 6)] with no cross-tuple element matches",
+            "oracle_reason": "No tuple's first element equals another tuple's second element, so count must be 0.",
+            "fault_hypothesis": "Function might overcount due to incorrect comparison logic."
+          },
+          {
+            "name": "test_three_bidirectional_pairs",
+            "code": "def test_three_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Three bidirectional pairs: (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    # Each pair is truly bidirectional, and the buggy one-direction check also passes\n    # because both directions happen to hold.\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3), (5, 6), (6, 5)])\n    assert result == 3",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List of 6 tuples forming 3 bidirectional pairs",
+            "oracle_reason": "Each (a,b)-(b,a) pair is bidirectional. With 3 such pairs, count = 3.",
+            "fault_hypothesis": "Function might undercount by missing some pairs or overcount due to the double-equality bug."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 9, \"attempts_remaining\": 14, \"results\": [{\"name\": \"test_same_element_tuples\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assert"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.273,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_return_type_int",
+            "code": "def test_return_type_int():\n    from solution import count_bidirectional\n    # The function must always return an integer.\n    result = count_bidirectional([(1, 2), (2, 1)])\n    assert isinstance(result, int)",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Any valid list of tuples",
+            "oracle_reason": "A counter function must return an integer type.",
+            "fault_hypothesis": "Function might return a non-integer (e.g., float, None, or string)."
+          },
+          {
+            "name": "test_identical_tuples_not_counted",
+            "code": "def test_identical_tuples_not_counted():\n    from solution import count_bidirectional\n    # ((1, 2), (1, 2)): same tuple twice.\n    # Buggy code checks: test_list[1][0]==test_list[0][1] => 1==2 => False.\n    # Correctly returns 0 (not bidirectional).\n    result = count_bidirectional([(1, 2), (1, 2)])\n    assert result == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (1, 2)] with two identical tuples",
+            "oracle_reason": "Identical tuples (1,2) and (1,2) are not reverses of each other; no bidirectional pair exists.",
+            "fault_hypothesis": "Buggy implementation might incorrectly count identical tuples as bidirectional."
+          },
+          {
+            "name": "test_duplicate_bidirectional_pairs",
+            "code": "def test_duplicate_bidirectional_pairs():\n    from solution import count_bidirectional\n    # Four tuples: (1,2), (2,1), (3,4), (4,3)\n    # Pairs: ((1,2),(2,1)) -> bidirectional\n    #        ((1,2),(3,4))  -> not\n    #        ((1,2),(4,3))  -> not\n    #        ((2,1),(3,4))  -> not\n    #        ((2,1),(4,3))  -> not\n    #        ((3,4),(4,3))  -> bidirectional\n    # Total expected: 2\n    result = count_bidirectional([(1, 2), (2, 1), (3, 4), (4, 3)])\n    assert result == 2",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (2, 1), (3, 4), (4, 3)] with two bidirectional pairs",
+            "oracle_reason": "Two independent bidirectional pairs exist: (1,2)<->(2,1) and (3,4)<->(4,3). Count must be 2.",
+            "fault_hypothesis": "Implementation might miss one pair or double-count due to index logic errors."
+          },
+          {
+            "name": "test_self_reverse_tuple",
+            "code": "def test_self_reverse_tuple():\n    from solution import count_bidirectional\n    # ((1, 1), (1, 1)): both elements equal within each tuple.\n    # test_list[1][0]==test_list[0][1] => 1==1 => True.\n    # Under buggy code this would count as 1.\n    # Under correct bidirectional logic: (1,1) reversed is (1,1) which exists.\n    # So this IS a valid bidirectional pair either way.\n    result = count_bidirectional([(1, 1), (1, 1)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 1), (1, 1)] with palindromic tuples",
+            "oracle_reason": "(1,1) reversed is (1,1), so two copies form a valid bidirectional pair. Count = 1.",
+            "fault_hypothesis": "Edge case where both directions happen to agree even under buggy code; validates boundary behavior."
+          },
+          {
+            "name": "test_three_way_no_bidirectional",
+            "code": "def test_three_way_no_bidirectional():\n    from solution import count_bidirectional\n    # Three tuples all sharing element 1 but none forming reverse pairs:\n    # (1,2), (2,3), (3,1)\n    # Check all pairs:\n    #   ((1,2),(2,3)): 2==2 but 1!=3 => not bidirectional\n    #   ((1,2),(3,1)): 3!=2 => not bidirectional  \n    #   ((2,3),(3,1)): 3==3 but 2!=1 => not bidirectional\n    # Expected: 0\n    result = count_bidirectional([(1, 2), (2, 3), (3, 1)])\n    assert result == 0",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, 2), (2, 3), (3, 1)] forming a cycle but no reverse pairs",
+            "oracle_reason": "No tuple is the reverse of another. Each pair has at most one directional match. Count must be 0.",
+            "fault_hypothesis": "Buggy code may overcount due to checking only one direction repeatedly."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 12, \"attempts_remaining\": 9, \"results\": [{\"name\": \"test_return_type_int\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assertion_"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.857,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_strings_as_elements",
+            "code": "def test_strings_as_elements():\n    from solution import count_bidirectional\n    # Using string elements: ('a','b') and ('b','a') form a bidirectional pair.\n    result = count_bidirectional([('a', 'b'), ('b', 'a')])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List of tuples with string elements [('a', 'b'), ('b', 'a')]",
+            "oracle_reason": "('a','b') reversed is ('b','a'), forming one bidirectional pair.",
+            "fault_hypothesis": "Function might fail or miscount when elements are strings instead of integers."
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "def test_negative_numbers():\n    from solution import count_bidirectional\n    # Negative numbers: (-1, -2) and (-2, -1) are reverses.\n    result = count_bidirectional([(-1, -2), (-2, -1)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(-1, -2), (-2, -1)] with negative number tuples",
+            "oracle_reason": "(-1,-2) reversed is (-2,-1), forming one valid bidirectional pair.",
+            "fault_hypothesis": "Function might mishandle negative numbers due to sign-related comparison issues."
+          },
+          {
+            "name": "test_mixed_positive_negative",
+            "code": "def test_mixed_positive_negative():\n    from solution import count_bidirectional\n    # Mixed signs: (1, -1) and (-1, 1) are reverses.\n    result = count_bidirectional([(1, -1), (-1, 1)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(1, -1), (-1, 1)] mixing positive and negative values",
+            "oracle_reason": "(1,-1) reversed is (-1,1), forming one bidirectional pair.",
+            "fault_hypothesis": "Function might incorrectly compare values across sign boundaries."
+          },
+          {
+            "name": "test_large_count",
+            "code": "def test_large_count():\n    from solution import count_bidirectional\n    # Six tuples forming three bidirectional pairs:\n    # (1,2)<->(2,1), (3,4)<->(4,3), (5,6)<->(6,5)\n    result = count_bidirectional([\n        (1, 2), (2, 1),\n        (3, 4), (4, 3),\n        (5, 6), (6, 5)\n    ])\n    assert result == 3",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "Six tuples forming three independent bidirectional pairs",
+            "oracle_reason": "Three distinct bidirectional pairs exist; count must be 3.",
+            "fault_hypothesis": "Implementation might undercount by missing pairs or overcount due to index errors."
+          },
+          {
+            "name": "test_zero_elements",
+            "code": "def test_zero_elements():\n    from solution import count_bidirectional\n    # Tuples containing zero: (0, 0) reversed is (0, 0).\n    result = count_bidirectional([(0, 0), (0, 0)])\n    assert result == 1",
+            "contract_quote": "'Write a function to count bidirectional tuple pairs.'",
+            "input_domain": "List [(0, 0), (0, 0)] with zero-valued tuples",
+            "oracle_reason": "(0,0) reversed is (0,0), so two copies form a valid bidirectional pair.",
+            "fault_hypothesis": "Function might treat zero as falsy and skip comparisons incorrectly."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 17, \"attempts_remaining\": 4, \"results\": [{\"name\": \"test_strings_as_elements\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": [], \"assert"
+    },
+    {
+      "turn": 5,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.026,
+      "arguments": {
+        "path": "test_solution.py"
+      },
+      "first_line": "文件 `test_solution.py` 共 85 行，显示第 1-85 行："
+    }
+  ],
+  "started_at": 1791346379.453018,
+  "duration_sec": 76.524,
+  "tests_chars": 2745
+}

@@ -1,0 +1,548 @@
+{
+  "instance_id": "MBPP/167",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 20722,
+    "output_tokens": 5129,
+    "total_tokens": 25851,
+    "final_text": "All 6 tests have been accepted. Here's a summary of the final test suite:\n\n| Test | What it covers |\n|------|---------------|\n| `test_power_of_two_returns_itself` | Exact powers of 2 (1, 2, 4, 8, 16, 1024, 65536) — verifies the guard clause returns n unchanged |\n| `test_non_power_of_two_returns_next` | Values between consecutive powers of 2 (3, 5, 6, 7, 9, 15, 17) — verifies ceiling behavior |\n| `test_zero_returns_one` | Edge case n=0 — verifies the function handles zero correctly (returns 1) |\n| `test_large_values` | Large integers near 2^20 and 2^30 boundaries — verifies correctness at scale |\n| `test_return_type_is_int` | Return type check across multiple inputs — ensures no float leakage |\n| `test_boundary_between_powers` | Inputs of the form 2^k - 1 for k=2..9 — worst-case bit-counting scenario |\n\n**Remaining limitations:**\n\n1. **Negative inputs**: The contract doesn't specify behavior for negative numbers. The current implementation would enter an infinite loop due to arithmetic right-shift on negatives. Tests deliberately avoid this since the contract is silent.\n2. **Non-integer inputs**: Floats, strings, or other types are not tested. The contract implies integer input but doesn't validate it.\n3. **Very large inputs beyond 2^31**: Python handles arbitrary precision integers, so overflow isn't an issue, but we haven't tested values approaching memory limits.\n4. **Single-input assertions only**: Each assertion checks one output independently; there's no property-based testing (e.g., \"for all n > 0, result is a power of 2\").",
+    "error": null,
+    "stop_reason": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.025,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 13 行，显示第 1-13 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.764,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_power_of_two_returns_itself",
+              "code": "from solution import next_power_of_2\n\ndef test_power_of_two_returns_itself():\n    \"\"\"Verify that inputs which are exact powers of 2 are returned unchanged.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # If n is already a power of 2, it IS the smallest power of 2 >= n.\n    assert next_power_of_2(1) == 1\n    assert next_power_of_2(2) == 2\n    assert next_power_of_2(4) == 4\n    assert next_power_of_2(8) == 8\n    assert next_power_of_2(16) == 16\n    assert next_power_of_2(1024) == 1024\n    assert next_power_of_2(65536) == 65536",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Positive integers that are exact powers of 2: 1, 2, 4, 8, 16, 1024, 65536",
+              "oracle_reason": "For any n that is already a power of 2, the smallest power of 2 >= n is n itself.",
+              "fault_hypothesis": "If the function incorrectly computes the next power even when n is already a power of 2, it would return a value strictly greater than n (e.g., returning 2 for input 1, or 8 for input 4)."
+            },
+            {
+              "name": "test_non_power_of_two_returns_next",
+              "code": "from solution import next_power_of_2\n\ndef test_non_power_of_two_returns_next():\n    \"\"\"Verify that non-power-of-2 inputs map to the next higher power of 2.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # For n=3, powers of 2 are ..., 2, 4, ... -> answer is 4.\n    # For n=5, powers of 2 are ..., 4, 8, ... -> answer is 8.\n    assert next_power_of_2(3) == 4\n    assert next_power_of_2(5) == 8\n    assert next_power_of_2(6) == 8\n    assert next_power_of_2(7) == 8\n    assert next_power_of_2(9) == 16\n    assert next_power_of_2(15) == 16\n    assert next_power_of_2(17) == 32",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Integers between consecutive powers of 2: 3, 5, 6, 7, 9, 15, 17",
+              "oracle_reason": "Each input falls strictly between two consecutive powers of 2. The smallest power of 2 >= each input is the upper bound of that interval.",
+              "fault_hypothesis": "A buggy implementation might always round up (even for exact powers of 2) or use floor instead of ceiling, producing off-by-one errors such as returning 2 for input 3 or 4 for input 5."
+            },
+            {
+              "name": "test_zero_returns_one",
+              "code": "from solution import next_power_of_2\n\ndef test_zero_returns_one():\n    \"\"\"Verify that n=0 returns 1, since 2^0 = 1 is the smallest power of 2 >= 0.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Powers of 2 are 1, 2, 4, 8, ... (2^0, 2^1, 2^2, ...)\n    # The smallest power of 2 >= 0 is 1.\n    assert next_power_of_2(0) == 1",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Single edge-case input: n = 0",
+              "oracle_reason": "The set of powers of 2 is {1, 2, 4, 8, ...}. Since 0 < 1, the smallest power of 2 >= 0 is 1.",
+              "fault_hypothesis": "An implementation might fail to handle n=0 correctly, e.g., returning 0 (which is not a power of 2) or entering an infinite loop due to the while condition checking n != 0."
+            },
+            {
+              "name": "test_large_values",
+              "code": "from solution import next_power_of_2\n\ndef test_large_values():\n    \"\"\"Verify correctness for large inputs near powers of 2 boundaries.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # 2^20 = 1048576, so 1048575 should map to 1048576.\n    # 2^20 + 1 = 1048577 should map to 2^21 = 2097152.\n    assert next_power_of_2(1048575) == 1048576\n    assert next_power_of_2(1048576) == 1048576\n    assert next_power_of_2(1048577) == 2097152\n    assert next_power_of_2(2**30 - 1) == 2**30\n    assert next_power_of_2(2**30) == 2**30\n    assert next_power_of_2(2**30 + 1) == 2**31",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Large integers around 2^20 and 2^30 boundaries: 1048575, 1048576, 1048577, 2^30-1, 2^30, 2^30+1",
+              "oracle_reason": "These values sit exactly at or just below/above known powers of 2. The expected results follow directly from the definition of powers of 2.",
+              "fault_hypothesis": "Bit-manipulation bugs may produce incorrect results for large numbers, such as off-by-one in the shift count or overflow-like behavior yielding wrong magnitudes."
+            },
+            {
+              "name": "test_return_type_is_int",
+              "code": "from solution import next_power_of_2\n\ndef test_return_type_is_int():\n    \"\"\"Verify that the function always returns an int for valid integer inputs.\"\"\"\n    # Contract implies integer output since powers of 2 are integers.\n    result = next_power_of_2(7)\n    assert isinstance(result, int)\n    result = next_power_of_2(0)\n    assert isinstance(result, int)\n    result = next_power_of_2(1024)\n    assert isinstance(result, int)\n    result = next_power_of_2(2**25)\n    assert isinstance(result, int)",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Various valid integer inputs: 7, 0, 1024, 2^25",
+              "oracle_reason": "Powers of 2 are integers, so the function must return an int type for all valid integer inputs.",
+              "fault_hypothesis": "A bug in the implementation (e.g., using float division somewhere) could return a float instead of an int, violating the implicit contract."
+            },
+            {
+              "name": "test_boundary_between_powers",
+              "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(2**k - 1) == 2**k for k in range(1, 10)",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Values of the form 2^k - 1 for k = 1..9: 1, 3, 7, 15, 31, 63, 127, 255, 511",
+              "oracle_reason": "2^k - 1 is strictly less than 2^k but greater than 2^(k-1), so the smallest power of 2 >= 2^k - 1 is 2^k.",
+              "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_power_of_two_returns_itself\", \"contract_checks\": {\"sut_calls\": 7, \"checked_calls\": 0, \"unchecked_calls\": 7, \"violations\": [],"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.247,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_boundary_between_powers",
+              "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(1) == 2       # 2^1 - 1 = 1\n    assert next_power_of_2(3) == 4       # 2^2 - 1 = 3\n    assert next_power_of_2(7) == 8       # 2^3 - 1 = 7\n    assert next_power_of_2(15) == 16     # 2^4 - 1 = 15\n    assert next_power_of_2(31) == 32     # 2^5 - 1 = 31\n    assert next_power_of_2(63) == 64     # 2^6 - 1 = 63\n    assert next_power_of_2(127) == 128   # 2^7 - 1 = 127\n    assert next_power_of_2(255) == 256   # 2^8 - 1 = 255\n    assert next_power_of_2(511) == 512   # 2^9 - 1 = 511",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Values of the form 2^k - 1 for k = 1..9: 1, 3, 7, 15, 31, 63, 127, 255, 511",
+              "oracle_reason": "2^k - 1 is strictly less than 2^k but greater than 2^(k-1), so the smallest power of 2 >= 2^k - 1 is 2^k.",
+              "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_boundary_between_powers\", \"contract_checks\": {\"sut_calls\": 9, \"checked_calls\": 0, \"unchecked_calls\": 9, \"violations\": [], \"as"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.413,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_boundary_between_powers",
+              "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(3) == 4       # 2^2 - 1 = 3\n    assert next_power_of_2(7) == 8       # 2^3 - 1 = 7\n    assert next_power_of_2(15) == 16     # 2^4 - 1 = 15\n    assert next_power_of_2(31) == 32     # 2^5 - 1 = 31\n    assert next_power_of_2(63) == 64     # 2^6 - 1 = 63\n    assert next_power_of_2(127) == 128   # 2^7 - 1 = 127\n    assert next_power_of_2(255) == 256   # 2^8 - 1 = 255\n    assert next_power_of_2(511) == 512   # 2^9 - 1 = 511",
+              "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+              "input_domain": "Values of the form 2^k - 1 for k = 2..9: 3, 7, 15, 31, 63, 127, 255, 511",
+              "oracle_reason": "For k >= 2, 2^k - 1 is strictly between 2^(k-1) and 2^k, so the smallest power of 2 >= 2^k - 1 is 2^k.",
+              "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 16, \"results\": [{\"name\": \"test_boundary_between_powers\", \"contract_checks\": {\"sut_calls\": 8, \"checked_calls\": 0, \"unchecked_calls\": 8, \"violations\": [], \"as"
+      }
+    ],
+    "generation_seconds": 54.828,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_power_of_two_returns_itself",
+          "code": "from solution import next_power_of_2\n\ndef test_power_of_two_returns_itself():\n    \"\"\"Verify that inputs which are exact powers of 2 are returned unchanged.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # If n is already a power of 2, it IS the smallest power of 2 >= n.\n    assert next_power_of_2(1) == 1\n    assert next_power_of_2(2) == 2\n    assert next_power_of_2(4) == 4\n    assert next_power_of_2(8) == 8\n    assert next_power_of_2(16) == 16\n    assert next_power_of_2(1024) == 1024\n    assert next_power_of_2(65536) == 65536",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Positive integers that are exact powers of 2: 1, 2, 4, 8, 16, 1024, 65536",
+          "oracle_reason": "For any n that is already a power of 2, the smallest power of 2 >= n is n itself.",
+          "fault_hypothesis": "If the function incorrectly computes the next power even when n is already a power of 2, it would return a value strictly greater than n (e.g., returning 2 for input 1, or 8 for input 4)."
+        },
+        {
+          "name": "test_non_power_of_two_returns_next",
+          "code": "from solution import next_power_of_2\n\ndef test_non_power_of_two_returns_next():\n    \"\"\"Verify that non-power-of-2 inputs map to the next higher power of 2.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # For n=3, powers of 2 are ..., 2, 4, ... -> answer is 4.\n    # For n=5, powers of 2 are ..., 4, 8, ... -> answer is 8.\n    assert next_power_of_2(3) == 4\n    assert next_power_of_2(5) == 8\n    assert next_power_of_2(6) == 8\n    assert next_power_of_2(7) == 8\n    assert next_power_of_2(9) == 16\n    assert next_power_of_2(15) == 16\n    assert next_power_of_2(17) == 32",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Integers between consecutive powers of 2: 3, 5, 6, 7, 9, 15, 17",
+          "oracle_reason": "Each input falls strictly between two consecutive powers of 2. The smallest power of 2 >= each input is the upper bound of that interval.",
+          "fault_hypothesis": "A buggy implementation might always round up (even for exact powers of 2) or use floor instead of ceiling, producing off-by-one errors such as returning 2 for input 3 or 4 for input 5."
+        },
+        {
+          "name": "test_zero_returns_one",
+          "code": "from solution import next_power_of_2\n\ndef test_zero_returns_one():\n    \"\"\"Verify that n=0 returns 1, since 2^0 = 1 is the smallest power of 2 >= 0.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Powers of 2 are 1, 2, 4, 8, ... (2^0, 2^1, 2^2, ...)\n    # The smallest power of 2 >= 0 is 1.\n    assert next_power_of_2(0) == 1",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Single edge-case input: n = 0",
+          "oracle_reason": "The set of powers of 2 is {1, 2, 4, 8, ...}. Since 0 < 1, the smallest power of 2 >= 0 is 1.",
+          "fault_hypothesis": "An implementation might fail to handle n=0 correctly, e.g., returning 0 (which is not a power of 2) or entering an infinite loop due to the while condition checking n != 0."
+        },
+        {
+          "name": "test_large_values",
+          "code": "from solution import next_power_of_2\n\ndef test_large_values():\n    \"\"\"Verify correctness for large inputs near powers of 2 boundaries.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # 2^20 = 1048576, so 1048575 should map to 1048576.\n    # 2^20 + 1 = 1048577 should map to 2^21 = 2097152.\n    assert next_power_of_2(1048575) == 1048576\n    assert next_power_of_2(1048576) == 1048576\n    assert next_power_of_2(1048577) == 2097152\n    assert next_power_of_2(2**30 - 1) == 2**30\n    assert next_power_of_2(2**30) == 2**30\n    assert next_power_of_2(2**30 + 1) == 2**31",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Large integers around 2^20 and 2^30 boundaries: 1048575, 1048576, 1048577, 2^30-1, 2^30, 2^30+1",
+          "oracle_reason": "These values sit exactly at or just below/above known powers of 2. The expected results follow directly from the definition of powers of 2.",
+          "fault_hypothesis": "Bit-manipulation bugs may produce incorrect results for large numbers, such as off-by-one in the shift count or overflow-like behavior yielding wrong magnitudes."
+        },
+        {
+          "name": "test_return_type_is_int",
+          "code": "from solution import next_power_of_2\n\ndef test_return_type_is_int():\n    \"\"\"Verify that the function always returns an int for valid integer inputs.\"\"\"\n    # Contract implies integer output since powers of 2 are integers.\n    result = next_power_of_2(7)\n    assert isinstance(result, int)\n    result = next_power_of_2(0)\n    assert isinstance(result, int)\n    result = next_power_of_2(1024)\n    assert isinstance(result, int)\n    result = next_power_of_2(2**25)\n    assert isinstance(result, int)",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Various valid integer inputs: 7, 0, 1024, 2^25",
+          "oracle_reason": "Powers of 2 are integers, so the function must return an int type for all valid integer inputs.",
+          "fault_hypothesis": "A bug in the implementation (e.g., using float division somewhere) could return a float instead of an int, violating the implicit contract."
+        },
+        {
+          "name": "test_boundary_between_powers",
+          "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(3) == 4       # 2^2 - 1 = 3\n    assert next_power_of_2(7) == 8       # 2^3 - 1 = 7\n    assert next_power_of_2(15) == 16     # 2^4 - 1 = 15\n    assert next_power_of_2(31) == 32     # 2^5 - 1 = 31\n    assert next_power_of_2(63) == 64     # 2^6 - 1 = 63\n    assert next_power_of_2(127) == 128   # 2^7 - 1 = 127\n    assert next_power_of_2(255) == 256   # 2^8 - 1 = 255\n    assert next_power_of_2(511) == 512   # 2^9 - 1 = 511",
+          "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+          "input_domain": "Values of the form 2^k - 1 for k = 2..9: 3, 7, 15, 31, 63, 127, 255, 511",
+          "oracle_reason": "For k >= 2, 2^k - 1 is strictly between 2^(k-1) and 2^k, so the smallest power of 2 >= 2^k - 1 is 2^k.",
+          "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_power_of_two_returns_itself",
+          "contract_checks": {
+            "sut_calls": 7,
+            "checked_calls": 0,
+            "unchecked_calls": 7,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 7,
+            "total_calls": 7,
+            "unchecked_calls": 7,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_non_power_of_two_returns_next",
+          "contract_checks": {
+            "sut_calls": 7,
+            "checked_calls": 0,
+            "unchecked_calls": 7,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 7,
+            "total_calls": 7,
+            "unchecked_calls": 7,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_returns_one",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_large_values",
+          "contract_checks": {
+            "sut_calls": 6,
+            "checked_calls": 0,
+            "unchecked_calls": 6,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 6,
+            "total_calls": 6,
+            "unchecked_calls": 6,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_return_type_is_int",
+          "contract_checks": {
+            "sut_calls": 4,
+            "checked_calls": 0,
+            "unchecked_calls": 4,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_boundary_between_powers",
+          "status": "REJECTED",
+          "diagnostic": "Syntax error: invalid syntax (<unknown>, line 7)"
+        },
+        {
+          "name": "test_boundary_between_powers",
+          "contract_checks": {
+            "sut_calls": 9,
+            "checked_calls": 0,
+            "unchecked_calls": 9,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "FAIL",
+          "returncode": 1,
+          "seconds": 0.165,
+          "diagnostic": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________________ test_boundary_between_powers _________________________\ntest_solution.py:7: in test_boundary_between_powers\n    assert next_power_of_2(1) == 2       # 2^1 - 1 = 1\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   assert 1 == 2\nE    +  where 1 = next_power_of_2(1)\n=========================== short test summary info ============================\nFAILED test_solution.py::test_boundary_between_powers - assert 1 == 2\n1 failed in 0.01s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 1,
+            "total_calls": 1,
+            "unchecked_calls": 1,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_boundary_between_powers",
+          "contract_checks": {
+            "sut_calls": 8,
+            "checked_calls": 0,
+            "unchecked_calls": 8,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 8,
+            "total_calls": 8,
+            "unchecked_calls": 8,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 13,
+      "validation_seconds": 2.145,
+      "quality_actions": []
+    },
+    "generation_trace_file": "generation/repeat_3/A4/MBPP__167.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 8,
+    "executable_lines": 8,
+    "mutation_score": 0.5,
+    "mutants_total": 2,
+    "mutants_killed": 1,
+    "mutants_errors": 1,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "LCR": 1,
+      "ROR": 1
+    },
+    "killed_by_operator": {
+      "LCR": 1
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "LCR",
+        "line": 4,
+        "column": 5,
+        "description": "And -> Or",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_non_power_of_two_returns_next",
+          "test_solution.py::test_zero_returns_one",
+          "test_solution.py::test_large_values",
+          "test_solution.py::test_boundary_between_powers"
+        ],
+        "duration_sec": 0.25219301899778657,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 2,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 2 passed in 0.06s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 8,
+        "column": 8,
+        "description": "NotEq -> Eq",
+        "baseline_passed": true,
+        "failure_nodes": [],
+        "duration_sec": 5.003605912002968,
+        "timed_out": true,
+        "returncode": null,
+        "passed": 0,
+        "failed": 0,
+        "errors": 0,
+        "summary": "",
+        "status": "TIMEOUT_UNKNOWN",
+        "reason": "No confirmed detection within the measurement limit"
+      }
+    ],
+    "mutation_completion_rate": 0.5,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 6.467
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 2
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.025,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 13 行，显示第 1-13 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.764,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_power_of_two_returns_itself",
+            "code": "from solution import next_power_of_2\n\ndef test_power_of_two_returns_itself():\n    \"\"\"Verify that inputs which are exact powers of 2 are returned unchanged.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # If n is already a power of 2, it IS the smallest power of 2 >= n.\n    assert next_power_of_2(1) == 1\n    assert next_power_of_2(2) == 2\n    assert next_power_of_2(4) == 4\n    assert next_power_of_2(8) == 8\n    assert next_power_of_2(16) == 16\n    assert next_power_of_2(1024) == 1024\n    assert next_power_of_2(65536) == 65536",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Positive integers that are exact powers of 2: 1, 2, 4, 8, 16, 1024, 65536",
+            "oracle_reason": "For any n that is already a power of 2, the smallest power of 2 >= n is n itself.",
+            "fault_hypothesis": "If the function incorrectly computes the next power even when n is already a power of 2, it would return a value strictly greater than n (e.g., returning 2 for input 1, or 8 for input 4)."
+          },
+          {
+            "name": "test_non_power_of_two_returns_next",
+            "code": "from solution import next_power_of_2\n\ndef test_non_power_of_two_returns_next():\n    \"\"\"Verify that non-power-of-2 inputs map to the next higher power of 2.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # For n=3, powers of 2 are ..., 2, 4, ... -> answer is 4.\n    # For n=5, powers of 2 are ..., 4, 8, ... -> answer is 8.\n    assert next_power_of_2(3) == 4\n    assert next_power_of_2(5) == 8\n    assert next_power_of_2(6) == 8\n    assert next_power_of_2(7) == 8\n    assert next_power_of_2(9) == 16\n    assert next_power_of_2(15) == 16\n    assert next_power_of_2(17) == 32",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Integers between consecutive powers of 2: 3, 5, 6, 7, 9, 15, 17",
+            "oracle_reason": "Each input falls strictly between two consecutive powers of 2. The smallest power of 2 >= each input is the upper bound of that interval.",
+            "fault_hypothesis": "A buggy implementation might always round up (even for exact powers of 2) or use floor instead of ceiling, producing off-by-one errors such as returning 2 for input 3 or 4 for input 5."
+          },
+          {
+            "name": "test_zero_returns_one",
+            "code": "from solution import next_power_of_2\n\ndef test_zero_returns_one():\n    \"\"\"Verify that n=0 returns 1, since 2^0 = 1 is the smallest power of 2 >= 0.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Powers of 2 are 1, 2, 4, 8, ... (2^0, 2^1, 2^2, ...)\n    # The smallest power of 2 >= 0 is 1.\n    assert next_power_of_2(0) == 1",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Single edge-case input: n = 0",
+            "oracle_reason": "The set of powers of 2 is {1, 2, 4, 8, ...}. Since 0 < 1, the smallest power of 2 >= 0 is 1.",
+            "fault_hypothesis": "An implementation might fail to handle n=0 correctly, e.g., returning 0 (which is not a power of 2) or entering an infinite loop due to the while condition checking n != 0."
+          },
+          {
+            "name": "test_large_values",
+            "code": "from solution import next_power_of_2\n\ndef test_large_values():\n    \"\"\"Verify correctness for large inputs near powers of 2 boundaries.\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # 2^20 = 1048576, so 1048575 should map to 1048576.\n    # 2^20 + 1 = 1048577 should map to 2^21 = 2097152.\n    assert next_power_of_2(1048575) == 1048576\n    assert next_power_of_2(1048576) == 1048576\n    assert next_power_of_2(1048577) == 2097152\n    assert next_power_of_2(2**30 - 1) == 2**30\n    assert next_power_of_2(2**30) == 2**30\n    assert next_power_of_2(2**30 + 1) == 2**31",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Large integers around 2^20 and 2^30 boundaries: 1048575, 1048576, 1048577, 2^30-1, 2^30, 2^30+1",
+            "oracle_reason": "These values sit exactly at or just below/above known powers of 2. The expected results follow directly from the definition of powers of 2.",
+            "fault_hypothesis": "Bit-manipulation bugs may produce incorrect results for large numbers, such as off-by-one in the shift count or overflow-like behavior yielding wrong magnitudes."
+          },
+          {
+            "name": "test_return_type_is_int",
+            "code": "from solution import next_power_of_2\n\ndef test_return_type_is_int():\n    \"\"\"Verify that the function always returns an int for valid integer inputs.\"\"\"\n    # Contract implies integer output since powers of 2 are integers.\n    result = next_power_of_2(7)\n    assert isinstance(result, int)\n    result = next_power_of_2(0)\n    assert isinstance(result, int)\n    result = next_power_of_2(1024)\n    assert isinstance(result, int)\n    result = next_power_of_2(2**25)\n    assert isinstance(result, int)",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Various valid integer inputs: 7, 0, 1024, 2^25",
+            "oracle_reason": "Powers of 2 are integers, so the function must return an int type for all valid integer inputs.",
+            "fault_hypothesis": "A bug in the implementation (e.g., using float division somewhere) could return a float instead of an int, violating the implicit contract."
+          },
+          {
+            "name": "test_boundary_between_powers",
+            "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(2**k - 1) == 2**k for k in range(1, 10)",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Values of the form 2^k - 1 for k = 1..9: 1, 3, 7, 15, 31, 63, 127, 255, 511",
+            "oracle_reason": "2^k - 1 is strictly less than 2^k but greater than 2^(k-1), so the smallest power of 2 >= 2^k - 1 is 2^k.",
+            "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_power_of_two_returns_itself\", \"contract_checks\": {\"sut_calls\": 7, \"checked_calls\": 0, \"unchecked_calls\": 7, \"violations\": [],"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.247,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_boundary_between_powers",
+            "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(1) == 2       # 2^1 - 1 = 1\n    assert next_power_of_2(3) == 4       # 2^2 - 1 = 3\n    assert next_power_of_2(7) == 8       # 2^3 - 1 = 7\n    assert next_power_of_2(15) == 16     # 2^4 - 1 = 15\n    assert next_power_of_2(31) == 32     # 2^5 - 1 = 31\n    assert next_power_of_2(63) == 64     # 2^6 - 1 = 63\n    assert next_power_of_2(127) == 128   # 2^7 - 1 = 127\n    assert next_power_of_2(255) == 256   # 2^8 - 1 = 255\n    assert next_power_of_2(511) == 512   # 2^9 - 1 = 511",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Values of the form 2^k - 1 for k = 1..9: 1, 3, 7, 15, 31, 63, 127, 255, 511",
+            "oracle_reason": "2^k - 1 is strictly less than 2^k but greater than 2^(k-1), so the smallest power of 2 >= 2^k - 1 is 2^k.",
+            "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 17, \"results\": [{\"name\": \"test_boundary_between_powers\", \"contract_checks\": {\"sut_calls\": 9, \"checked_calls\": 0, \"unchecked_calls\": 9, \"violations\": [], \"as"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.413,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_boundary_between_powers",
+            "code": "from solution import next_power_of_2\n\ndef test_boundary_between_powers():\n    \"\"\"Test inputs that are exactly one less than a power of 2 (worst-case for ceiling).\"\"\"\n    # Contract quote: 'find the smallest power of 2 greater than or equal to n'\n    # Each of these is one less than a power of 2, so the answer is that power.\n    assert next_power_of_2(3) == 4       # 2^2 - 1 = 3\n    assert next_power_of_2(7) == 8       # 2^3 - 1 = 7\n    assert next_power_of_2(15) == 16     # 2^4 - 1 = 15\n    assert next_power_of_2(31) == 32     # 2^5 - 1 = 31\n    assert next_power_of_2(63) == 64     # 2^6 - 1 = 63\n    assert next_power_of_2(127) == 128   # 2^7 - 1 = 127\n    assert next_power_of_2(255) == 256   # 2^8 - 1 = 255\n    assert next_power_of_2(511) == 512   # 2^9 - 1 = 511",
+            "contract_quote": "'Write a python function to find the smallest power of 2 greater than or equal to n.'",
+            "input_domain": "Values of the form 2^k - 1 for k = 2..9: 3, 7, 15, 31, 63, 127, 255, 511",
+            "oracle_reason": "For k >= 2, 2^k - 1 is strictly between 2^(k-1) and 2^k, so the smallest power of 2 >= 2^k - 1 is 2^k.",
+            "fault_hypothesis": "An implementation might miscount the number of bits and return 2^(k-1) instead of 2^k, or double-count and return 2^(k+1)."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 16, \"results\": [{\"name\": \"test_boundary_between_powers\", \"contract_checks\": {\"sut_calls\": 8, \"checked_calls\": 0, \"unchecked_calls\": 8, \"violations\": [], \"as"
+    }
+  ],
+  "started_at": 1791348009.2153661,
+  "duration_sec": 61.419,
+  "tests_chars": 2794
+}

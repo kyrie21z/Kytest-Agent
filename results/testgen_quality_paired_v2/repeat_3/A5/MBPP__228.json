@@ -1,0 +1,679 @@
+{
+  "instance_id": "MBPP/228",
+  "variant": "A5",
+  "status": "all_pass",
+  "agent": {
+    "status": "stopped",
+    "turns": 2,
+    "llm_calls": 2,
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 3950,
+    "output_tokens": 2272,
+    "total_tokens": 6222,
+    "final_text": "Looking at the code, I need to understand the function first.\n\n**Function**: `all_Bits_Set_In_The_Given_Range(n, l, r)`\n\n**Docstring**: *\"Write a python function to check whether all the bits are unset in the given range or not.\"*\n\n**Logic**: Creates a bitmask for bits `[l..r]` (1-indexed inclusive), ANDs it with `n`, and returns `True` if the result is 0 (all bits in that range are zero/unset).\n\nLet me create targeted test candidates:",
+    "error": null,
+    "stop_reason": "development_targets_exhausted",
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.033,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 9 行，显示第 1-9 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 1.766,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_all_unset_basic",
+              "code": "def test_all_unset_basic():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=5 (0b101), range [2,2]: bit 2 is 0 -> all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True\n    # n=7 (0b111), range [1,3]: all bits are 1 -> not all unset\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n >= 0, 1 <= l <= r, integers",
+              "oracle_reason": "For n=5 (binary 101), bit position 2 is 0, so the range [2,2] has all bits unset -> True. For n=7 (binary 111), bits 1-3 are all 1, so not all unset -> False.",
+              "fault_hypothesis": "Off-by-one in bitmask creation could misidentify which bits are checked, causing wrong True/False on single-bit ranges."
+            },
+            {
+              "name": "test_zero_n",
+              "code": "def test_zero_n():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=0: all bits are 0, so any range should have all bits unset\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 1) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 32) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 5, 10) is True",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n = 0, 1 <= l <= r, integers",
+              "oracle_reason": "n=0 has no bits set anywhere, so every range [l,r] must return True.",
+              "fault_hypothesis": "Edge case where n=0 might incorrectly return False due to bitmask computation errors."
+            },
+            {
+              "name": "test_single_bit_set",
+              "code": "def test_single_bit_set():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=4 (0b100): only bit 3 is set\n    assert all_Bits_Set_In_The_Given_Range(4, 3, 3) is False   # bit 3 is 1\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True    # bit 1 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 2, 2) is True    # bit 2 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 4, 4) is True    # bit 4 is 0",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n >= 0, 1 <= l <= r, integers",
+              "oracle_reason": "n=4 is binary 100. Bit 3 is 1 (False for range [3,3]), bits 1,2,4 are 0 (True for those ranges).",
+              "fault_hypothesis": "Bitmask may include/exclude wrong bit positions due to off-by-one in shift amounts."
+            },
+            {
+              "name": "test_range_beyond_bits",
+              "code": "def test_range_beyond_bits():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=1 (0b1): only bit 1 is set; higher bits are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 5, 10) is True   # bits 5-10 are all 0\n    assert all_Bits_Set_In_The_Given_Range(1, 2, 3) is True    # bits 2-3 are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 1, 1) is False   # bit 1 is 1",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n >= 0, 1 <= l <= r, integers",
+              "oracle_reason": "n=1 has only bit 1 set. Any range not including bit 1 must return True since those bits are 0.",
+              "fault_hypothesis": "Mask computation might incorrectly handle ranges where n has no bits set in that region."
+            },
+            {
+              "name": "test_full_range_all_ones",
+              "code": "def test_full_range_all_ones():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=255 (0b11111111): all 8 bits are 1\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 8) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 1) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 8, 8) is False\n    # n=255, range [9,10]: bits 9-10 are 0\n    assert all_Bits_Set_In_The_Given_Range(255, 9, 10) is True",
+              "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+              "input_domain": "n >= 0, 1 <= l <= r, integers",
+              "oracle_reason": "n=255 has all 8 lower bits set to 1. Ranges within [1,8] return False. Range [9,10] is outside, so bits are 0 -> True.",
+              "fault_hypothesis": "Mask boundary calculation fails for ranges at the edge of the number's bit width."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 19, \"results\": [{\"name\": \"test_all_unset_basic\", \"contract_checks\": {\"sut_calls\": 2, \"checked_calls\": 0, \"unchecked_calls\": 2, \"violations\": [], \"assertion_"
+      }
+    ],
+    "generation_seconds": 22.879,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_all_unset_basic",
+          "code": "def test_all_unset_basic():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=5 (0b101), range [2,2]: bit 2 is 0 -> all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True\n    # n=7 (0b111), range [1,3]: all bits are 1 -> not all unset\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n >= 0, 1 <= l <= r, integers",
+          "oracle_reason": "For n=5 (binary 101), bit position 2 is 0, so the range [2,2] has all bits unset -> True. For n=7 (binary 111), bits 1-3 are all 1, so not all unset -> False.",
+          "fault_hypothesis": "Off-by-one in bitmask creation could misidentify which bits are checked, causing wrong True/False on single-bit ranges."
+        },
+        {
+          "name": "test_zero_n",
+          "code": "def test_zero_n():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=0: all bits are 0, so any range should have all bits unset\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 1) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 32) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 5, 10) is True",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n = 0, 1 <= l <= r, integers",
+          "oracle_reason": "n=0 has no bits set anywhere, so every range [l,r] must return True.",
+          "fault_hypothesis": "Edge case where n=0 might incorrectly return False due to bitmask computation errors."
+        },
+        {
+          "name": "test_single_bit_set",
+          "code": "def test_single_bit_set():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=4 (0b100): only bit 3 is set\n    assert all_Bits_Set_In_The_Given_Range(4, 3, 3) is False   # bit 3 is 1\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True    # bit 1 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 2, 2) is True    # bit 2 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 4, 4) is True    # bit 4 is 0",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n >= 0, 1 <= l <= r, integers",
+          "oracle_reason": "n=4 is binary 100. Bit 3 is 1 (False for range [3,3]), bits 1,2,4 are 0 (True for those ranges).",
+          "fault_hypothesis": "Bitmask may include/exclude wrong bit positions due to off-by-one in shift amounts."
+        },
+        {
+          "name": "test_range_beyond_bits",
+          "code": "def test_range_beyond_bits():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=1 (0b1): only bit 1 is set; higher bits are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 5, 10) is True   # bits 5-10 are all 0\n    assert all_Bits_Set_In_The_Given_Range(1, 2, 3) is True    # bits 2-3 are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 1, 1) is False   # bit 1 is 1",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n >= 0, 1 <= l <= r, integers",
+          "oracle_reason": "n=1 has only bit 1 set. Any range not including bit 1 must return True since those bits are 0.",
+          "fault_hypothesis": "Mask computation might incorrectly handle ranges where n has no bits set in that region."
+        },
+        {
+          "name": "test_full_range_all_ones",
+          "code": "def test_full_range_all_ones():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=255 (0b11111111): all 8 bits are 1\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 8) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 1) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 8, 8) is False\n    # n=255, range [9,10]: bits 9-10 are 0\n    assert all_Bits_Set_In_The_Given_Range(255, 9, 10) is True",
+          "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+          "input_domain": "n >= 0, 1 <= l <= r, integers",
+          "oracle_reason": "n=255 has all 8 lower bits set to 1. Ranges within [1,8] return False. Range [9,10] is outside, so bits are 0 -> True.",
+          "fault_hypothesis": "Mask boundary calculation fails for ranges at the edge of the number's bit width."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_all_unset_basic",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 2,
+            "total_calls": 2,
+            "unchecked_calls": 2,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_zero_n",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 3,
+            "total_calls": 3,
+            "unchecked_calls": 3,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_single_bit_set",
+          "contract_checks": {
+            "sut_calls": 4,
+            "checked_calls": 0,
+            "unchecked_calls": 4,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_range_beyond_bits",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 3,
+            "total_calls": 3,
+            "unchecked_calls": 3,
+            "violations": []
+          }
+        },
+        {
+          "name": "test_full_range_all_ones",
+          "contract_checks": {
+            "sut_calls": 4,
+            "checked_calls": 0,
+            "unchecked_calls": 4,
+            "violations": [],
+            "assertion_errors": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0,
+          "runtime_contract_checks": {
+            "calls": 4,
+            "total_calls": 4,
+            "unchecked_calls": 4,
+            "violations": []
+          }
+        }
+      ],
+      "subprocess_runs": 19,
+      "validation_seconds": 3.242,
+      "quality_actions": [
+        {
+          "turn": 2,
+          "decision": "development_targets_exhausted",
+          "suite_sha256": "daae4d75be68551b3b878ce6c25d2491c67e440c4383ae95f176bd40d836b2fc",
+          "current_suite_checked": true,
+          "feedback_rounds": 1,
+          "stagnant_turns": 0,
+          "newly_detected_faults": [
+            {
+              "mutant_id": "M1",
+              "operator": "AOR",
+              "line": 4,
+              "description": "Sub -> Add",
+              "fingerprint": "b7383a8cf762b9b97866ebeb70496f9d81aeb91a8ff14ea5c0e28cbbd29a1b11",
+              "status": "FAIL",
+              "seconds": 0.216
+            },
+            {
+              "mutant_id": "M2",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "dad25ba473d612c6a96041c843a2f4c25010a375ddd0e92044597af90eba3c92",
+              "status": "FAIL",
+              "seconds": 0.167
+            },
+            {
+              "mutant_id": "M3",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "de6028996fa25126f91b4fd9b5848bde606ae52814d7a9d83075409317214fd1",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M4",
+              "operator": "AOR",
+              "line": 4,
+              "description": "Sub -> Add",
+              "fingerprint": "c629bf59dcafdff4b186622d5c3566bdb70c839451ca4173f608a139025f0fef",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M5",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "d8f37be17f7bcb9bf4945b4f0eb44da6c5416c4633a04e7a591d667193ed21eb",
+              "status": "FAIL",
+              "seconds": 0.165
+            },
+            {
+              "mutant_id": "M6",
+              "operator": "AOR",
+              "line": 4,
+              "description": "Sub -> Add",
+              "fingerprint": "0c09e11ec72622b5cc096ad4a43e819b0be89695e11772c2b26a180dd9f2333a",
+              "status": "FAIL",
+              "seconds": 0.167
+            },
+            {
+              "mutant_id": "M7",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "70e24f68dfdcdebb6c5886b279ca99979c85012ef1a53452faf09b95a1d2dcfc",
+              "status": "FAIL",
+              "seconds": 0.166
+            },
+            {
+              "mutant_id": "M8",
+              "operator": "CRP",
+              "line": 4,
+              "description": "constant 1 -> 0",
+              "fingerprint": "26d04771ed28f9ffc19b4be6c17fa179ee283f3b2ce581bfe8ce472ff3495be4",
+              "status": "FAIL",
+              "seconds": 0.165
+            }
+          ]
+        }
+      ]
+    },
+    "fault_feedback": [
+      {
+        "scope": "development-only",
+        "round": 1,
+        "suite_sha256": "daae4d75be68551b3b878ce6c25d2491c67e440c4383ae95f176bd40d836b2fc",
+        "detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "b7383a8cf762b9b97866ebeb70496f9d81aeb91a8ff14ea5c0e28cbbd29a1b11",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "dad25ba473d612c6a96041c843a2f4c25010a375ddd0e92044597af90eba3c92",
+            "status": "FAIL",
+            "seconds": 0.167
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "de6028996fa25126f91b4fd9b5848bde606ae52814d7a9d83075409317214fd1",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "c629bf59dcafdff4b186622d5c3566bdb70c839451ca4173f608a139025f0fef",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "d8f37be17f7bcb9bf4945b4f0eb44da6c5416c4633a04e7a591d667193ed21eb",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "0c09e11ec72622b5cc096ad4a43e819b0be89695e11772c2b26a180dd9f2333a",
+            "status": "FAIL",
+            "seconds": 0.167
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "70e24f68dfdcdebb6c5886b279ca99979c85012ef1a53452faf09b95a1d2dcfc",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "26d04771ed28f9ffc19b4be6c17fa179ee283f3b2ce581bfe8ce472ff3495be4",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "newly_detected_faults": [
+          {
+            "mutant_id": "M1",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "b7383a8cf762b9b97866ebeb70496f9d81aeb91a8ff14ea5c0e28cbbd29a1b11",
+            "status": "FAIL",
+            "seconds": 0.216
+          },
+          {
+            "mutant_id": "M2",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "dad25ba473d612c6a96041c843a2f4c25010a375ddd0e92044597af90eba3c92",
+            "status": "FAIL",
+            "seconds": 0.167
+          },
+          {
+            "mutant_id": "M3",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "de6028996fa25126f91b4fd9b5848bde606ae52814d7a9d83075409317214fd1",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M4",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "c629bf59dcafdff4b186622d5c3566bdb70c839451ca4173f608a139025f0fef",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M5",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "d8f37be17f7bcb9bf4945b4f0eb44da6c5416c4633a04e7a591d667193ed21eb",
+            "status": "FAIL",
+            "seconds": 0.165
+          },
+          {
+            "mutant_id": "M6",
+            "operator": "AOR",
+            "line": 4,
+            "description": "Sub -> Add",
+            "fingerprint": "0c09e11ec72622b5cc096ad4a43e819b0be89695e11772c2b26a180dd9f2333a",
+            "status": "FAIL",
+            "seconds": 0.167
+          },
+          {
+            "mutant_id": "M7",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "70e24f68dfdcdebb6c5886b279ca99979c85012ef1a53452faf09b95a1d2dcfc",
+            "status": "FAIL",
+            "seconds": 0.166
+          },
+          {
+            "mutant_id": "M8",
+            "operator": "CRP",
+            "line": 4,
+            "description": "constant 1 -> 0",
+            "fingerprint": "26d04771ed28f9ffc19b4be6c17fa179ee283f3b2ce581bfe8ce472ff3495be4",
+            "status": "FAIL",
+            "seconds": 0.165
+          }
+        ],
+        "lost_detections": [],
+        "validation_seconds": 1.59,
+        "subprocess_runs": 9,
+        "reference_passed": true,
+        "total": 8,
+        "detected": 8,
+        "survivors": [],
+        "uncertain": [],
+        "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."
+      }
+    ],
+    "generation_trace_file": "generation/repeat_3/A5/MBPP__228.json"
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 5,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "5 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 6,
+    "executable_lines": 6,
+    "mutation_score": 1.0,
+    "mutants_total": 3,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 1,
+      "BCR": 2
+    },
+    "measurement_version": "valid-mutation-v2",
+    "mutation_status": "measured",
+    "mutant_results": [
+      {
+        "mutant_id": "M1",
+        "operator": "ROR",
+        "line": 6,
+        "column": 8,
+        "description": "Eq -> NotEq",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_all_unset_basic",
+          "test_solution.py::test_zero_n",
+          "test_solution.py::test_single_bit_set",
+          "test_solution.py::test_range_beyond_bits",
+          "test_solution.py::test_full_range_all_ones"
+        ],
+        "duration_sec": 0.2519537619955372,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 5,
+        "errors": 0,
+        "summary": "5 failed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M2",
+        "operator": "BCR",
+        "line": 7,
+        "column": 15,
+        "description": "True -> False",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_all_unset_basic",
+          "test_solution.py::test_zero_n",
+          "test_solution.py::test_single_bit_set",
+          "test_solution.py::test_range_beyond_bits",
+          "test_solution.py::test_full_range_all_ones"
+        ],
+        "duration_sec": 0.2518324010015931,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 0,
+        "failed": 5,
+        "errors": 0,
+        "summary": "5 failed in 0.06s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      },
+      {
+        "mutant_id": "M3",
+        "operator": "BCR",
+        "line": 8,
+        "column": 11,
+        "description": "False -> True",
+        "baseline_passed": true,
+        "failure_nodes": [
+          "test_solution.py::test_all_unset_basic",
+          "test_solution.py::test_single_bit_set",
+          "test_solution.py::test_range_beyond_bits",
+          "test_solution.py::test_full_range_all_ones"
+        ],
+        "duration_sec": 0.2522729209740646,
+        "timed_out": false,
+        "returncode": 1,
+        "passed": 1,
+        "failed": 4,
+        "errors": 0,
+        "summary": "4 failed, 1 passed in 0.05s",
+        "status": "KILLED",
+        "reason": "New test failure or target-module exception after a passing reference"
+      }
+    ],
+    "mutation_completion_rate": 1.0,
+    "mutation_upper_bound": 1.0,
+    "coverage_status": "measured",
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.028
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2",
+    "measurement_version": "valid-mutation-v2",
+    "mutation_operators": [
+      "ROR",
+      "LCR",
+      "BCR"
+    ],
+    "reference_mutants_total": 3
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.033,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 9 行，显示第 1-9 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 1.766,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_all_unset_basic",
+            "code": "def test_all_unset_basic():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=5 (0b101), range [2,2]: bit 2 is 0 -> all unset\n    assert all_Bits_Set_In_The_Given_Range(5, 2, 2) is True\n    # n=7 (0b111), range [1,3]: all bits are 1 -> not all unset\n    assert all_Bits_Set_In_The_Given_Range(7, 1, 3) is False",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n >= 0, 1 <= l <= r, integers",
+            "oracle_reason": "For n=5 (binary 101), bit position 2 is 0, so the range [2,2] has all bits unset -> True. For n=7 (binary 111), bits 1-3 are all 1, so not all unset -> False.",
+            "fault_hypothesis": "Off-by-one in bitmask creation could misidentify which bits are checked, causing wrong True/False on single-bit ranges."
+          },
+          {
+            "name": "test_zero_n",
+            "code": "def test_zero_n():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=0: all bits are 0, so any range should have all bits unset\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 1) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 1, 32) is True\n    assert all_Bits_Set_In_The_Given_Range(0, 5, 10) is True",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n = 0, 1 <= l <= r, integers",
+            "oracle_reason": "n=0 has no bits set anywhere, so every range [l,r] must return True.",
+            "fault_hypothesis": "Edge case where n=0 might incorrectly return False due to bitmask computation errors."
+          },
+          {
+            "name": "test_single_bit_set",
+            "code": "def test_single_bit_set():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=4 (0b100): only bit 3 is set\n    assert all_Bits_Set_In_The_Given_Range(4, 3, 3) is False   # bit 3 is 1\n    assert all_Bits_Set_In_The_Given_Range(4, 1, 1) is True    # bit 1 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 2, 2) is True    # bit 2 is 0\n    assert all_Bits_Set_In_The_Given_Range(4, 4, 4) is True    # bit 4 is 0",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n >= 0, 1 <= l <= r, integers",
+            "oracle_reason": "n=4 is binary 100. Bit 3 is 1 (False for range [3,3]), bits 1,2,4 are 0 (True for those ranges).",
+            "fault_hypothesis": "Bitmask may include/exclude wrong bit positions due to off-by-one in shift amounts."
+          },
+          {
+            "name": "test_range_beyond_bits",
+            "code": "def test_range_beyond_bits():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=1 (0b1): only bit 1 is set; higher bits are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 5, 10) is True   # bits 5-10 are all 0\n    assert all_Bits_Set_In_The_Given_Range(1, 2, 3) is True    # bits 2-3 are 0\n    assert all_Bits_Set_In_The_Given_Range(1, 1, 1) is False   # bit 1 is 1",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n >= 0, 1 <= l <= r, integers",
+            "oracle_reason": "n=1 has only bit 1 set. Any range not including bit 1 must return True since those bits are 0.",
+            "fault_hypothesis": "Mask computation might incorrectly handle ranges where n has no bits set in that region."
+          },
+          {
+            "name": "test_full_range_all_ones",
+            "code": "def test_full_range_all_ones():\n    from solution import all_Bits_Set_In_The_Given_Range\n    # n=255 (0b11111111): all 8 bits are 1\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 8) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 1, 1) is False\n    assert all_Bits_Set_In_The_Given_Range(255, 8, 8) is False\n    # n=255, range [9,10]: bits 9-10 are 0\n    assert all_Bits_Set_In_The_Given_Range(255, 9, 10) is True",
+            "contract_quote": "'Write a python function to check whether all the bits are unset in the given range or not.'",
+            "input_domain": "n >= 0, 1 <= l <= r, integers",
+            "oracle_reason": "n=255 has all 8 lower bits set to 1. Ranges within [1,8] return False. Range [9,10] is outside, so bits are 0 -> True.",
+            "fault_hypothesis": "Mask boundary calculation fails for ranges at the edge of the number's bit width."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 5, \"attempts_remaining\": 19, \"results\": [{\"name\": \"test_all_unset_basic\", \"contract_checks\": {\"sut_calls\": 2, \"checked_calls\": 0, \"unchecked_calls\": 2, \"violations\": [], \"assertion_"
+    }
+  ],
+  "started_at": 1791347890.5529554,
+  "duration_sec": 25.034,
+  "tests_chars": 1469
+}
