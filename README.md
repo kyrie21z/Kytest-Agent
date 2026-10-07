@@ -1,414 +1,147 @@
-# Code Agent
+# Kytest Agent：Python 测试生成助手
 
-**作业精简提交：** [README](submission/README.md)、[Design](submission/Design.md)、
-[实验摘要](submission/EXPERIMENTS.md)。运行`python scripts/build_submission.py --output /tmp/code-agent-coursework`
-构建白名单提交包；下文保留完整研究说明。
+给定 Python 函数源码和任务，Kytest Agent 通过语言模型与文件、执行工具的循环生成 pytest 测试，并依据反馈修正。项目提供 CLI 和 Web 交互；Web 支持同一输入并行比较通用生成与契约候选验证，展示实际工具记录、测试质量和运行成本。
 
-**Web演示：** `python web.py`启动本地界面，打开`http://127.0.0.1:8765`。
-具体操作及一分钟录制流程见[演示说明](docs/demo.md)。同一输入同时运行A0/A4，
-展示架构、逐轮工具记录、成本与共同质量评价；Web与CLI复用同一Agent核心。
-“查看已保存差异案例”展示真实旋转数组对比，具体结果与筛选口径见[样例说明](docs/rotation-example.md)。
+[快速开始](#快速开始) · [使用方式](#使用方式) · [结果与验证](#结果与验证) · [设计说明](Design.md) · [57秒演示视频](docs/demo.mp4)
 
-一个**零第三方依赖**的编码 Agent：实现「输入 → 推理 → 工具调用 → 观察 → 输出」的完整
-Agent 循环，可通过命令行交互。它同时是"测试生成 Agent"实验的通用基线（A0）。
+![同一输入下的 A0 / A4 真实结果对比](docs/demo-overview.png)
 
-**默认保持通用 Agent；A4/A5 是实验功能。** 当前v2加入有效测量、断言依赖和
-实际输入检查、A5自动故障反馈与增量记录，继续逐条验证并保留已接受测试。
-v2已完成180次真实模型重复配对，但未通过预设的质量优势验收；下列历史试验
-属于此前v1，不能与新分数混报。机制与验收见
-[测试生成质量v2](docs/testgen-quality-v2.md)。
-
-当前v2另有[新任务重复配对协议](docs/testgen-quality-paired-v2.md)：从此前未用于
-本项目机制调试的MBPP官方测试分区固定选20题，A0/A4/A5每题各生成3次，
-统一独立故障评分，共180个run。结果按任务层聚合，失败产出计0；执行前冻结
-源码和顺序，不以中期成绩改机制或选套件。新结果见
-[重复配对报告](results/testgen_quality_paired_v2/report.md)。
-
-| 当前v2条件 | 有效产出 | 确认独立检出率 | 平均token | 生成秒数 |
-|---|---:|---:|---:|---:|
-| A0 | 49/60 | 68.81% | 20688 | 45.1 |
-| A4 | 59/60 | 74.94% | 21827 | 53.0 |
-| A5 | 59/60 | 74.90% | 16735 | 54.6 |
-
-A4−A0为+6.13个百分点，任务层95%区间[-5.12,+17.26]；A5−A0为+6.09个百分点，
-区间[-3.65,+16.07]；两项Holm p均为0.7466。A5−A4为−0.04个百分点，未检出
-质量差异，也未证明等价。A5相对A4的返回token用量少23.3%，生成时间多3.0%；
-这不是实际收费比较。20个公开任务的结果不能外推为真实仓库缺陷发现能力。
-严格离线重放的冻结主分数180/180一致，参考状态179/180一致；一份未设种子的
-随机排序测试暴露上游参考缺陷，完整重放验收未通过。原始失败和0分保留；
-产出有效率不能当作oracle正确率。详见[机制与失败分析](results/testgen_quality_paired_v2/CASE_ANALYSIS.md)
-及[验收回执](verification/testgen-quality-paired-v2/README.md)。
-
-此前有效开发对照的30个run中，A0/A4通过率和杀伤率均为100%，
-A4 token约增加0.4%、生成时间约增加51%，未显示质量收益，因此不替换默认模式。
-结果见 [开发试验报告](results/testgen_pilot_v2/report.md)。环境诊断轮v1已标记不可比。
-正式20例的新A0/A4对照已完成：A4通过率100%（A0为90%），有效杀伤率69.27%
-（A0为66.44%），差2.83个百分点未检出显著性；token增加15.8%，生成时间增加52.2%。
-结果见 [正式20例报告](results/testgen_formal_v1/report.md)，新旧A0分数不混入配对。
-A1–A3补测60次已完成，连同重用A0/A4共100份新版记录。A1/A2/A3通过率为
-75%/90%/95%，有效杀伤率57.72%/64.17%/67.51%；三项配对Holm校正均未显著。
-A3的19次覆盖率检查全部为全覆盖，未触发定向补测。见 [新版五条件对照](results/testgen_supplement_v1/report.md)。
-A0–A3 的80份记录属于历史版本（v2 难例集20例），历史结论不自动适用于修复后实现。结论与数据见
-[results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)，系统设计见 [Design.md](Design.md)。
+截图来自已保存的 MBPP/304 真实案例：A0 有6项失败，A4 全部通过、检出3/4个固定故障。视频展示同一题的另一轮实际执行，等待片段标注8倍速，操作与结果保持原速。两者均为筛选的展示样例，新运行结果可能不同；[案例说明](docs/rotation-example.md)给出保存记录的评价口径。
 
 ## 快速开始
 
-运行 Agent 只依赖 Python 标准库。**不需要安装任何第三方包，也不需要 API Key。**
-测试与统计分析的依赖见 `requirements.txt`（分三档注释，按需安装：测试 `pip install pytest coverage`，
-统计分析额外 `pip install scipy`）。
+推荐 **Ubuntu 或 Ubuntu WSL、Python ≥3.9**。以下命令在包含 `main.py`、`web.py` 和 `requirements.txt` 的项目根目录执行。首次体验无需模型密钥。
+
+Ubuntu/WSL 首次使用时安装虚拟环境与命令隔离组件：
 
 ```bash
-cd code-agent
-
-# 1. 交互模式：输入任务，Agent 一步一步调用工具完成
-python main.py
-
-# 2. 单次运行：只把最终回答写到 stdout
-python main.py --print "为 solution.py 生成单元测试"
-
-# 3. 无 API Key 的离线演示（未配置时也会自动退回离线模式）
-python main.py --mock --print "解释 solution.py"
-
-# 4. 跑测试
-python -m pytest tests/ -q
+sudo apt install python3-venv bubblewrap
 ```
 
-`python main.py` 开箱即用，无需 `pip install`。若安装了包，也可以用 `code-agent` 命令。
-
-### 评测（需要 .env 中配置 OpenAI 兼容 API）
+创建虚拟环境、安装依赖并启动 Web：
 
 ```bash
-# 消融主跑（A0–A3 × v2 难例集 20 例，约 350 万 token）
-python scripts/run_eval.py run --variant A0,A1,A2,A3 \
-    --dataset benchmarks/humaneval_plus_v2_20.jsonl --output results/current_ablation --concurrency 6
-
-# 从历史原始 JSON 生成 input-output-v1 派生结果并同步当前表格
-# 保留原始 CSV / summary / report；不发起模型请求
-python scripts/analyze_ablation.py --write-docs
+python3 -m venv ~/.venvs/kytest-agent-homework
+source ~/.venvs/kytest-agent-homework/bin/activate
+python -m pip install -r requirements.txt
+python web.py
 ```
+
+打开 **http://127.0.0.1:8765**，点击 **“查看已保存差异案例”**，即可查看原始工具轨迹、两组测试与质量结果。该入口读取保存记录，不重新请求模型。
+
+Agent 核心使用 Python 标准库；pytest 用于执行测试，coverage 用于覆盖率测量，SciPy 用于统计复核。默认执行隔离依赖 Bubblewrap，虚拟环境放在 Linux 文件系统中可避免含空格路径带来的执行问题。按 Ctrl-C 结束 Web 服务。
+
+## 使用方式
+
+### 选择体验方式
+
+| 方式 | 需要密钥 | 实际发生什么 |
+|---|---|---|
+| 已保存差异案例 | 否 | 展示此前真实模型运行的公开事件、产物与结果，不产生新调用 |
+| 离线演示 · 脚本化 | 否 | 使用固定模型响应，实际执行文件工具、候选验证和 pytest，演示控制流程 |
+| 真实模型 | 是 | 当场请求配置的模型并执行工具，结果与耗时可能变化 |
+
+离线脚本对比中，两组最终测试相同，A4 包含刻意错误候选，用于观察拒绝与修正；其质量和模拟用量不能作为真实模型成绩。
+
+### 在 Web 中完成一次对比
+
+1. 查看 A0/A4 机制卡片与架构图，确认两种生成方式的差异。
+2. 在真实模式选择或编辑源码与任务；离线脚本模式使用固定示例。
+3. 点击 **“同一输入对比 A0 / A4”**，两组同时启动，共享输入和配置，各用独立工作区与状态。
+4. 查看模型公开说明、工具参数及返回结果；展开 A4 候选，检查契约依据、拒绝原因和接受记录。
+5. 在结果卡片与“质量评价”中检查有效性、覆盖率、固定故障检出和成本，下载测试、验证报告与运行记录。
+
+取消“跟随最新”可检查历史事件；点击“停止两组”取消后续动作，当前请求或工具需要先结束。详细操作见 [演示说明](docs/demo.md)。
 
 ### 配置真实模型
 
-复制 `.env.example` 为 `.env` 并填写（或直接设置同名环境变量）：
+在项目根目录复制 `.env.example` 为 `.env`，填写支持工具调用的 OpenAI 兼容服务配置：
+
+```dotenv
+LLM_API_KEY=你的密钥
+LLM_BASE_URL=服务的兼容API地址
+LLM_MODEL=支持工具调用的模型名
+```
+
+三项都填写后重启 `python web.py`，再选择“真实模型”。对比会同时运行两个 Agent，各自产生模型请求；界面显示返回用量与实际耗时。密钥保留在服务端，`.env` 不进入 Git。
+
+### 使用命令行
+
+候选验证模式的示例命令：
 
 ```bash
-LLM_API_KEY=sk-...
-LLM_BASE_URL=https://api.deepseek.com/v1
-LLM_MODEL=deepseek-chat
+python main.py -C examples --test-generation --max-turns 12 \
+  --max-output-tokens 4096 --max-tokens 30000 \
+  --print "为 solution.py 生成 pytest 测试，覆盖正常值与包含边界"
 ```
 
-任何 OpenAI 兼容接口都可用。未配置时会**明确提示**已退回离线模式，不会静默降级。
+`examples/solution.py` 中的 `classify` 约定：区间内返回0，下方返回−1，上方返回1；例如 `classify(2, 2, 8) == 0`。将 `-C examples` 换成自己的函数工作区，确保其中包含 `solution.py`。策略选项可以按下表替换：
 
-## 三种输出模式
-
-### 契约约束与逐测试验证（A4）
-
-```bash
-# 目标目录包含 solution.py；当前解释器需要安装 pytest
-python main.py -C /path/to/function --test-generation --max-turns 12 \
-    --max-output-tokens 4096 --print "为 solution.py 生成单元测试"
-```
-
-模型通过 `submit_tests` 提交独立候选，记录docstring原文依据、输入域、预期结果
-推导和要捕捉的错误。工具检查可识别的显式输入约束，逐条隔离运行，报告错误断言
-或超时，再用合并回归检查保留通过的测试。失败候选不能替换已接受的测试。
-产物为 `test_solution.py` 和包含接受/拒绝依据的 `testgen_report.json`。
-已有测试作为不可删除的基底参与合并回归；基底自身失败时保留原文并报告失败。
-默认不加载该工具，A0保持通用；A4没有“pytest通过就立即收尾”的钩子。
-
-元数据与自然语言推导仍需审核；未识别的约束标为未检查。参考实现上通过不等于
-证明规范正确，也不等于发现更多缺陷。新机制的开发试验规则见
-[docs/testgen-pilot.md](docs/testgen-pilot.md)，新结果与历史A0–A3分开报告。
-
-```bash
-# 无API请求的脚本化演示：错误断言修复、非法输入拒绝、增量保留
-python scripts/demo_testgen.py
-```
-
-演示使用脚本化LLM和真实验证工具，不作为模型效果证据。
-
-### A4正式20例评测
-
-使用固定v2难例集，新A0和A4各20个run、同模型/预算/环境；每条件每例只采样一次。
-主指标要求参考实现通过且未改写SUT，否则有效杀伤率为0，避免失败断言虚增分数。
-平均差+2.83个百分点，95%配对bootstrap区间[-6.01,+12.71]，Wilcoxon p=0.4652；
-改善/持平/退步为2/16/2。不能据此证明总体收益或质量等价。
-
-```bash
-# 只生成报告，不调用模型
-python scripts/run_testgen_formal.py --report-only
-
-# 新模型采样必须使用新目录，不能改写已冻结记录
-python scripts/run_testgen_formal.py --output results/testgen_formal_new
-```
-
-协议见 [docs/testgen-formal.md](docs/testgen-formal.md)，逐实例解释见
-[CASE_ANALYSIS.md](results/testgen_formal_v1/CASE_ANALYSIS.md)。测试262项通过、4项Windows
-检查跳过。该集已有历史评测和失败分析，不能称为全新未见保留集。
-
-### A1–A3正式20例补测
-
-策略保持不变，继承本轮A0/A4的模型、预算、环境和评分池，只新增60次采样。
-A0/A4先前已运行，因此五条件对照分属两个批次，不能当作同期随机实验。
-唯一共享引擎变化是延后评分包装层透传日志state，恢复系统动作记录，不改变策略。
-
-| 条件 | 全部通过 | 有效杀伤率 | 平均token | 生成秒数 |
-|---|---:|---:|---:|---:|
-| A0（重用） | 90% | 66.44% | 22784 | 32.7 |
-| A1 | 75% | 57.72% | 31328 | 56.0 |
-| A2 | 90% | 64.17% | 14982 | 46.2 |
-| A3 | 95% | 67.51% | 13532 | 46.8 |
-| A4（重用） | 100% | 69.27% | 26382 | 49.7 |
-
-A2相对A1的token降低52.2%；时间和质量分别报告，不将更少token当作更快或质量等价。
-A3没有激活未覆盖行补测，不能把平均分变化归因于该机制。每条件每例仅一次采样，
-三项配对的Holm校正p均大于0.05。软件检查268项通过、4项Windows专属跳过。
-独立重放的60份有效主分数全部一致，原始变异计数59份一致；prime_fib的一份
-失败套件受随机判素数与超时影响，主分数仍为0。详见 [机制与失败分析](results/testgen_supplement_v1/CASE_ANALYSIS.md)
-和 [验收记录](verification/testgen-supplement-v1/README.md)。
-
-```bash
-# 只生成五条件报告，不调用模型；A0/A4原件校验后重用
-python scripts/run_testgen_supplement.py --report-only
-
-# 独立离线重放补测的60份套件及全部评分变异体
-python scripts/verify_testgen_supplement.py --receipt /tmp/supplement-replay.json
-```
-
-冻结协议见 [docs/testgen-supplement.md](docs/testgen-supplement.md)，详细记录见
-[results/testgen_supplement_v1](results/testgen_supplement_v1)。历史80份结果原样保留。
-
-### 独立开发故障反馈（A5）
-
-```bash
-# 包含A4验证；最多两轮开发故障反馈，用于定向追加测试
-python main.py -C /path/to/function --fault-feedback --max-turns 12 \
-    --max-output-tokens 4096 --print "为 solution.py 生成单元测试"
-
-# 无API请求：真实Agent闭环，生成结束后再用独立评分故障验证
-python scripts/demo_fault_feedback.py
-```
-
-`inspect_survivors` 给出已接受套件漏检的开发改动。v2钩子自动检查并控制继续/停止，
-追加候选仍经逐条与合并验证；新增检出、未知项和停止原因均落盘。
-反馈与评分采用不同算子家族，并核对AST指纹无交集。两次套件相同的查询复用缓存；
-超时与疑似等价改动不算检出。A5评分仅覆盖保留家族，基线须用相同评分池重测。
-协议与限制见 [docs/fault-feedback.md](docs/fault-feedback.md)。当前真实模型对照
-见[重复配对报告](results/testgen_quality_paired_v2/report.md)，未通过质量优势验收；
-控制演示的独立边界故障检出从0/2到2/2，只证明闭环可运行。
-
-| 模式 | 命令 | stdout | stderr |
-|---|---|---|---|
-| 交互 | `python main.py` | 每轮思考、工具调用、回答 | 运行摘要 |
-| 单次 | `python main.py --print "任务"` | **只有最终回答** | 过程信息（可丢弃） |
-| JSON | `python main.py --mode json --print "任务"` | **逐行事件 JSONL** | 提示信息 |
-
-stdout 与 stderr 严格分离，因此可以安全地重定向：
-
-```bash
-python main.py --print "解释 solution.py" > answer.txt        # 只留回答
-python main.py --mode json --print "解释 solution.py" > events.jsonl   # 给程序消费
-```
-
-JSON 模式每行一个事件，`run_start` 开头、`run_end` 结尾：
-
-```json
-{"type": "run_start", "tools": ["list_files", "read_file", "run_command", "search_code", "write_file"]}
-{"type": "turn_start", "turn": 1, "request_messages": 2, "request_chars": 412}
-{"type": "assistant_message", "turn": 1, "text": "先看工作区里有哪些文件。", "tool_calls": [...]}
-{"type": "tool_call_end", "turn": 1, "name": "list_files", "is_error": false, "content": "目录 `.` 共列出 1 项：\n  solution.py"}
-{"type": "run_end", "status": "completed", "turns": 3}
-```
-
-退出码：`0` 运行正常结束，`1` 运行失败（LLM 报错、超时），`2` 参数或配置错误。
-
-## 命令行选项
-
-```
--C, --workspace DIR   工作目录（默认当前目录）
--p, --print           跑一次就退出，只把最终回答写到 stdout
-    --mode {text,json} 输出模式
--m, --model NAME      覆盖 LLM_MODEL
-    --base-url URL    覆盖 LLM_BASE_URL
--t, --tools LIST      工具白名单，如 read_file,run_command
-    --mock            强制离线模式，不发起网络请求
-    --execution-mode {sandbox,trusted,disabled}  命令执行策略，默认 sandbox
-    --no-session      不写会话轨迹
-    --session-dir DIR 轨迹目录（默认 <workspace>/.sessions）
-    --max-turns N     单次运行的 turn 上限
-    --max-tokens N    token 上限，0 表示不限
-    --max-context-chars N  单次请求的上下文预算
--v, --verbose         在 --print 模式下也显示中间过程
-```
-
-## 命令执行边界
-
-默认 `EXECUTION_MODE=sandbox`：Linux 需要安装 Bubblewrap（`bwrap`），
-子进程只看到工作区、只读 `/usr`、`/bin`、`/lib`、`/lib64` 和当前 Python/venv 安装目录，
-以及私有 `/tmp`、`/run`、`/proc`、`/dev`。宿主机其他文件路径不可见，网络关闭。
-`ALLOW_WRITE=false` 使工作区只读（私有临时目录仍可写）；
-`ALLOW_CODE_EXECUTION=false` 或 `EXECUTION_MODE=disabled` 完全禁止命令执行。
-隔离缺失或初始化失败时返回错误，不自动回落。
-评测器执行生成测试时也使用同一隔离；覆盖率及变异产物写入临时工作区。
-CLI 的 trusted 选择不会关闭评测器的默认隔离。
-
-Windows/macOS 或未安装 Bubblewrap 时，读写工具仍可用；只有对受信代码才显式使用
-`python main.py --execution-mode trusted` 或 `EXECUTION_MODE=trusted`。
-该模式拥有当前用户的宿主机文件和网络权限；`ALLOW_WRITE=false` 时拒绝该模式的命令，
-因为无法强制只读。命令黑名单和临时目录都不构成权限隔离。
-Python 包本身仍为零第三方运行依赖；安全命令执行另需上述系统工具。
-
-输出按64K字符块采集，保留上限后继续排空；大文件分段读取也采用有界读取，
-单行最多保留2000字符并标记截断，不先将整行载入内存。
-交互模式的 Ctrl-C 只取消当前任务；下一任务保留历史并重新计量预算。
-同一任务的 `run_until` 多次调用继续共享预算。
-
-## 会话轨迹
-
-每次运行都会在 `<workspace>/.sessions/<时间戳>-<随机>.jsonl` 留下一份 **append-only**
-的完整轨迹：会话头（工作目录、模型、工具、模式）、用户输入、每次 LLM 回复、
-每次工具调用与完整输出、运行结果。
-
-append-only 是刻意的：评测跑到一半崩溃、或实例超时被杀时，**已经产生的轨迹不会丢**，
-而崩溃前那段往往最有诊断价值。轨迹保留事件结构及非敏感内容；配置密钥、结构化敏感字段和常见凭据文本在落盘前脱敏。
-
-## 项目结构
-
-```
-code-agent/
-├── main.py                  # 零安装入口：python main.py
-├── src/code_agent/          # ★ Agent 本体（零第三方依赖）
-│   ├── cli.py               # 命令行：交互 / --print / --mode json
-│   ├── render.py            # 事件渲染：文本与 JSONL 两种订阅者
-│   ├── session.py           # 轨迹落盘：append-only JSONL
-│   ├── message.py           # 消息与用量类型：Agent 循环与 LLM 层之间的契约
-│   ├── llm.py               # LLM 客户端：OpenAI 兼容 + 指数退避重试 + 离线 Mock
-│   ├── config.py            # 配置：显式参数 > 环境变量 > .env > 默认值
-│   ├── errors.py            # 异常分层
-│   ├── proc.py              # 进程执行：超时、进程树清理、跨平台命令行解析
-│   ├── agent/
-│   │   ├── core.py          # ★ Agent 主循环（唯一的循环实现）
-│   │   ├── events.py        # 事件：Agent 唯一的输出通道
-│   │   └── state.py         # 消息历史 + 上下文裁剪 + 配对不变量检查
-│   └── tools/
-│       ├── base.py          # Tool / ToolResult / ToolRegistry / 路径沙箱
-│       ├── file_tools.py    # read_file / write_file / list_files / search_code
-│       ├── shell_tools.py   # run_command（命令执行，含超时与护栏）
-│       ├── code_tools.py    # check_syntax / analyze_code（静态分析）
-│       └── factories.py     # ★ 工具集装配：变体差异的唯一开关点
-├── tests/                   # 回归及复评验收测试
-├── docs/
-│   ├── minimal-agent-design.md    # 为什么这样实现
-│   └── evaluation-protocol.md     # 评测口径（冻结 + 3 条修订记录）
-├── Design.md                # ★ 设计文档（问题定义 → 架构 → 消融 → 结论）
-├── benchmarks/              # 冻结数据集：全集 164 例 / 评测集 v2（20 难例）/ 筛查与选型记录
-├── eval/                    # 评测层：数据集、指标、变异引擎、编排钩子、runner、报告
-└── scripts/
-    ├── demo_offline.py      # 离线端到端演示（含 Agent 自发运行 pytest）
-    ├── freeze_dataset.py    # 下载并固化数据集
-    ├── make_screening_set.py      # 生成筛查集（排除评测集实例）
-    ├── select_eval_v2.py    # 按冻结准则选出 v2 难例集
-    ├── calibrate_instrument.py    # 变异引擎校准
-    ├── check_contamination.py     # 记忆污染检查（语义等价扰动）
-    ├── analyze_ablation.py  # 预注册配对统计（Wilcoxon + bootstrap + Holm）
-    └── run_eval.py          # 评测入口
-```
-
-## 设计要点
-
-**Agent 核心零 IO。** 核心不 `print`、不读 stdin，只发出事件（`agent/events.py`）。
-CLI 与评测 harness 都是同一套核心的订阅者——批量评测因此不需要解析 stdout 来取指标。
-CLI 里没有任何业务逻辑，只有展示决策（全部集中在 `render.py`）。
-
-**变体是配置，不是代码分支。** 主循环只有一份，差异通过 `tools`、`system_prompt`、
-预算、`before_turn`/`finish_turn` 钩子注入。这是消融实验能成立的前提：变体之间的
-diff 全部是配置，混叠变量在架构层就不可能发生。
-
-**`run_until(n)` 支持在任意 turn 数处挂起并继续。** 固定预算质量曲线需要在第
-1/2/4/8 个 turn 处取样，一个"一跑到底"的 `run()` 无法做这类对照实验。
-
-**错误是数据。** LLM 请求失败不抛异常，而是转成 `stop_reason="error"` 的消息并结束本次
-run；工具失败、未知工具、参数非法都只是一条 `is_error` 的观察结果。单次 API 抖动
-不会让整批评测崩溃。
-
-**命令执行是通用能力，不含测试专用知识。** `run_command` 不识别 pytest、不解析测试
-结果、不做自动重试；它只执行命令并带回真实输出。A0 会不会自发用它跑测试，是我们要
-观察的行为，而不是预先编排好的流程。
-
-**离线模式不静默降级。** 没有 API Key 时会在 stderr 明确提示，避免用户把模拟输出
-误当成真实模型回答。
-
-详细理由见 [`docs/minimal-agent-design.md`](docs/minimal-agent-design.md)。
-
-## 测试
-
-```bash
-python -m pytest tests/ -q                  # 完整回归
-python -m pytest tests/test_cli.py -q       # 只跑 CLI（子进程级）
-python -m pytest tests/test_state.py -q     # 只跑上下文裁剪
-python -m pytest tests/test_proc.py -q      # 只跑进程执行
-python -m pytest tests/test_eval_mutation.py -q   # 只跑变异引擎
-python -m pytest tests/test_eval_hooks.py -q      # 只跑 A2/A3 编排钩子
-```
-
-测试覆盖的关键不变量：
-
-| 不变量 | 位置 |
-|---|---|
-| 每个 tool 消息必须能对应到前面的 assistant tool_call（否则真实 API 返回 400） | `test_state.py` / `helpers.py: assert_message_sequence_valid` |
-| 模型输出被 `max_tokens` 截断时，工具调用一律不执行 | `test_core.py: test_truncated_output_never_executes_tool_calls` |
-| 工具抛异常不会中断循环，只变成一条错误观察结果 | `test_core.py: test_tool_exception_is_contained_and_reported` |
-| `run_until` 连续采样时计数器单调累计 | `test_core.py: test_run_until_snapshots_produce_a_monotonic_quality_curve` |
-| 超时会杀掉整棵进程树，不留孤儿进程 | `test_proc.py: test_grandchild_process_is_killed_too` |
-| 命令参数切分与子进程真实收到的 argv 一致 | `test_proc.py: test_split_command_matches_what_the_child_process_actually_receives` |
-| `--print` 模式的 stdout 里没有任何过程信息 | `test_cli.py: test_print_mode_writes_only_the_final_answer_to_stdout` |
-| JSON 模式的 stdout 每行都是合法 JSON 事件 | `test_cli.py: test_json_mode_keeps_stdout_free_of_human_text` |
-| 轨迹文件按 append-only 写入且工具输出完整 | `test_cli.py: test_session_records_tool_results_with_full_content` |
-| A0 的工具集不含任何测试专用能力 | `test_integration_tools.py: test_default_registry_is_general_purpose_only` |
-| 每个变异体只与原程序差一处，且生成完全确定 | `test_eval_mutation.py: test_generation_is_deterministic` |
-| 强测试的杀伤率显著高于弱测试 | `test_eval_mutation.py: test_strong_tests_score_much_higher_than_weak_tests` |
-| "测量失败"不能被伪装成"测了满分" | `test_eval_mutation.py: test_import_error_is_distinguished_from_assertion_failure` |
-| 所有启动过的运行都进分母（ITT 原则） | `test_eval_runner.py: test_every_started_run_counts_toward_the_denominator` |
-| 改写 solution.py 不能进入测量口径，且必须留下可见标志 | `test_eval_runner.py: test_solution_modified_is_restored_before_final_measurement` |
-| 钩子：失败回灌 → 修复 → 通过收尾（A2 闭环） | `test_eval_hooks.py: test_fail_then_repair_then_pass` |
-| 钩子：测试文件无变化时不重复运行（防预算泄漏） | `test_eval_hooks.py: test_unchanged_tests_do_not_trigger_rerun` |
-| 钩子：覆盖率定向反馈与轮数上限（A3） | `test_eval_hooks.py: test_coverage_feedback_and_rounds_cap` |
-| run 结束后不得被拉起幽灵轮次 | `test_eval_runner.py: test_run_single_reports_cumulative_turns_not_the_last_call` |
-
-CLI 测试通过真实子进程调用，因为这一层的价值恰在进程边界上（流分离、退出码、零安装）。
-除评测层需要 `coverage` 外，所有测试都不联网、不需要 API Key、结果确定。
-
-## 实验结果（摘要）
-
-表格来自 `results/v2_ablation/derived/v1/`，token=input+output，不重复计入缓存；
-token 数量不代表实际费用。原始记录、旧 CSV/summary/report 保留为历史证据，
-派生清单记录输入 SHA-256。重算命令见快速开始。
-
-完整数据与分析见 [`Design.md`](Design.md) 与
-[`results/v2_ablation/ANALYSIS.md`](results/v2_ablation/ANALYSIS.md)。
-
-<!-- ablation:main:start -->
-| Variant | All-Pass | Line Cov. | Mutation（主终点） | Turns | Tokens | Runtime |
-|---|---:|---:|---:|---:|---:|---:|
-| A0 | 95.0% | 95.0% | 70.4% ± 17.6% | 5.8 | 25,079 | 142s |
-| A1 | 90.0% | 90.0% | 69.3% ± 19.2% | 6.0 | 34,034 | 209s |
-| A2 | 95.0% | 95.0% | 70.6% ± 21.3% | 3.1 | 14,830 | 155s |
-| A3 | 90.0% | 90.0% | 66.6% ± 23.4% | 3.2 | 12,770 | 195s |
-| 官方测试锚点 | 100.0% | 100.0% | 69.4% ± 14.6% | — | — | — |
-<!-- ablation:main:end -->
-
-三个有证据的结论：通用 Agent 的自发水平已接近官方测试（RQ1）；执行反馈的价值
-在效率侧：质量未检出显著差异（未证明等价），token −56.43%（RQ2）；本次记录中的覆盖率定向反馈未显示杀伤率增量（RQ3）。
-主终点配对比较经 Holm 校正后均不显著；n=20且多数配对持平，未做适用于该
-分布的功效计算，不给出确定的检出下限。报告为"未检测到差异"，不据此证明等价。
-
-## 路线图
-
-| 阶段 | 内容 | 状态 |
+| 策略 | 命令选项 | 处理方式 |
 |---|---|---|
-| 1 | Agent 内核（消息、事件、状态、主循环） | ✅ 完成 |
-| 2 | `run_command` 工具与执行沙箱 | ✅ 完成 |
-| 3 | CLI（三种模式）+ 轨迹落盘 + 离线 Mock | ✅ 完成 |
-| 4a | 评测层：数据集、指标、变异引擎、编排钩子、runner、报告 + 仪器校准 | ✅ 完成 |
-| 4b | 历史80份消融保留；新版A0–A4共100份记录分两批采样 | 已完成 |
-| 5 | 文档收尾（Design.md / README / 选型与修订记录） | ✅ 完成 |
+| A0：通用 | 去掉 `--test-generation` | 模型自主读取、写入和运行测试 |
+| A4：候选验证 | `--test-generation` | 提交契约依据，逐条验证、合并回归并保留接受项 |
+| A5：开发故障反馈 | `--fault-feedback` | 在候选验证上追加有界开发故障反馈，属于可选实验机制 |
+
+去掉 `--print` 进入连续对话，输入 `exit` 退出；Ctrl-C 中止当前任务。`--mode json` 输出逐行事件，`--no-session` 关闭默认保存到工作区 `.sessions/` 的脱敏轨迹。完整参数见 `python main.py --help`。
+
+CLI 缺少模型配置时会明确提示使用 Mock；需要真实生成时先检查配置。Web 的真实模式在缺少配置时不可选，两种入口均区分离线与真实运行。
+
+## 结果与验证
+
+### 产物与指标
+
+CLI 的测试文件写入 `-C` 指定的工作区；Web 使用临时工作区，结果通过页面下载，需在结束服务前保存。
+
+| 产物 | 内容 |
+|---|---|
+| `test_solution.py` | 最终测试套件 |
+| `testgen_report.json` | A4/A5 候选依据、接受与拒绝记录、验证状态 |
+| `fault_feedback.json` | A5 开发故障反馈与增量记录 |
+| 运行记录 | 模型公开说明、工具参数与返回、结束原因和成本；Web 可下载，CLI 可保存会话轨迹 |
+
+结果应分别查看以下指标：
+
+| 指标 | 含义 |
+|---|---|
+| 测试有效性 | 实际执行、参考通过且目标源码未改写；空测试与全部跳过不算有效 |
+| 语句/分支覆盖率 | 已执行代码路径的比例，不能替代断言的判别力 |
+| 固定故障检出 | 有效测试在匹配样例的固定故障池上确认识别的错误，参考失败时不计分 |
+| 运行成本 | 轮次、Agent 工具调用、输入/输出 token 和耗时；系统验证及最终评价开销分别记录 |
+
+Web 在生成结束后对两组执行同样的独立评价，结果不回灌模型。未配置的故障池和未测量指标明确标注，不能当作0分。参考通过表示与参考实现一致，不认证所有预期值正确；固定池检出也不代表能发现任意真实项目缺陷。
+
+### 运行工程与统计检查
+
+```bash
+python -m pytest tests/ -q
+python scripts/reproduce_submission.py
+```
+
+第一条执行工程回归；第二条核对280行既有实验记录的成员、固定分母、均值与配对统计，成功时输出 `all_matches: true`。两条均不需要模型密钥，不重新生成测试或改写原始实验记录。
+
+不启动浏览器也可运行一次完整离线工具闭环：
+
+```bash
+python scripts/demo_offline.py
+```
+
+预期观察到源码读取、测试写入与实际 pytest 执行，5项测试通过并报告任务完成。这验证控制流程，模型响应由脚本提供，不用于衡量模型能力。
+
+### 实验结论
+
+在 MBPP 的20题、每配置三次对照中，A0 有效产出49/60，A4 与 A5 各59/60；A4 确认独立检出率为74.94%，A0 为68.81%。观察差值未通过预设统计验收，尚不能认定总体质量优势，因此默认保留通用 Agent，A4/A5 为可选机制。完整配置、结果与证据边界见 [实验摘要](submission/EXPERIMENTS.md)。
+
+## 常见问题与范围
+
+| 问题 | 处理 |
+|---|---|
+| 没有密钥或真实模式不可选 | 可查看保存案例或运行脚本演示；真实生成需填写三项模型配置并重启 Web |
+| pytest/coverage 不可用 | 激活启动 Agent 的虚拟环境，在同一解释器中运行 `python -m pip install -r requirements.txt` |
+| Bubblewrap 不可用或隔离失败 | 检查安装及系统用户命名空间支持；默认拒绝执行。保存案例仍可查看；`trusted` 仅用于受信本机代码，拥有宿主权限 |
+| 8765端口占用 | 运行 `python web.py --port 0`，打开终端打印的实际地址 |
+| 运行等待过久或预算结束 | 查看请求、工具及结束状态；可停止后续动作，当前请求或工具需先结束。累计 token 与任务时间为轮间软限制 |
+
+项目支持自包含的 Python 函数测试，不自动处理任意仓库的依赖、服务与集成环境。候选验证限制测试形式；复杂契约和预期值仍需审核。总体质量判断依据完整实验，展示样例只代表对应运行。
+
+[Design.md](Design.md)说明架构、机制和设计取舍；[实验摘要](submission/EXPERIMENTS.md)报告 A0～A5 配置与实验依据；[操作说明](docs/demo.md)提供详细页面操作和评价口径。

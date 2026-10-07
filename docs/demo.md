@@ -3,10 +3,10 @@
 ## 1. 启动
 
 在解压后的 `code-agent/` 目录运行，推荐 Linux/WSL、Python ≥3.9。
-命令执行默认需要 Bubblewrap，Ubuntu 可用 `sudo apt install bubblewrap` 安装。
+Ubuntu 首次使用可用 `sudo apt install python3-venv bubblewrap` 安装虚拟环境与命令隔离组件。
 
 ```bash
-python -m venv ~/.venvs/kytest-agent-homework
+python3 -m venv ~/.venvs/kytest-agent-homework
 source ~/.venvs/kytest-agent-homework/bin/activate
 python -m pip install -r requirements.txt
 python web.py
@@ -67,8 +67,10 @@ A4全部通过、检出3/4；此入口不重新调用模型。[样例说明](rot
 
 ## 5. 提交素材与证据
 
+- [57秒操作录屏](demo.mp4)：同一输入并行运行的实际操作；等待片段标注8倍速，
+  操作与结果保持原速。此轮 A4 检出4/4，与下方保存案例的3/4来自不同运行。
 - [对比界面截图](demo-rotation.png)
-- [演示视频](demo-rotation.webm)：真实运行完成后的结果回顾，生成在录制前完成；
+- [保存案例结果回顾](demo-rotation.webm)：真实运行完成后的结果回顾，生成在录制前完成；
   展示架构、共同输入、原始工具记录和质量评价。未加速、未剪辑，无音轨。
 - [架构图](agent-architecture.png)
 - `submission/evidence/ui-rotation.json`：本次选例、失败尝试、完整真实对比与验收记录。

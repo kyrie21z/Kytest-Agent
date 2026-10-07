@@ -191,7 +191,7 @@ def paired(table: dict[str, dict[str, dict]], a: str, b: str, field: str = "muta
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", default=str(REPO_ROOT / "results" / "v2_ablation"))
-    parser.add_argument("--write-docs", action="store_true", help="同步仓库中标记的当前实验表格")
+    parser.add_argument("--write-docs", action="store_true", help="同步分析报告中的标记表格")
     args = parser.parse_args(argv)
     source = Path(args.dir).resolve()
     out_dir = derive_results(source)
@@ -317,7 +317,6 @@ def render_tables(out_dir: Path, table: dict, results: dict, adjusted: dict) -> 
 def sync_document_tables(tables: dict[str, str]) -> None:
     updated = {}
     for path, names in (
-        (REPO_ROOT / "README.md", ("main",)),
         (REPO_ROOT / "results/v2_ablation/ANALYSIS.md", ("main", "paired", "cost", "curves")),
     ):
         text = path.read_text(encoding="utf-8")

@@ -1,32 +1,61 @@
-# Code Agent：代码助手与测试生成
+# Kytest Agent：Python 测试生成助手
 
-一个可通过CLI交互的代码助手，主要演示任务是为Python函数生成可运行的单元测试。
-核心流程是**输入 → LLM → 工具调用 → 工具结果回灌 → 输出**，运行层只依赖Python标准库。
+给定 Python 函数源码和任务，Kytest Agent 通过语言模型与文件、执行工具的循环生成 pytest 测试，并依据反馈修正。项目提供 CLI 和 Web 交互；Web 支持同一输入并行比较通用生成与契约候选验证，展示实际工具记录、测试质量和运行成本。
 
-## 1. 运行
+[快速开始](#快速开始) · [使用方式](#使用方式) · [结果与验证](#结果与验证) · [设计说明](Design.md) · [57秒演示视频](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.mp4)
 
-以下命令在包含`main.py`的项目根目录运行。
+![同一输入下的 A0 / A4 真实结果对比](https://raw.githubusercontent.com/kyrie21z/Kytest-Agent/main/docs/demo-overview.png)
 
-Python ≥3.9。命令执行默认使用Linux/WSL的Bubblewrap隔离；Ubuntu可用
-`sudo apt install bubblewrap`安装。测试依赖用以下命令安装：
+截图来自已保存的 MBPP/304 真实案例：A0 有6项失败，A4 全部通过、检出3/4个固定故障。视频展示同一题的另一轮实际执行，等待片段标注8倍速，操作与结果保持原速。两者均为筛选的展示样例，新运行结果可能不同；[案例说明](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/rotation-example.md)给出保存记录的评价口径。
+
+## 快速开始
+
+推荐 **Ubuntu 或 Ubuntu WSL、Python ≥3.9**。以下命令在包含 `main.py`、`web.py` 和 `requirements.txt` 的项目根目录执行。首次体验无需模型密钥。
+
+Ubuntu/WSL 首次使用时安装虚拟环境与命令隔离组件：
 
 ```bash
-python -m pip install -r requirements.txt
-
-# 不需要密钥：用脚本化模型、真实文件工具和pytest演示完整闭环
-python scripts/demo_offline.py
-# 预期：生成5项测试并实际执行，通过后报告任务完成
-
-# Web交互：打开 http://127.0.0.1:8765
-python web.py
-
-# CLI离线交互；Mock明确标记，不作为真实模型效果证据
-python main.py -C examples --mock --no-session --print "解释 solution.py"
+sudo apt install python3-venv bubblewrap
 ```
 
-## 2. 使用真实模型
+创建虚拟环境、安装依赖并启动 Web：
 
-复制`.env.example`为`.env`，填写自己的OpenAI兼容服务配置：
+```bash
+python3 -m venv ~/.venvs/kytest-agent-homework
+source ~/.venvs/kytest-agent-homework/bin/activate
+python -m pip install -r requirements.txt
+python web.py
+```
+
+打开 **http://127.0.0.1:8765**，点击 **“查看已保存差异案例”**，即可查看原始工具轨迹、两组测试与质量结果。该入口读取保存记录，不重新请求模型。
+
+Agent 核心使用 Python 标准库；pytest 用于执行测试，coverage 用于覆盖率测量，SciPy 用于统计复核。默认执行隔离依赖 Bubblewrap，虚拟环境放在 Linux 文件系统中可避免含空格路径带来的执行问题。按 Ctrl-C 结束 Web 服务。
+
+## 使用方式
+
+### 选择体验方式
+
+| 方式 | 需要密钥 | 实际发生什么 |
+|---|---|---|
+| 已保存差异案例 | 否 | 展示此前真实模型运行的公开事件、产物与结果，不产生新调用 |
+| 离线演示 · 脚本化 | 否 | 使用固定模型响应，实际执行文件工具、候选验证和 pytest，演示控制流程 |
+| 真实模型 | 是 | 当场请求配置的模型并执行工具，结果与耗时可能变化 |
+
+离线脚本对比中，两组最终测试相同，A4 包含刻意错误候选，用于观察拒绝与修正；其质量和模拟用量不能作为真实模型成绩。
+
+### 在 Web 中完成一次对比
+
+1. 查看 A0/A4 机制卡片与架构图，确认两种生成方式的差异。
+2. 在真实模式选择或编辑源码与任务；离线脚本模式使用固定示例。
+3. 点击 **“同一输入对比 A0 / A4”**，两组同时启动，共享输入和配置，各用独立工作区与状态。
+4. 查看模型公开说明、工具参数及返回结果；展开 A4 候选，检查契约依据、拒绝原因和接受记录。
+5. 在结果卡片与“质量评价”中检查有效性、覆盖率、固定故障检出和成本，下载测试、验证报告与运行记录。
+
+取消“跟随最新”可检查历史事件；点击“停止两组”取消后续动作，当前请求或工具需要先结束。详细操作见 [演示说明](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.md)。
+
+### 配置真实模型
+
+在项目根目录复制 `.env.example` 为 `.env`，填写支持工具调用的 OpenAI 兼容服务配置：
 
 ```dotenv
 LLM_API_KEY=你的密钥
@@ -34,84 +63,85 @@ LLM_BASE_URL=服务的兼容API地址
 LLM_MODEL=支持工具调用的模型名
 ```
 
-```bash
-# 默认通用Agent，可连续对话；exit退出，Ctrl-C中止当前任务
-python main.py -C examples
+三项都填写后重启 `python web.py`，再选择“真实模型”。对比会同时运行两个 Agent，各自产生模型请求；界面显示返回用量与实际耗时。密钥保留在服务端，`.env` 不进入 Git。
 
-# 可选测试生成模式：候选契约、逐条验证、保留已接受测试
+### 使用命令行
+
+候选验证模式的示例命令：
+
+```bash
 python main.py -C examples --test-generation --max-turns 12 \
   --max-output-tokens 4096 --max-tokens 30000 \
-  --print "为 solution.py 生成测试，覆盖正常值和包含边界"
-
-# 可选开发故障反馈；仍属实验功能
-python main.py -C examples --fault-feedback --max-turns 12 \
-  --print "为 solution.py 生成测试"
+  --print "为 solution.py 生成 pytest 测试，覆盖正常值与包含边界"
 ```
 
-示例函数`classify(value, low, high)`约定：区间内返回0，下方返回−1，上方返回1。
-例如`classify(2, 2, 8) == 0`。测试生成模式输出`test_solution.py`及
-`testgen_report.json`；反馈模式另有`fault_feedback.json`。
+`examples/solution.py` 中的 `classify` 约定：区间内返回0，下方返回−1，上方返回1；例如 `classify(2, 2, 8) == 0`。将 `-C examples` 换成自己的函数工作区，确保其中包含 `solution.py`。策略选项可以按下表替换：
 
-`.env`不进入提交包；缺少模型配置时CLI明确提示退回Mock。`--mode json`输出
-逐行事件，普通`--print`只向stdout写最终回答。默认会话保存到工作区的`.sessions/`。
+| 策略 | 命令选项 | 处理方式 |
+|---|---|---|
+| A0：通用 | 去掉 `--test-generation` | 模型自主读取、写入和运行测试 |
+| A4：候选验证 | `--test-generation` | 提交契约依据，逐条验证、合并回归并保留接受项 |
+| A5：开发故障反馈 | `--fault-feedback` | 在候选验证上追加有界开发故障反馈，属于可选实验机制 |
 
-## 3. 验证
+去掉 `--print` 进入连续对话，输入 `exit` 退出；Ctrl-C 中止当前任务。`--mode json` 输出逐行事件，`--no-session` 关闭默认保存到工作区 `.sessions/` 的脱敏轨迹。完整参数见 `python main.py --help`。
+
+CLI 缺少模型配置时会明确提示使用 Mock；需要真实生成时先检查配置。Web 的真实模式在缺少配置时不可选，两种入口均区分离线与真实运行。
+
+## 结果与验证
+
+### 产物与指标
+
+CLI 的测试文件写入 `-C` 指定的工作区；Web 使用临时工作区，结果通过页面下载，需在结束服务前保存。
+
+| 产物 | 内容 |
+|---|---|
+| `test_solution.py` | 最终测试套件 |
+| `testgen_report.json` | A4/A5 候选依据、接受与拒绝记录、验证状态 |
+| `fault_feedback.json` | A5 开发故障反馈与增量记录 |
+| 运行记录 | 模型公开说明、工具参数与返回、结束原因和成本；Web 可下载，CLI 可保存会话轨迹 |
+
+结果应分别查看以下指标：
+
+| 指标 | 含义 |
+|---|---|
+| 测试有效性 | 实际执行、参考通过且目标源码未改写；空测试与全部跳过不算有效 |
+| 语句/分支覆盖率 | 已执行代码路径的比例，不能替代断言的判别力 |
+| 固定故障检出 | 有效测试在匹配样例的固定故障池上确认识别的错误，参考失败时不计分 |
+| 运行成本 | 轮次、Agent 工具调用、输入/输出 token 和耗时；系统验证及最终评价开销分别记录 |
+
+Web 在生成结束后对两组执行同样的独立评价，结果不回灌模型。未配置的故障池和未测量指标明确标注，不能当作0分。参考通过表示与参考实现一致，不认证所有预期值正确；固定池检出也不代表能发现任意真实项目缺陷。
+
+### 运行工程与统计检查
 
 ```bash
 python -m pytest tests/ -q
 python scripts/reproduce_submission.py
 ```
 
-前者验证提交包内的核心回归子集；完整研究回归保留在仓库。后者从280行派生
-记录重算两组实验均值和配对统计，不请求模型、不重写历史记录。
-已从ZIP独立解压验证：296项通过、4项Windows专用检查跳过；环境为Python
-3.13.13、pytest 9.1.1、SciPy 1.18.1。回执见`submission/evidence/acceptance.json`。
-真实模型工具闭环样例见`submission/evidence/real_run/`，为明确标注的展示样例。
+第一条执行工程回归；第二条核对280行既有实验记录的成员、固定分母、均值与配对统计，成功时输出 `all_matches: true`。两条均不需要模型密钥，不重新生成测试或改写原始实验记录。
 
-## Web操作与一分钟视频
+不启动浏览器也可运行一次完整离线工具闭环：
 
-启动 `python web.py` 后，先查看 A0 / A4 机制卡片，展示共同源码和任务，再点击
-“同一输入对比 A0 / A4”。两组同时执行；界面展示架构、逐轮公开说明、工具参数与结果，以及醒目的成本统计；
-A4 额外展示候选依据与拒绝记录。共同评价展示通过情况、覆盖率及示例固定故障检出；
-可下载测试、验证/质量报告及完整运行记录。
-真实模式分别请求同一模型；脚本模式两组最终测试相同，A4 含刻意错误候选，
-只用于演示验证机制。停止与刷新支持整个对比。
+```bash
+python scripts/demo_offline.py
+```
 
-[具体操作与录制流程](docs/demo.md)；[一分钟真实结果回顾](docs/demo-rotation.webm)。
-视频展示录制前已完成的真实运行、原始工具记录和质量评价。
-推荐点击“查看已保存差异案例”：A0有6项失败，A4全部通过、检出3/4个故障；
-[旋转数组案例](docs/rotation-example.md)保留完整口径与选例说明，新运行可能不同。
+预期观察到源码读取、测试写入与实际 pytest 执行，5项测试通过并报告任务完成。这验证控制流程，模型响应由脚本提供，不用于衡量模型能力。
 
-## 4. 设计与实验结论
+### 实验结论
 
-- [Design.md](Design.md)：组件职责、执行流程、接口、错误处理与取舍。
-- [EXPERIMENTS.md](EXPERIMENTS.md)：A0～A5定义、两组主要对照及证据边界。
+在 MBPP 的20题、每配置三次对照中，A0 有效产出49/60，A4 与 A5 各59/60；A4 确认独立检出率为74.94%，A0 为68.81%。观察差值未通过预设统计验收，尚不能认定总体质量优势，因此默认保留通用 Agent，A4/A5 为可选机制。完整配置、结果与证据边界见 [实验摘要](EXPERIMENTS.md)。
 
-默认保留通用Agent。最新20题重复实验中，A0/A4/A5确认独立检出率为
-68.81%/74.94%/74.90%，**质量优势未通过预设统计验收**。功能可运行与总体质量
-提升是两个不同结论；覆盖率、参考通过也不能代替有效断言与故障判别力。
-
-## 5. 常见问题与范围
+## 常见问题与范围
 
 | 问题 | 处理 |
 |---|---|
-| 没有API Key | 可运行离线演示；真实模型任务需自行配置 |
-| pytest不可用 | 在启动Agent的同一Python环境安装requirements |
-| Bubblewrap不可用 | 默认拒绝执行；可用`disabled`禁用命令，或明确选择`trusted`处理受信本机代码，后者拥有宿主权限 |
-| 工具参数、路径或调用失败 | 作为可定位的观察结果回灌；按步骤、请求及命令边界结束 |
-| 测试通过但发现不了缺陷 | 通过只说明兼容参考；检查独立预期值和能区分错误行为的边界输入 |
+| 没有密钥或真实模式不可选 | 可查看保存案例或运行脚本演示；真实生成需填写三项模型配置并重启 Web |
+| pytest/coverage 不可用 | 激活启动 Agent 的虚拟环境，在同一解释器中运行 `python -m pip install -r requirements.txt` |
+| Bubblewrap 不可用或隔离失败 | 检查安装及系统用户命名空间支持；默认拒绝执行。保存案例仍可查看；`trusted` 仅用于受信本机代码，拥有宿主权限 |
+| 8765端口占用 | 运行 `python web.py --port 0`，打开终端打印的实际地址 |
+| 运行等待过久或预算结束 | 查看请求、工具及结束状态；可停止后续动作，当前请求或工具需先结束。累计 token 与任务时间为轮间软限制 |
 
-支持函数级Python测试生成，不承诺任意仓库环境、所有自然语言契约或复杂oracle
-都可自动验证。总token预算在请求之间检查，是软上限。
+项目支持自包含的 Python 函数测试，不自动处理任意仓库的依赖、服务与集成环境。候选验证限制测试形式；复杂契约和预期值仍需审核。总体质量判断依据完整实验，展示样例只代表对应运行。
 
-## 提交与档案
-
-```bash
-python scripts/build_submission.py --output /tmp/code-agent-coursework
-```
-
-此命令按白名单构建提交目录及ZIP：保留运行代码、核心回归、演示和精简证据。
-完整研究仓库：[Kytest-Agent](https://github.com/kyrie21z/Kytest-Agent)；
-[精简前冻结版本](https://github.com/kyrie21z/Kytest-Agent/tree/e34bb5c8770f85815612e5669a50a02a0c5f5532)
-保留全部历史实验、源码快照和详细报告。作业原要求提交压缩包小于200M，
-最终上传时应以“学号姓名”命名；本项目不包含身份信息或可选视频。
+[Design.md](Design.md)说明架构、机制和设计取舍；[实验摘要](EXPERIMENTS.md)报告 A0～A5 配置与实验依据；[操作说明](https://github.com/kyrie21z/Kytest-Agent/blob/main/docs/demo.md)提供详细页面操作和评价口径。
