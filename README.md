@@ -4,6 +4,9 @@
 [实验摘要](submission/EXPERIMENTS.md)。运行`python scripts/build_submission.py --output /tmp/code-agent-coursework`
 构建白名单提交包；下文保留完整研究说明。
 
+**Web演示：** `python web.py`启动本地界面，打开`http://127.0.0.1:8765`。
+具体操作及一分钟录制流程见[演示说明](docs/demo.md)。Web与CLI复用同一Agent核心。
+
 一个**零第三方依赖**的编码 Agent：实现「输入 → 推理 → 工具调用 → 观察 → 输出」的完整
 Agent 循环，可通过命令行交互。它同时是"测试生成 Agent"实验的通用基线（A0）。
 

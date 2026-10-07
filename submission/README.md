@@ -17,6 +17,9 @@ python -m pip install -r requirements.txt
 python scripts/demo_offline.py
 # 预期：生成5项测试并实际执行，通过后报告任务完成
 
+# Web交互：打开 http://127.0.0.1:8765
+python web.py
+
 # CLI离线交互；Mock明确标记，不作为真实模型效果证据
 python main.py -C examples --mock --no-session --print "解释 solution.py"
 ```
@@ -61,9 +64,18 @@ python scripts/reproduce_submission.py
 
 前者验证提交包内的核心回归子集；完整研究回归保留在仓库。后者从280行派生
 记录重算两组实验均值和配对统计，不请求模型、不重写历史记录。
-已从ZIP独立解压验证：258项通过、4项Windows专用检查跳过；环境为Python
+已从ZIP独立解压验证：282项通过、4项Windows专用检查跳过；环境为Python
 3.13.13、pytest 9.1.1、SciPy 1.18.1。回执见`submission/evidence/acceptance.json`。
 真实模型工具闭环样例见`submission/evidence/real_run/`，为明确标注的展示样例。
+
+## Web操作与一分钟视频
+
+启动`python web.py`后，在浏览器选择模型模式，展示示例源码和任务，点击
+“开始生成”。右侧实时显示工具调用，结束后查看最终pytest复验并下载测试。
+真实模型使用项目`.env`；离线模式仅运行标注的固定脚本示例，工具和执行均为真实。
+可切换A0与可选A4策略；停止是协作式，刷新页面可恢复最近一次运行。
+
+[具体操作与录制流程](docs/demo.md)；演示视频和页面截图见`docs/`。
 
 ## 4. 设计与实验结论
 
