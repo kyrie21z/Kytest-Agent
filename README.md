@@ -7,6 +7,9 @@ Agent 循环，可通过命令行交互。它同时是"测试生成 Agent"实验
 及独立开发故障反馈。有效开发对照的30个run中，A0/A4通过率和杀伤率均为100%，
 A4 token约增加0.4%、生成时间约增加51%，未显示质量收益，因此不替换默认模式。
 结果见 [开发试验报告](results/testgen_pilot_v2/report.md)。环境诊断轮v1已标记不可比。
+正式20例的新A0/A4对照已完成：A4通过率100%（A0为90%），有效杀伤率69.27%
+（A0为66.44%），差2.83个百分点未检出显著性；token增加15.8%，生成时间增加52.2%。
+结果见 [正式20例报告](results/testgen_formal_v1/report.md)，新旧A0分数不混入配对。
 A0–A3 的80份记录属于历史版本（v2 难例集20例），历史结论不自动适用于修复后实现。结论与数据见
 [Design.md](Design.md) 与 [results/v2_ablation/ANALYSIS.md](results/v2_ablation/ANALYSIS.md)。
 
@@ -85,6 +88,25 @@ python scripts/demo_testgen.py
 ```
 
 演示使用脚本化LLM和真实验证工具，不作为模型效果证据。
+
+### A4正式20例评测
+
+使用固定v2难例集，新A0和A4各20个run、同模型/预算/环境；每条件每例只采样一次。
+主指标要求参考实现通过且未改写SUT，否则有效杀伤率为0，避免失败断言虚增分数。
+平均差+2.83个百分点，95%配对bootstrap区间[-6.01,+12.71]，Wilcoxon p=0.4652；
+改善/持平/退步为2/16/2。不能据此证明总体收益或质量等价。
+
+```bash
+# 只生成报告，不调用模型
+python scripts/run_testgen_formal.py --report-only
+
+# 新模型采样必须使用新目录，不能改写已冻结记录
+python scripts/run_testgen_formal.py --output results/testgen_formal_new
+```
+
+协议见 [docs/testgen-formal.md](docs/testgen-formal.md)，逐实例解释见
+[CASE_ANALYSIS.md](results/testgen_formal_v1/CASE_ANALYSIS.md)。测试262项通过、4项Windows
+检查跳过。该集已有历史评测和失败分析，不能称为全新未见保留集。
 
 ### 独立开发故障反馈（A5）
 

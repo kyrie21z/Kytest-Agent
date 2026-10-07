@@ -1,0 +1,432 @@
+{
+  "instance_id": "HumanEval/31",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 1,
+    "tool_calls_skipped": 0,
+    "input_tokens": 24202,
+    "output_tokens": 3987,
+    "total_tokens": 28189,
+    "final_text": "## Accepted Test Suite Summary\n\nAll **6 tests** were accepted by `submit_tests` and verified via `pytest`:\n\n| Test | What it covers | Fault hypothesis it detects |\n|---|---|---|\n| `test_small_primes` | Primes 2, 3, 5, 7 | Off-by-one skipping 2 or small primes |\n| `test_non_primes_small` | 0, 1, composites 4–15 | Missing `n <= 1` guard; loop range too short for 9 |\n| `test_negative_numbers` | -1, -2, -100 | Negative inputs bypassing the boundary check |\n| `test_perfect_squares_of_primes` | 4, 9, 25, 49, 121 | Square-root off-by-one (loop excludes √n) |\n| `test_larger_primes_from_docstring` | 61, 101, 13441 | Inaccurate square-root computation for larger numbers |\n| `test_even_composites` | 2 (even prime), 4, 12, 100, 1000 | Misclassifying 2 as non-prime; missing factor-2 detection |\n\n### Remaining Limitations\n\n1. **No large-number stress testing** — The implementation uses a linear square-root search (`while n_sqrt ** 2 < n: n_sqrt += 1`), which is O(√n). Very large primes (e.g., >10⁶) could cause timeouts, but no such cases are tested.\n2. **No type-checking for non-integers** — The contract doesn't specify behavior for floats, strings, or `None`. Passing e.g. `is_prime(3.0)` or `is_prime(\"7\")` may produce unexpected results that aren't covered.\n3. **No twin-prime / gap analysis** — Tests don't verify sequences of consecutive primes or gaps between them.\n4. **Single function only** — `solution.py` contains only `is_prime`, so there's no multi-function interaction to test.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.022,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 28 行，显示第 1-28 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.056,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_small_primes",
+              "code": "from solution import is_prime\n\ndef test_small_primes():\n    \"\"\"Verify that the smallest primes (2, 3, 5, 7) are correctly identified.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True\n    assert is_prime(3) is True\n    assert is_prime(5) is True\n    assert is_prime(7) is True\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Small positive integers 2, 3, 5, 7 — the first four primes.",
+              "oracle_reason": "By definition, a prime has exactly two distinct positive divisors (1 and itself). 2, 3, 5, 7 each satisfy this.",
+              "fault_hypothesis": "A buggy implementation might skip 2 or misclassify small odd numbers due to off-by-one in the loop range."
+            },
+            {
+              "name": "test_non_primes_small",
+              "code": "from solution import is_prime\n\ndef test_non_primes_small():\n    \"\"\"Verify that small composite numbers and 0, 1 return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(0) is False\n    assert is_prime(1) is False\n    assert is_prime(4) is False\n    assert is_prime(6) is False\n    assert is_prime(8) is False\n    assert is_prime(9) is False\n    assert is_prime(10) is False\n    assert is_prime(15) is False\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Small non-negative integers 0-10 plus 15, including 0, 1, and composites.",
+              "oracle_reason": "0 and 1 have fewer than 2 positive divisors; 4, 6, 8, 9, 10, 15 each have at least one divisor other than 1 and themselves.",
+              "fault_hypothesis": "An implementation might fail on 0 or 1 if it doesn't check n <= 1, or miss 9 if the loop range stops too early."
+            },
+            {
+              "name": "test_negative_numbers",
+              "code": "from solution import is_prime\n\ndef test_negative_numbers():\n    \"\"\"Negative numbers are not prime.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(-1) is False\n    assert is_prime(-2) is False\n    assert is_prime(-100) is False\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Negative integers -1, -2, -100.",
+              "oracle_reason": "Primes are defined as positive integers greater than 1 with exactly two distinct positive divisors.",
+              "fault_hypothesis": "If the n <= 1 guard is missing or incorrect, negatives could enter the loop and produce wrong results."
+            },
+            {
+              "name": "test_perfect_squares_of_primes",
+              "code": "from solution import is_prime\n\ndef test_perfect_squares_of_primes():\n    \"\"\"Perfect squares of primes (4, 9, 25, 49, 121) must return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(4) is False   # 2^2\n    assert is_prime(9) is False   # 3^2\n    assert is_prime(25) is False  # 5^2\n    assert is_prime(49) is False  # 7^2\n    assert is_prime(121) is False # 11^2\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Perfect squares of small primes: 4, 9, 25, 49, 121.",
+              "oracle_reason": "Each is divisible by its prime base (e.g., 9 % 3 == 0), so they have more than two divisors.",
+              "fault_hypothesis": "If the loop range excludes the square root (off-by-one), a perfect square like 9 might incorrectly pass as prime."
+            },
+            {
+              "name": "test_larger_primes_from_docstring",
+              "code": "from solution import is_prime\n\ndef test_larger_primes_from_docstring():\n    \"\"\"Test the larger primes cited in the docstring examples.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(61) is True\n    assert is_prime(101) is True\n    assert is_prime(13441) is True\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Larger primes 61, 101, 13441 from the docstring doctests.",
+              "oracle_reason": "These are well-known primes verified independently; 13441 has no divisors up to its square root (~116).",
+              "fault_hypothesis": "A performance-limited or truncated loop might miss factors for larger numbers, or the square-root computation could be inaccurate."
+            },
+            {
+              "name": "test_even_composites",
+              "code": "from solution import is_prime\n\ndef test_even_composites():\n    \"\"\"All even numbers greater than 2 are composite.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True    # only even prime\n    assert is_prime(4) is False\n    assert is_prime(12) is False\n    assert is_prime(100) is False\n    assert is_prime(1000) is False\n",
+              "contract_quote": "Return true if a given number is prime, and false otherwise.",
+              "input_domain": "Even numbers 2, 4, 12, 100, 1000.",
+              "oracle_reason": "2 is the unique even prime. All other evens are divisible by 2, hence composite.",
+              "fault_hypothesis": "An implementation might incorrectly classify 2 as non-prime, or fail to detect divisibility by 2 for larger evens."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_small_primes\", \"contract_checks\": {\"sut_calls\": 4, \"checked_calls\": 0, \"unchecked_calls\": 4, \"violations\": []}, \"status\": \"AC"
+      },
+      {
+        "turn": 3,
+        "name": "write_file",
+        "is_error": true,
+        "duration_sec": 0.018,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "from solution import is_prime\n\n\ndef test_small_primes():\n    \"\"\"Verify that the …"
+        },
+        "first_line": "文件 `test_solution.py` 已存在。如确认覆盖，请显式传入 overwrite=true；或改用其他路径。"
+      },
+      {
+        "turn": 4,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.027,
+        "arguments": {
+          "content": "from solution import is_prime\n\n\ndef test_small_primes():\n    \"\"\"Verify that the …",
+          "path": "test_solution.py",
+          "overwrite": true
+        },
+        "first_line": "已写入 `test_solution.py`（2096 字符，59 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 5,
+        "name": "run_command",
+        "is_error": false,
+        "duration_sec": 0.3,
+        "arguments": {
+          "command": "python -m pytest test_solution.py -v"
+        },
+        "first_line": "$ python -m pytest test_solution.py -v"
+      }
+    ],
+    "generation_seconds": 37.986,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_small_primes",
+          "code": "from solution import is_prime\n\ndef test_small_primes():\n    \"\"\"Verify that the smallest primes (2, 3, 5, 7) are correctly identified.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True\n    assert is_prime(3) is True\n    assert is_prime(5) is True\n    assert is_prime(7) is True\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Small positive integers 2, 3, 5, 7 — the first four primes.",
+          "oracle_reason": "By definition, a prime has exactly two distinct positive divisors (1 and itself). 2, 3, 5, 7 each satisfy this.",
+          "fault_hypothesis": "A buggy implementation might skip 2 or misclassify small odd numbers due to off-by-one in the loop range."
+        },
+        {
+          "name": "test_non_primes_small",
+          "code": "from solution import is_prime\n\ndef test_non_primes_small():\n    \"\"\"Verify that small composite numbers and 0, 1 return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(0) is False\n    assert is_prime(1) is False\n    assert is_prime(4) is False\n    assert is_prime(6) is False\n    assert is_prime(8) is False\n    assert is_prime(9) is False\n    assert is_prime(10) is False\n    assert is_prime(15) is False\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Small non-negative integers 0-10 plus 15, including 0, 1, and composites.",
+          "oracle_reason": "0 and 1 have fewer than 2 positive divisors; 4, 6, 8, 9, 10, 15 each have at least one divisor other than 1 and themselves.",
+          "fault_hypothesis": "An implementation might fail on 0 or 1 if it doesn't check n <= 1, or miss 9 if the loop range stops too early."
+        },
+        {
+          "name": "test_negative_numbers",
+          "code": "from solution import is_prime\n\ndef test_negative_numbers():\n    \"\"\"Negative numbers are not prime.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(-1) is False\n    assert is_prime(-2) is False\n    assert is_prime(-100) is False\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Negative integers -1, -2, -100.",
+          "oracle_reason": "Primes are defined as positive integers greater than 1 with exactly two distinct positive divisors.",
+          "fault_hypothesis": "If the n <= 1 guard is missing or incorrect, negatives could enter the loop and produce wrong results."
+        },
+        {
+          "name": "test_perfect_squares_of_primes",
+          "code": "from solution import is_prime\n\ndef test_perfect_squares_of_primes():\n    \"\"\"Perfect squares of primes (4, 9, 25, 49, 121) must return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(4) is False   # 2^2\n    assert is_prime(9) is False   # 3^2\n    assert is_prime(25) is False  # 5^2\n    assert is_prime(49) is False  # 7^2\n    assert is_prime(121) is False # 11^2\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Perfect squares of small primes: 4, 9, 25, 49, 121.",
+          "oracle_reason": "Each is divisible by its prime base (e.g., 9 % 3 == 0), so they have more than two divisors.",
+          "fault_hypothesis": "If the loop range excludes the square root (off-by-one), a perfect square like 9 might incorrectly pass as prime."
+        },
+        {
+          "name": "test_larger_primes_from_docstring",
+          "code": "from solution import is_prime\n\ndef test_larger_primes_from_docstring():\n    \"\"\"Test the larger primes cited in the docstring examples.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(61) is True\n    assert is_prime(101) is True\n    assert is_prime(13441) is True\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Larger primes 61, 101, 13441 from the docstring doctests.",
+          "oracle_reason": "These are well-known primes verified independently; 13441 has no divisors up to its square root (~116).",
+          "fault_hypothesis": "A performance-limited or truncated loop might miss factors for larger numbers, or the square-root computation could be inaccurate."
+        },
+        {
+          "name": "test_even_composites",
+          "code": "from solution import is_prime\n\ndef test_even_composites():\n    \"\"\"All even numbers greater than 2 are composite.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True    # only even prime\n    assert is_prime(4) is False\n    assert is_prime(12) is False\n    assert is_prime(100) is False\n    assert is_prime(1000) is False\n",
+          "contract_quote": "Return true if a given number is prime, and false otherwise.",
+          "input_domain": "Even numbers 2, 4, 12, 100, 1000.",
+          "oracle_reason": "2 is the unique even prime. All other evens are divisible by 2, hence composite.",
+          "fault_hypothesis": "An implementation might incorrectly classify 2 as non-prime, or fail to detect divisibility by 2 for larger evens."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_small_primes",
+          "contract_checks": {
+            "sut_calls": 4,
+            "checked_calls": 0,
+            "unchecked_calls": 4,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_non_primes_small",
+          "contract_checks": {
+            "sut_calls": 8,
+            "checked_calls": 0,
+            "unchecked_calls": 8,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_negative_numbers",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_perfect_squares_of_primes",
+          "contract_checks": {
+            "sut_calls": 5,
+            "checked_calls": 0,
+            "unchecked_calls": 5,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_larger_primes_from_docstring",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_even_composites",
+          "contract_checks": {
+            "sut_calls": 5,
+            "checked_calls": 0,
+            "unchecked_calls": 5,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 1.982
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 8,
+    "executable_lines": 8,
+    "mutation_score": 0.7692,
+    "mutants_total": 13,
+    "mutants_killed": 10,
+    "mutants_errors": 1,
+    "mutants_survived": [
+      {
+        "mutant_id": "M4",
+        "operator": "CRP",
+        "line": 21,
+        "column": 13,
+        "description": "constant 1 -> 0"
+      },
+      {
+        "mutant_id": "M5",
+        "operator": "ROR",
+        "line": 22,
+        "column": 10,
+        "description": "Lt -> LtE"
+      }
+    ],
+    "mutant_operators": {
+      "ROR": 3,
+      "CRP": 5,
+      "RVR": 3,
+      "AOR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 2,
+      "CRP": 3,
+      "RVR": 3,
+      "AOR": 2
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 9.806
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.022,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 28 行，显示第 1-28 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.056,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_small_primes",
+            "code": "from solution import is_prime\n\ndef test_small_primes():\n    \"\"\"Verify that the smallest primes (2, 3, 5, 7) are correctly identified.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True\n    assert is_prime(3) is True\n    assert is_prime(5) is True\n    assert is_prime(7) is True\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Small positive integers 2, 3, 5, 7 — the first four primes.",
+            "oracle_reason": "By definition, a prime has exactly two distinct positive divisors (1 and itself). 2, 3, 5, 7 each satisfy this.",
+            "fault_hypothesis": "A buggy implementation might skip 2 or misclassify small odd numbers due to off-by-one in the loop range."
+          },
+          {
+            "name": "test_non_primes_small",
+            "code": "from solution import is_prime\n\ndef test_non_primes_small():\n    \"\"\"Verify that small composite numbers and 0, 1 return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(0) is False\n    assert is_prime(1) is False\n    assert is_prime(4) is False\n    assert is_prime(6) is False\n    assert is_prime(8) is False\n    assert is_prime(9) is False\n    assert is_prime(10) is False\n    assert is_prime(15) is False\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Small non-negative integers 0-10 plus 15, including 0, 1, and composites.",
+            "oracle_reason": "0 and 1 have fewer than 2 positive divisors; 4, 6, 8, 9, 10, 15 each have at least one divisor other than 1 and themselves.",
+            "fault_hypothesis": "An implementation might fail on 0 or 1 if it doesn't check n <= 1, or miss 9 if the loop range stops too early."
+          },
+          {
+            "name": "test_negative_numbers",
+            "code": "from solution import is_prime\n\ndef test_negative_numbers():\n    \"\"\"Negative numbers are not prime.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(-1) is False\n    assert is_prime(-2) is False\n    assert is_prime(-100) is False\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Negative integers -1, -2, -100.",
+            "oracle_reason": "Primes are defined as positive integers greater than 1 with exactly two distinct positive divisors.",
+            "fault_hypothesis": "If the n <= 1 guard is missing or incorrect, negatives could enter the loop and produce wrong results."
+          },
+          {
+            "name": "test_perfect_squares_of_primes",
+            "code": "from solution import is_prime\n\ndef test_perfect_squares_of_primes():\n    \"\"\"Perfect squares of primes (4, 9, 25, 49, 121) must return False.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(4) is False   # 2^2\n    assert is_prime(9) is False   # 3^2\n    assert is_prime(25) is False  # 5^2\n    assert is_prime(49) is False  # 7^2\n    assert is_prime(121) is False # 11^2\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Perfect squares of small primes: 4, 9, 25, 49, 121.",
+            "oracle_reason": "Each is divisible by its prime base (e.g., 9 % 3 == 0), so they have more than two divisors.",
+            "fault_hypothesis": "If the loop range excludes the square root (off-by-one), a perfect square like 9 might incorrectly pass as prime."
+          },
+          {
+            "name": "test_larger_primes_from_docstring",
+            "code": "from solution import is_prime\n\ndef test_larger_primes_from_docstring():\n    \"\"\"Test the larger primes cited in the docstring examples.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(61) is True\n    assert is_prime(101) is True\n    assert is_prime(13441) is True\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Larger primes 61, 101, 13441 from the docstring doctests.",
+            "oracle_reason": "These are well-known primes verified independently; 13441 has no divisors up to its square root (~116).",
+            "fault_hypothesis": "A performance-limited or truncated loop might miss factors for larger numbers, or the square-root computation could be inaccurate."
+          },
+          {
+            "name": "test_even_composites",
+            "code": "from solution import is_prime\n\ndef test_even_composites():\n    \"\"\"All even numbers greater than 2 are composite.\"\"\"\n    contract_quote = \"Return true if a given number is prime, and false otherwise.\"\n    assert is_prime(2) is True    # only even prime\n    assert is_prime(4) is False\n    assert is_prime(12) is False\n    assert is_prime(100) is False\n    assert is_prime(1000) is False\n",
+            "contract_quote": "Return true if a given number is prime, and false otherwise.",
+            "input_domain": "Even numbers 2, 4, 12, 100, 1000.",
+            "oracle_reason": "2 is the unique even prime. All other evens are divisible by 2, hence composite.",
+            "fault_hypothesis": "An implementation might incorrectly classify 2 as non-prime, or fail to detect divisibility by 2 for larger evens."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_small_primes\", \"contract_checks\": {\"sut_calls\": 4, \"checked_calls\": 0, \"unchecked_calls\": 4, \"violations\": []}, \"status\": \"AC"
+    },
+    {
+      "turn": 3,
+      "name": "write_file",
+      "is_error": true,
+      "duration_sec": 0.018,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "from solution import is_prime\n\n\ndef test_small_primes():\n    \"\"\"Verify that the …"
+      },
+      "first_line": "文件 `test_solution.py` 已存在。如确认覆盖，请显式传入 overwrite=true；或改用其他路径。"
+    },
+    {
+      "turn": 4,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.027,
+      "arguments": {
+        "content": "from solution import is_prime\n\n\ndef test_small_primes():\n    \"\"\"Verify that the …",
+        "path": "test_solution.py",
+        "overwrite": true
+      },
+      "first_line": "已写入 `test_solution.py`（2096 字符，59 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 5,
+      "name": "run_command",
+      "is_error": false,
+      "duration_sec": 0.3,
+      "arguments": {
+        "command": "python -m pytest test_solution.py -v"
+      },
+      "first_line": "$ python -m pytest test_solution.py -v"
+    }
+  ],
+  "started_at": 1791333339.8983192,
+  "duration_sec": 47.878,
+  "tests_chars": 2563
+}

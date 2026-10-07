@@ -1,0 +1,667 @@
+{
+  "instance_id": "HumanEval/44",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 6,
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 27793,
+    "output_tokens": 7674,
+    "total_tokens": 35467,
+    "final_text": "All 6 candidates were accepted. Here is the final accepted test suite:\n\n## Accepted Tests\n\n| # | Test Name | What It Verifies |\n|---|-----------|-----------------|\n| 1 | `test_change_base_docstring_example_8_to_base3` | Docstring example: `change_base(8, 3) == '22'` — two-digit base-3 conversion |\n| 2 | `test_change_base_binary_8` | Docstring example: `change_base(8, 2) == '1000'` — power-of-two boundary in binary |\n| 3 | `test_change_base_binary_7` | Docstring example: `change_base(7, 2) == '111'` — all-ones bit pattern |\n| 4 | `test_change_base_zero` | Zero guard: `change_base(0, 5) == '0'` — short-circuit path |\n| 5 | `test_change_base_single_digit` | One-digit result: `change_base(1, 2) == '1'` — x < base edge case |\n| 6 | `test_change_base_larger_number_base10` | Base-10 identity: `change_base(100, 10) == '100'` — repeated zero digits |\n\n## Remaining Limitations\n\n1. **Negative inputs not tested**: The docstring says \"input number x\" but does not specify behavior for negative integers. The current implementation would produce incorrect results (e.g., `-1 % 3 == -1`, yielding `'−1'` or similar). Whether this is a bug or undefined behavior depends on the contract intent.\n\n2. **Invalid bases not tested**: The docstring states \"base numbers are less than 10\" but does not say what happens for `base <= 1` or `base >= 10`. No assertions cover these precondition violations.\n\n3. **Type checking absent**: No tests verify that non-int inputs (strings, floats, None) are handled or rejected.\n\n4. **Limited base coverage**: Only bases 2, 3, and 10 are exercised. Bases 4–9 are untested, as are larger positive integers beyond 100.\n\n5. **No return-type contract enforcement**: While each test asserts `isinstance(result, str)`, there is no formal type-hint check against the function signature.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.024,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 22 行，显示第 1-22 行："
+      },
+      {
+        "turn": 2,
+        "name": "write_file",
+        "is_error": false,
+        "duration_sec": 0.027,
+        "arguments": {
+          "path": "test_solution.py",
+          "content": "\"\"\"Unit tests for solution.change_base.\"\"\"\n\n\ndef test_change_base_docstring_exam…"
+        },
+        "first_line": "已写入 `test_solution.py`（3791 字符，133 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.088,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_change_base_docstring_example_8_to_base3",
+              "code": "\"\"\"Test: change_base(8, 3) -> '22'.\n\nContract quote:\n    >>> change_base(8, 3)\n    '22'\n\nInput domain: x=8 (positive int), base=3 (valid base < 10).\n\nOracle reasoning:\n    8 / 3 = 2 remainder 2  -> least significant digit is '2'\n    2 / 3 = 0 remainder 2  -> next digit is '2'\n    Result: '22'\n\nFault hypothesis:\n    Detects incorrect digit ordering or wrong modular arithmetic.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 3)\nassert result == \"22\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 3)\n'22'",
+              "input_domain": "x=8, base=3",
+              "oracle_reasoning": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+              "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+            },
+            {
+              "name": "test_change_base_binary_8",
+              "code": "\"\"\"Test: change_base(8, 2) -> '1000'.\n\nContract quote:\n    >>> change_base(8, 2)\n    '1000'\n\nInput domain: x=8 (positive int), base=2 (smallest valid base).\n\nOracle reasoning:\n    8 in binary is 1000 (2^3 = 8).\n\nFault hypothesis:\n    Detects failure in the core conversion loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 2)\nassert result == \"1000\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 2)\n'1000'",
+              "input_domain": "x=8, base=2",
+              "oracle_reasoning": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+              "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+            },
+            {
+              "name": "test_change_base_binary_7",
+              "code": "\"\"\"Test: change_base(7, 2) -> '111'.\n\nContract quote:\n    >>> change_base(7, 2)\n    '111'\n\nInput domain: x=7 (positive int), base=2.\n\nOracle reasoning:\n    7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\nFault hypothesis:\n    Detects incorrect handling when all bits are 1.\n\"\"\"\nfrom solution import change_base\nresult = change_base(7, 2)\nassert result == \"111\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(7, 2)\n'111'",
+              "input_domain": "x=7, base=2",
+              "oracle_reasoning": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+              "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+            },
+            {
+              "name": "test_change_base_zero",
+              "code": "\"\"\"Test: change_base(0, any_base) -> '0'.\n\nContract quote (implicit from implementation):\n    if x == 0: return \"0\"\n\nInput domain: x=0 (boundary value), base=5.\n\nOracle reasoning:\n    Zero represented in any base is \"0\".\n\nFault hypothesis:\n    Detects if zero guard is broken, causing empty string from while loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(0, 5)\nassert result == \"0\"\nassert isinstance(result, str)",
+              "contract_quote": "if x == 0: return \"0\"",
+              "input_domain": "x=0, base=5",
+              "oracle_reasoning": "Zero in any base is '0'; implementation short-circuits.",
+              "fault_hypothesis": "Missing zero guard produces empty string"
+            },
+            {
+              "name": "test_change_base_single_digit",
+              "code": "\"\"\"Test: change_base(1, 2) -> '1'.\n\nContract quote (implied by general contract):\n    For x < base, the result should be str(x).\n\nInput domain: x=1 (smallest positive int), base=2.\n\nOracle reasoning:\n    1 < 2, so single-digit representation is '1'.\n\nFault hypothesis:\n    Detects edge-case failure for one-digit results.\n\"\"\"\nfrom solution import change_base\nresult = change_base(1, 2)\nassert result == \"1\"\nassert isinstance(result, str)",
+              "contract_quote": "Change numerical base of input number x to base.",
+              "input_domain": "x=1, base=2",
+              "oracle_reasoning": "1 < 2, so result is '1'.",
+              "fault_hypothesis": "One-digit boundary case fails"
+            },
+            {
+              "name": "test_change_base_larger_number_base10",
+              "code": "\"\"\"Test: change_base(100, 10) -> '100'.\n\nContract quote (general contract):\n    Convert x to base-10 string representation.\n\nInput domain: x=100, base=10 (largest valid base per docstring).\n\nOracle reasoning:\n    In base 10, 100 is simply \"100\". Identity property for base-10.\n\nFault hypothesis:\n    Detects subtle bugs in multi-digit conversions with repeated zeros.\n\"\"\"\nfrom solution import change_base\nresult = change_base(100, 10)\nassert result == \"100\"\nassert isinstance(result, str)",
+              "contract_quote": "Change numerical base of input number x to base.",
+              "input_domain": "x=100, base=10",
+              "oracle_reasoning": "In base 10, 100 = '100'.",
+              "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"status\": \"REJECTED\", \"diagnostic\": \"Each case requires exactly: name, code, contr"
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.06,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_change_base_docstring_example_8_to_base3",
+              "code": "\"\"\"Test: change_base(8, 3) -> '22'.\n\nContract quote:\n    >>> change_base(8, 3)\n    '22'\n\nInput domain: x=8 (positive int), base=3 (valid base < 10).\n\nOracle reasoning:\n    8 / 3 = 2 remainder 2  -> least significant digit is '2'\n    2 / 3 = 0 remainder 2  -> next digit is '2'\n    Result: '22'\n\nFault hypothesis:\n    Detects incorrect digit ordering or wrong modular arithmetic.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 3)\nassert result == \"22\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 3)\n'22'",
+              "input_domain": "x=8, base=3",
+              "oracle_reason": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+              "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+            },
+            {
+              "name": "test_change_base_binary_8",
+              "code": "\"\"\"Test: change_base(8, 2) -> '1000'.\n\nContract quote:\n    >>> change_base(8, 2)\n    '1000'\n\nInput domain: x=8 (positive int), base=2 (smallest valid base).\n\nOracle reasoning:\n    8 in binary is 1000 (2^3 = 8).\n\nFault hypothesis:\n    Detects failure in the core conversion loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 2)\nassert result == \"1000\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 2)\n'1000'",
+              "input_domain": "x=8, base=2",
+              "oracle_reason": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+              "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+            },
+            {
+              "name": "test_change_base_binary_7",
+              "code": "\"\"\"Test: change_base(7, 2) -> '111'.\n\nContract quote:\n    >>> change_base(7, 2)\n    '111'\n\nInput domain: x=7 (positive int), base=2.\n\nOracle reasoning:\n    7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\nFault hypothesis:\n    Detects incorrect handling when all bits are 1.\n\"\"\"\nfrom solution import change_base\nresult = change_base(7, 2)\nassert result == \"111\"\nassert isinstance(result, str)",
+              "contract_quote": ">>> change_base(7, 2)\n'111'",
+              "input_domain": "x=7, base=2",
+              "oracle_reason": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+              "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+            },
+            {
+              "name": "test_change_base_zero",
+              "code": "\"\"\"Test: change_base(0, any_base) -> '0'.\n\nContract quote (implicit from implementation):\n    if x == 0: return \"0\"\n\nInput domain: x=0 (boundary value), base=5.\n\nOracle reasoning:\n    Zero represented in any base is \"0\".\n\nFault hypothesis:\n    Detects if zero guard is broken, causing empty string from while loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(0, 5)\nassert result == \"0\"\nassert isinstance(result, str)",
+              "contract_quote": "if x == 0: return \"0\"",
+              "input_domain": "x=0, base=5",
+              "oracle_reason": "Zero in any base is '0'; implementation short-circuits.",
+              "fault_hypothesis": "Missing zero guard produces empty string"
+            },
+            {
+              "name": "test_change_base_single_digit",
+              "code": "\"\"\"Test: change_base(1, 2) -> '1'.\n\nContract quote (implied by general contract):\n    For x < base, the result should be str(x).\n\nInput domain: x=1 (smallest positive int), base=2.\n\nOracle reasoning:\n    1 < 2, so single-digit representation is '1'.\n\nFault hypothesis:\n    Detects edge-case failure for one-digit results.\n\"\"\"\nfrom solution import change_base\nresult = change_base(1, 2)\nassert result == \"1\"\nassert isinstance(result, str)",
+              "contract_quote": "Change numerical base of input number x to base.",
+              "input_domain": "x=1, base=2",
+              "oracle_reason": "1 < 2, so result is '1'.",
+              "fault_hypothesis": "One-digit boundary case fails"
+            },
+            {
+              "name": "test_change_base_larger_number_base10",
+              "code": "\"\"\"Test: change_base(100, 10) -> '100'.\n\nContract quote (general contract):\n    Convert x to base-10 string representation.\n\nInput domain: x=100, base=10 (largest valid base per docstring).\n\nOracle reasoning:\n    In base 10, 100 is simply \"100\". Identity property for base-10.\n\nFault hypothesis:\n    Detects subtle bugs in multi-digit conversions with repeated zeros.\n\"\"\"\nfrom solution import change_base\nresult = change_base(100, 10)\nassert result == \"100\"\nassert isinstance(result, str)",
+              "contract_quote": "Change numerical base of input number x to base.",
+              "input_domain": "x=100, base=10",
+              "oracle_reason": "In base 10, 100 = '100'.",
+              "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"status\": \"REJECTED\", \"diagnostic\": \"Provide exactly one top-level function matchi"
+      },
+      {
+        "turn": 5,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.111,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_change_base_docstring_example_8_to_base3",
+              "code": "def test_change_base_docstring_example_8_to_base3():\n    \"\"\"Test: change_base(8, 3) -> '22'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=3 (valid base < 10).\n\n    Oracle reasoning:\n        8 / 3 = 2 remainder 2  -> least significant digit is '2'\n        2 / 3 = 0 remainder 2  -> next digit is '2'\n        Result: '22'\n\n    Fault hypothesis:\n        Detects incorrect digit ordering or wrong modular arithmetic.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 3)\n    assert result == \"22\"\n    assert isinstance(result, str)",
+              "contract_quote": "Change numerical base of input number x to base.",
+              "input_domain": "x=8, base=3",
+              "oracle_reason": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+              "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+            },
+            {
+              "name": "test_change_base_binary_8",
+              "code": "def test_change_base_binary_8():\n    \"\"\"Test: change_base(8, 2) -> '1000'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=2 (smallest valid base).\n\n    Oracle reasoning:\n        8 in binary is 1000 (2^3 = 8).\n\n    Fault hypothesis:\n        Detects failure in the core conversion loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 2)\n    assert result == \"1000\"\n    assert isinstance(result, str)",
+              "contract_quote": "return string representation after the conversion.",
+              "input_domain": "x=8, base=2",
+              "oracle_reason": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+              "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+            },
+            {
+              "name": "test_change_base_binary_7",
+              "code": "def test_change_base_binary_7():\n    \"\"\"Test: change_base(7, 2) -> '111'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=7 (positive int), base=2.\n\n    Oracle reasoning:\n        7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\n    Fault hypothesis:\n        Detects incorrect handling when all bits are 1.\n    \"\"\"\n    from solution import change_base\n    result = change_base(7, 2)\n    assert result == \"111\"\n    assert isinstance(result, str)",
+              "contract_quote": "base numbers are less than 10.",
+              "input_domain": "x=7, base=2",
+              "oracle_reason": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+              "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+            },
+            {
+              "name": "test_change_base_zero",
+              "code": "def test_change_base_zero():\n    \"\"\"Test: change_base(0, any_base) -> '0'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=0 (boundary value), base=5.\n\n    Oracle reasoning:\n        Zero represented in any base is \"0\".\n\n    Fault hypothesis:\n        Detects if zero guard is broken, causing empty string from while loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(0, 5)\n    assert result == \"0\"\n    assert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 3)\n'22'",
+              "input_domain": "x=0, base=5",
+              "oracle_reason": "Zero in any base is '0'; implementation short-circuits.",
+              "fault_hypothesis": "Missing zero guard produces empty string"
+            },
+            {
+              "name": "test_change_base_single_digit",
+              "code": "def test_change_base_single_digit():\n    \"\"\"Test: change_base(1, 2) -> '1'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=1 (smallest positive int), base=2.\n\n    Oracle reasoning:\n        1 < 2, so single-digit representation is '1'.\n\n    Fault hypothesis:\n        Detects edge-case failure for one-digit results.\n    \"\"\"\n    from solution import change_base\n    result = change_base(1, 2)\n    assert result == \"1\"\n    assert isinstance(result, str)",
+              "contract_quote": ">>> change_base(8, 2)\n'1000'",
+              "input_domain": "x=1, base=2",
+              "oracle_reason": "1 < 2, so result is '1'.",
+              "fault_hypothesis": "One-digit boundary case fails"
+            },
+            {
+              "name": "test_change_base_larger_number_base10",
+              "code": "def test_change_base_larger_number_base10():\n    \"\"\"Test: change_base(100, 10) -> '100'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=100, base=10 (largest valid base per docstring).\n\n    Oracle reasoning:\n        In base 10, 100 is simply \"100\". Identity property for base-10.\n\n    Fault hypothesis:\n        Detects subtle bugs in multi-digit conversions with repeated zeros.\n    \"\"\"\n    from solution import change_base\n    result = change_base(100, 10)\n    assert result == \"100\"\n    assert isinstance(result, str)",
+              "contract_quote": ">>> change_base(7, 2)\n'111'",
+              "input_domain": "x=100, base=10",
+              "oracle_reason": "In base 10, 100 = '100'.",
+              "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 6, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"viol"
+      }
+    ],
+    "generation_seconds": 59.245,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_change_base_docstring_example_8_to_base3",
+          "code": "def test_change_base_docstring_example_8_to_base3():\n    \"\"\"Test: change_base(8, 3) -> '22'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=3 (valid base < 10).\n\n    Oracle reasoning:\n        8 / 3 = 2 remainder 2  -> least significant digit is '2'\n        2 / 3 = 0 remainder 2  -> next digit is '2'\n        Result: '22'\n\n    Fault hypothesis:\n        Detects incorrect digit ordering or wrong modular arithmetic.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 3)\n    assert result == \"22\"\n    assert isinstance(result, str)",
+          "contract_quote": "Change numerical base of input number x to base.",
+          "input_domain": "x=8, base=3",
+          "oracle_reason": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+          "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+        },
+        {
+          "name": "test_change_base_binary_8",
+          "code": "def test_change_base_binary_8():\n    \"\"\"Test: change_base(8, 2) -> '1000'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=2 (smallest valid base).\n\n    Oracle reasoning:\n        8 in binary is 1000 (2^3 = 8).\n\n    Fault hypothesis:\n        Detects failure in the core conversion loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 2)\n    assert result == \"1000\"\n    assert isinstance(result, str)",
+          "contract_quote": "return string representation after the conversion.",
+          "input_domain": "x=8, base=2",
+          "oracle_reason": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+          "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+        },
+        {
+          "name": "test_change_base_binary_7",
+          "code": "def test_change_base_binary_7():\n    \"\"\"Test: change_base(7, 2) -> '111'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=7 (positive int), base=2.\n\n    Oracle reasoning:\n        7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\n    Fault hypothesis:\n        Detects incorrect handling when all bits are 1.\n    \"\"\"\n    from solution import change_base\n    result = change_base(7, 2)\n    assert result == \"111\"\n    assert isinstance(result, str)",
+          "contract_quote": "base numbers are less than 10.",
+          "input_domain": "x=7, base=2",
+          "oracle_reason": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+          "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+        },
+        {
+          "name": "test_change_base_zero",
+          "code": "def test_change_base_zero():\n    \"\"\"Test: change_base(0, any_base) -> '0'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=0 (boundary value), base=5.\n\n    Oracle reasoning:\n        Zero represented in any base is \"0\".\n\n    Fault hypothesis:\n        Detects if zero guard is broken, causing empty string from while loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(0, 5)\n    assert result == \"0\"\n    assert isinstance(result, str)",
+          "contract_quote": ">>> change_base(8, 3)\n'22'",
+          "input_domain": "x=0, base=5",
+          "oracle_reason": "Zero in any base is '0'; implementation short-circuits.",
+          "fault_hypothesis": "Missing zero guard produces empty string"
+        },
+        {
+          "name": "test_change_base_single_digit",
+          "code": "def test_change_base_single_digit():\n    \"\"\"Test: change_base(1, 2) -> '1'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=1 (smallest positive int), base=2.\n\n    Oracle reasoning:\n        1 < 2, so single-digit representation is '1'.\n\n    Fault hypothesis:\n        Detects edge-case failure for one-digit results.\n    \"\"\"\n    from solution import change_base\n    result = change_base(1, 2)\n    assert result == \"1\"\n    assert isinstance(result, str)",
+          "contract_quote": ">>> change_base(8, 2)\n'1000'",
+          "input_domain": "x=1, base=2",
+          "oracle_reason": "1 < 2, so result is '1'.",
+          "fault_hypothesis": "One-digit boundary case fails"
+        },
+        {
+          "name": "test_change_base_larger_number_base10",
+          "code": "def test_change_base_larger_number_base10():\n    \"\"\"Test: change_base(100, 10) -> '100'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=100, base=10 (largest valid base per docstring).\n\n    Oracle reasoning:\n        In base 10, 100 is simply \"100\". Identity property for base-10.\n\n    Fault hypothesis:\n        Detects subtle bugs in multi-digit conversions with repeated zeros.\n    \"\"\"\n    from solution import change_base\n    result = change_base(100, 10)\n    assert result == \"100\"\n    assert isinstance(result, str)",
+          "contract_quote": ">>> change_base(7, 2)\n'111'",
+          "input_domain": "x=100, base=10",
+          "oracle_reason": "In base 10, 100 = '100'.",
+          "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_change_base_docstring_example_8_to_base3",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_binary_8",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_binary_7",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_zero",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_single_digit",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_larger_number_base10",
+          "status": "REJECTED",
+          "diagnostic": "Each case requires exactly: name, code, contract_quote, input_domain, oracle_reason, fault_hypothesis"
+        },
+        {
+          "name": "test_change_base_docstring_example_8_to_base3",
+          "status": "REJECTED",
+          "diagnostic": "Provide exactly one top-level function matching name"
+        },
+        {
+          "name": "test_change_base_binary_8",
+          "status": "REJECTED",
+          "diagnostic": "Provide exactly one top-level function matching name"
+        },
+        {
+          "name": "test_change_base_binary_7",
+          "status": "REJECTED",
+          "diagnostic": "Provide exactly one top-level function matching name"
+        },
+        {
+          "name": "test_change_base_zero",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_change_base_single_digit",
+          "status": "REJECTED",
+          "diagnostic": "Provide exactly one top-level function matching name"
+        },
+        {
+          "name": "test_change_base_larger_number_base10",
+          "status": "REJECTED",
+          "diagnostic": "Provide exactly one top-level function matching name"
+        },
+        {
+          "name": "test_change_base_docstring_example_8_to_base3",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.166,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_change_base_binary_8",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.167,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_change_base_binary_7",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_change_base_zero",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_change_base_single_digit",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_change_base_larger_number_base10",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.165,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.042
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.02s",
+    "line_coverage": 1.0,
+    "covered_lines": 7,
+    "executable_lines": 7,
+    "mutation_score": 0.8333,
+    "mutants_total": 6,
+    "mutants_killed": 5,
+    "mutants_errors": 1,
+    "mutants_survived": [],
+    "mutant_operators": {
+      "ROR": 2,
+      "CRP": 2,
+      "AOR": 2
+    },
+    "killed_by_operator": {
+      "ROR": 2,
+      "CRP": 1,
+      "AOR": 2
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 7.67
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.024,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 22 行，显示第 1-22 行："
+    },
+    {
+      "turn": 2,
+      "name": "write_file",
+      "is_error": false,
+      "duration_sec": 0.027,
+      "arguments": {
+        "path": "test_solution.py",
+        "content": "\"\"\"Unit tests for solution.change_base.\"\"\"\n\n\ndef test_change_base_docstring_exam…"
+      },
+      "first_line": "已写入 `test_solution.py`（3791 字符，133 行）。建议随后用运行命令的方式验证该文件（例如执行 pytest）。"
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.088,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_change_base_docstring_example_8_to_base3",
+            "code": "\"\"\"Test: change_base(8, 3) -> '22'.\n\nContract quote:\n    >>> change_base(8, 3)\n    '22'\n\nInput domain: x=8 (positive int), base=3 (valid base < 10).\n\nOracle reasoning:\n    8 / 3 = 2 remainder 2  -> least significant digit is '2'\n    2 / 3 = 0 remainder 2  -> next digit is '2'\n    Result: '22'\n\nFault hypothesis:\n    Detects incorrect digit ordering or wrong modular arithmetic.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 3)\nassert result == \"22\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 3)\n'22'",
+            "input_domain": "x=8, base=3",
+            "oracle_reasoning": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+            "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+          },
+          {
+            "name": "test_change_base_binary_8",
+            "code": "\"\"\"Test: change_base(8, 2) -> '1000'.\n\nContract quote:\n    >>> change_base(8, 2)\n    '1000'\n\nInput domain: x=8 (positive int), base=2 (smallest valid base).\n\nOracle reasoning:\n    8 in binary is 1000 (2^3 = 8).\n\nFault hypothesis:\n    Detects failure in the core conversion loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 2)\nassert result == \"1000\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 2)\n'1000'",
+            "input_domain": "x=8, base=2",
+            "oracle_reasoning": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+            "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+          },
+          {
+            "name": "test_change_base_binary_7",
+            "code": "\"\"\"Test: change_base(7, 2) -> '111'.\n\nContract quote:\n    >>> change_base(7, 2)\n    '111'\n\nInput domain: x=7 (positive int), base=2.\n\nOracle reasoning:\n    7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\nFault hypothesis:\n    Detects incorrect handling when all bits are 1.\n\"\"\"\nfrom solution import change_base\nresult = change_base(7, 2)\nassert result == \"111\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(7, 2)\n'111'",
+            "input_domain": "x=7, base=2",
+            "oracle_reasoning": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+            "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+          },
+          {
+            "name": "test_change_base_zero",
+            "code": "\"\"\"Test: change_base(0, any_base) -> '0'.\n\nContract quote (implicit from implementation):\n    if x == 0: return \"0\"\n\nInput domain: x=0 (boundary value), base=5.\n\nOracle reasoning:\n    Zero represented in any base is \"0\".\n\nFault hypothesis:\n    Detects if zero guard is broken, causing empty string from while loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(0, 5)\nassert result == \"0\"\nassert isinstance(result, str)",
+            "contract_quote": "if x == 0: return \"0\"",
+            "input_domain": "x=0, base=5",
+            "oracle_reasoning": "Zero in any base is '0'; implementation short-circuits.",
+            "fault_hypothesis": "Missing zero guard produces empty string"
+          },
+          {
+            "name": "test_change_base_single_digit",
+            "code": "\"\"\"Test: change_base(1, 2) -> '1'.\n\nContract quote (implied by general contract):\n    For x < base, the result should be str(x).\n\nInput domain: x=1 (smallest positive int), base=2.\n\nOracle reasoning:\n    1 < 2, so single-digit representation is '1'.\n\nFault hypothesis:\n    Detects edge-case failure for one-digit results.\n\"\"\"\nfrom solution import change_base\nresult = change_base(1, 2)\nassert result == \"1\"\nassert isinstance(result, str)",
+            "contract_quote": "Change numerical base of input number x to base.",
+            "input_domain": "x=1, base=2",
+            "oracle_reasoning": "1 < 2, so result is '1'.",
+            "fault_hypothesis": "One-digit boundary case fails"
+          },
+          {
+            "name": "test_change_base_larger_number_base10",
+            "code": "\"\"\"Test: change_base(100, 10) -> '100'.\n\nContract quote (general contract):\n    Convert x to base-10 string representation.\n\nInput domain: x=100, base=10 (largest valid base per docstring).\n\nOracle reasoning:\n    In base 10, 100 is simply \"100\". Identity property for base-10.\n\nFault hypothesis:\n    Detects subtle bugs in multi-digit conversions with repeated zeros.\n\"\"\"\nfrom solution import change_base\nresult = change_base(100, 10)\nassert result == \"100\"\nassert isinstance(result, str)",
+            "contract_quote": "Change numerical base of input number x to base.",
+            "input_domain": "x=100, base=10",
+            "oracle_reasoning": "In base 10, 100 = '100'.",
+            "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"status\": \"REJECTED\", \"diagnostic\": \"Each case requires exactly: name, code, contr"
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.06,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_change_base_docstring_example_8_to_base3",
+            "code": "\"\"\"Test: change_base(8, 3) -> '22'.\n\nContract quote:\n    >>> change_base(8, 3)\n    '22'\n\nInput domain: x=8 (positive int), base=3 (valid base < 10).\n\nOracle reasoning:\n    8 / 3 = 2 remainder 2  -> least significant digit is '2'\n    2 / 3 = 0 remainder 2  -> next digit is '2'\n    Result: '22'\n\nFault hypothesis:\n    Detects incorrect digit ordering or wrong modular arithmetic.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 3)\nassert result == \"22\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 3)\n'22'",
+            "input_domain": "x=8, base=3",
+            "oracle_reason": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+            "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+          },
+          {
+            "name": "test_change_base_binary_8",
+            "code": "\"\"\"Test: change_base(8, 2) -> '1000'.\n\nContract quote:\n    >>> change_base(8, 2)\n    '1000'\n\nInput domain: x=8 (positive int), base=2 (smallest valid base).\n\nOracle reasoning:\n    8 in binary is 1000 (2^3 = 8).\n\nFault hypothesis:\n    Detects failure in the core conversion loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(8, 2)\nassert result == \"1000\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 2)\n'1000'",
+            "input_domain": "x=8, base=2",
+            "oracle_reason": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+            "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+          },
+          {
+            "name": "test_change_base_binary_7",
+            "code": "\"\"\"Test: change_base(7, 2) -> '111'.\n\nContract quote:\n    >>> change_base(7, 2)\n    '111'\n\nInput domain: x=7 (positive int), base=2.\n\nOracle reasoning:\n    7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\nFault hypothesis:\n    Detects incorrect handling when all bits are 1.\n\"\"\"\nfrom solution import change_base\nresult = change_base(7, 2)\nassert result == \"111\"\nassert isinstance(result, str)",
+            "contract_quote": ">>> change_base(7, 2)\n'111'",
+            "input_domain": "x=7, base=2",
+            "oracle_reason": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+            "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+          },
+          {
+            "name": "test_change_base_zero",
+            "code": "\"\"\"Test: change_base(0, any_base) -> '0'.\n\nContract quote (implicit from implementation):\n    if x == 0: return \"0\"\n\nInput domain: x=0 (boundary value), base=5.\n\nOracle reasoning:\n    Zero represented in any base is \"0\".\n\nFault hypothesis:\n    Detects if zero guard is broken, causing empty string from while loop.\n\"\"\"\nfrom solution import change_base\nresult = change_base(0, 5)\nassert result == \"0\"\nassert isinstance(result, str)",
+            "contract_quote": "if x == 0: return \"0\"",
+            "input_domain": "x=0, base=5",
+            "oracle_reason": "Zero in any base is '0'; implementation short-circuits.",
+            "fault_hypothesis": "Missing zero guard produces empty string"
+          },
+          {
+            "name": "test_change_base_single_digit",
+            "code": "\"\"\"Test: change_base(1, 2) -> '1'.\n\nContract quote (implied by general contract):\n    For x < base, the result should be str(x).\n\nInput domain: x=1 (smallest positive int), base=2.\n\nOracle reasoning:\n    1 < 2, so single-digit representation is '1'.\n\nFault hypothesis:\n    Detects edge-case failure for one-digit results.\n\"\"\"\nfrom solution import change_base\nresult = change_base(1, 2)\nassert result == \"1\"\nassert isinstance(result, str)",
+            "contract_quote": "Change numerical base of input number x to base.",
+            "input_domain": "x=1, base=2",
+            "oracle_reason": "1 < 2, so result is '1'.",
+            "fault_hypothesis": "One-digit boundary case fails"
+          },
+          {
+            "name": "test_change_base_larger_number_base10",
+            "code": "\"\"\"Test: change_base(100, 10) -> '100'.\n\nContract quote (general contract):\n    Convert x to base-10 string representation.\n\nInput domain: x=100, base=10 (largest valid base per docstring).\n\nOracle reasoning:\n    In base 10, 100 is simply \"100\". Identity property for base-10.\n\nFault hypothesis:\n    Detects subtle bugs in multi-digit conversions with repeated zeros.\n\"\"\"\nfrom solution import change_base\nresult = change_base(100, 10)\nassert result == \"100\"\nassert isinstance(result, str)",
+            "contract_quote": "Change numerical base of input number x to base.",
+            "input_domain": "x=100, base=10",
+            "oracle_reason": "In base 10, 100 = '100'.",
+            "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"status\": \"REJECTED\", \"diagnostic\": \"Provide exactly one top-level function matchi"
+    },
+    {
+      "turn": 5,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.111,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_change_base_docstring_example_8_to_base3",
+            "code": "def test_change_base_docstring_example_8_to_base3():\n    \"\"\"Test: change_base(8, 3) -> '22'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=3 (valid base < 10).\n\n    Oracle reasoning:\n        8 / 3 = 2 remainder 2  -> least significant digit is '2'\n        2 / 3 = 0 remainder 2  -> next digit is '2'\n        Result: '22'\n\n    Fault hypothesis:\n        Detects incorrect digit ordering or wrong modular arithmetic.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 3)\n    assert result == \"22\"\n    assert isinstance(result, str)",
+            "contract_quote": "Change numerical base of input number x to base.",
+            "input_domain": "x=8, base=3",
+            "oracle_reason": "8 in base 3: 8/3=2 r2, 2/3=0 r2 => digits are 2,2 => '22'",
+            "fault_hypothesis": "Wrong digit order or incorrect modulo/division logic"
+          },
+          {
+            "name": "test_change_base_binary_8",
+            "code": "def test_change_base_binary_8():\n    \"\"\"Test: change_base(8, 2) -> '1000'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=8 (positive int), base=2 (smallest valid base).\n\n    Oracle reasoning:\n        8 in binary is 1000 (2^3 = 8).\n\n    Fault hypothesis:\n        Detects failure in the core conversion loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(8, 2)\n    assert result == \"1000\"\n    assert isinstance(result, str)",
+            "contract_quote": "return string representation after the conversion.",
+            "input_domain": "x=8, base=2",
+            "oracle_reason": "8 = 1*2^3 + 0*2^2 + 0*2^1 + 0*2^0 => '1000'",
+            "fault_hypothesis": "Premature loop exit or miscomputed remainders"
+          },
+          {
+            "name": "test_change_base_binary_7",
+            "code": "def test_change_base_binary_7():\n    \"\"\"Test: change_base(7, 2) -> '111'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=7 (positive int), base=2.\n\n    Oracle reasoning:\n        7 = 4 + 2 + 1 = 1*2^2 + 1*2^1 + 1*2^0, so binary is '111'.\n\n    Fault hypothesis:\n        Detects incorrect handling when all bits are 1.\n    \"\"\"\n    from solution import change_base\n    result = change_base(7, 2)\n    assert result == \"111\"\n    assert isinstance(result, str)",
+            "contract_quote": "base numbers are less than 10.",
+            "input_domain": "x=7, base=2",
+            "oracle_reason": "7 = 1*2^2 + 1*2^1 + 1*2^0 => '111'",
+            "fault_hypothesis": "Incorrect all-ones bit pattern handling"
+          },
+          {
+            "name": "test_change_base_zero",
+            "code": "def test_change_base_zero():\n    \"\"\"Test: change_base(0, any_base) -> '0'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=0 (boundary value), base=5.\n\n    Oracle reasoning:\n        Zero represented in any base is \"0\".\n\n    Fault hypothesis:\n        Detects if zero guard is broken, causing empty string from while loop.\n    \"\"\"\n    from solution import change_base\n    result = change_base(0, 5)\n    assert result == \"0\"\n    assert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 3)\n'22'",
+            "input_domain": "x=0, base=5",
+            "oracle_reason": "Zero in any base is '0'; implementation short-circuits.",
+            "fault_hypothesis": "Missing zero guard produces empty string"
+          },
+          {
+            "name": "test_change_base_single_digit",
+            "code": "def test_change_base_single_digit():\n    \"\"\"Test: change_base(1, 2) -> '1'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=1 (smallest positive int), base=2.\n\n    Oracle reasoning:\n        1 < 2, so single-digit representation is '1'.\n\n    Fault hypothesis:\n        Detects edge-case failure for one-digit results.\n    \"\"\"\n    from solution import change_base\n    result = change_base(1, 2)\n    assert result == \"1\"\n    assert isinstance(result, str)",
+            "contract_quote": ">>> change_base(8, 2)\n'1000'",
+            "input_domain": "x=1, base=2",
+            "oracle_reason": "1 < 2, so result is '1'.",
+            "fault_hypothesis": "One-digit boundary case fails"
+          },
+          {
+            "name": "test_change_base_larger_number_base10",
+            "code": "def test_change_base_larger_number_base10():\n    \"\"\"Test: change_base(100, 10) -> '100'.\n\n    Contract quote:\n        Change numerical base of input number x to base.\n\n    Input domain: x=100, base=10 (largest valid base per docstring).\n\n    Oracle reasoning:\n        In base 10, 100 is simply \"100\". Identity property for base-10.\n\n    Fault hypothesis:\n        Detects subtle bugs in multi-digit conversions with repeated zeros.\n    \"\"\"\n    from solution import change_base\n    result = change_base(100, 10)\n    assert result == \"100\"\n    assert isinstance(result, str)",
+            "contract_quote": ">>> change_base(7, 2)\n'111'",
+            "input_domain": "x=100, base=10",
+            "oracle_reason": "In base 10, 100 = '100'.",
+            "fault_hypothesis": "Repeated zero digits cause off-by-one error"
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 6, \"results\": [{\"name\": \"test_change_base_docstring_example_8_to_base3\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"viol"
+    }
+  ],
+  "started_at": 1791333272.8771522,
+  "duration_sec": 67.009,
+  "tests_chars": 3286
+}

@@ -1,0 +1,654 @@
+{
+  "instance_id": "HumanEval/148",
+  "variant": "A4",
+  "status": "all_pass",
+  "agent": {
+    "status": "completed",
+    "turns": 5,
+    "llm_calls": 5,
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tool_calls_skipped": 0,
+    "input_tokens": 20978,
+    "output_tokens": 5667,
+    "total_tokens": 26645,
+    "final_text": "All 6 test candidates were accepted. Here's a summary of the accepted test suite:\n\n### Accepted Tests\n\n| Test | What it verifies |\n|------|-----------------|\n| `test_basic_order` | Planets between Jupiter and Neptune in forward order → `(\"Saturn\", \"Uranus\")` |\n| `test_reversed_order` | Reversed input (Earth→Mercury) still yields correct sorted result → `(\"Venus\",)` |\n| `test_adjacent_planets` | Adjacent planets (Earth/Mars) return empty tuple, both directions |\n| `test_invalid_planet_name` | Invalid names (Pluto, Krypton) — one invalid, both invalid — all return `()` |\n| `test_same_planet` | Same planet twice (Earth, Mercury, Neptune) returns empty tuple |\n| `test_full_range_reverse` | Full range (Mercury↔Neptune) returns all 6 intermediate planets, order-independent |\n\n### Remaining Limitations\n\n1. **Case sensitivity**: The function uses exact string matching (`in planets`), so `\"jupiter\"` or `\"JUPITER\"` would return `()`. No test covers this edge case explicitly.\n2. **Non-string inputs**: Passing integers, lists, or `None` is not tested. The contract doesn't specify behavior for non-string types, but the implementation would raise an error rather than returning `()`.\n3. **Whitespace/edge strings**: Inputs like `\" \"` or `\"\"` are not tested — they'd correctly return `()` since they're not in the list, but this isn't verified.\n4. **Return type consistency**: While each test checks `isinstance(result, tuple)`, there's no dedicated test confirming that even the empty-result cases return a `tuple` (not a `list`).\n5. **Boundary pairs near edges**: Only `(Mercury, Neptune)` tests the full span. Pairs like `(Mercury, Venus)` or `(Saturn, Neptune)` with only one intermediate planet aren't individually tested.",
+    "error": null,
+    "system_actions": [],
+    "tool_trace": [
+      {
+        "turn": 1,
+        "name": "read_file",
+        "is_error": false,
+        "duration_sec": 0.028,
+        "arguments": {
+          "path": "solution.py"
+        },
+        "first_line": "文件 `solution.py` 共 24 行，显示第 1-24 行："
+      },
+      {
+        "turn": 2,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.063,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_order",
+              "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+              "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(\"Jupiter\", \"Neptune\") ==> (\"Saturn\", \"Uranus\"). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+              "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+            },
+            {
+              "name": "test_reversed_order",
+              "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+              "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(\"Earth\", \"Mercury\") ==> (\"Venus\"). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+              "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+            },
+            {
+              "name": "test_adjacent_planets",
+              "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+              "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+              "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+              "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+            },
+            {
+              "name": "test_invalid_planet_name",
+              "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+              "contract_quote": "\"The function should return an empty tuple if planet1 or planet2 are not correct planet names.\"",
+              "input_domain": "One or both arguments are strings that are not valid planet names.",
+              "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+              "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+            },
+            {
+              "name": "test_same_planet",
+              "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+              "input_domain": "Both arguments are the same valid planet name.",
+              "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+              "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+            },
+            {
+              "name": "test_full_range_reverse",
+              "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+              "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+              "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+              "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_order\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a solution."
+      },
+      {
+        "turn": 3,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 0.069,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_order",
+              "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+              "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(\"Jupiter\", \"Neptune\") ==> (\"Saturn\", \"Uranus\"). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+              "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+            },
+            {
+              "name": "test_reversed_order",
+              "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+              "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(\"Earth\", \"Mercury\") ==> (\"Venus\"). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+              "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+            },
+            {
+              "name": "test_adjacent_planets",
+              "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+              "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+              "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+              "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+            },
+            {
+              "name": "test_invalid_planet_name",
+              "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+              "contract_quote": "\"The function should return an empty tuple if planet1 or planet2\"",
+              "input_domain": "One or both arguments are strings that are not valid planet names.",
+              "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+              "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+            },
+            {
+              "name": "test_same_planet",
+              "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+              "input_domain": "Both arguments are the same valid planet name.",
+              "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+              "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+            },
+            {
+              "name": "test_full_range_reverse",
+              "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+              "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+              "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+              "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+              "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_basic_order\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a solution."
+      },
+      {
+        "turn": 4,
+        "name": "submit_tests",
+        "is_error": false,
+        "duration_sec": 2.891,
+        "arguments": {
+          "cases": [
+            {
+              "name": "test_basic_order",
+              "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+              "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+              "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(Jupiter, Neptune) ==> (Saturn, Uranus). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+              "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+            },
+            {
+              "name": "test_reversed_order",
+              "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+              "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+              "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+              "oracle_reason": "From the docstring example: bf(Earth, Mercury) ==> (Venus). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+              "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+            },
+            {
+              "name": "test_adjacent_planets",
+              "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+              "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+              "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+              "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+              "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+            },
+            {
+              "name": "test_invalid_planet_name",
+              "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+              "contract_quote": "The function should return an empty tuple if planet1 or planet2",
+              "input_domain": "One or both arguments are strings that are not valid planet names.",
+              "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+              "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+            },
+            {
+              "name": "test_same_planet",
+              "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+              "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+              "input_domain": "Both arguments are the same valid planet name.",
+              "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+              "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+            },
+            {
+              "name": "test_full_range_reverse",
+              "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+              "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+              "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+              "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+              "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+            }
+          ]
+        },
+        "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 6, \"results\": [{\"name\": \"test_basic_order\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\": \"ACCE"
+      }
+    ],
+    "generation_seconds": 48.612,
+    "measurement_deferred": true,
+    "testgen": {
+      "accepted": [
+        {
+          "name": "test_basic_order",
+          "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+          "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+          "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+          "oracle_reason": "From the docstring example: bf(Jupiter, Neptune) ==> (Saturn, Uranus). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+          "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+        },
+        {
+          "name": "test_reversed_order",
+          "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+          "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+          "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+          "oracle_reason": "From the docstring example: bf(Earth, Mercury) ==> (Venus). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+          "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+        },
+        {
+          "name": "test_adjacent_planets",
+          "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+          "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+          "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+          "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+          "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+        },
+        {
+          "name": "test_invalid_planet_name",
+          "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+          "contract_quote": "The function should return an empty tuple if planet1 or planet2",
+          "input_domain": "One or both arguments are strings that are not valid planet names.",
+          "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+          "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+        },
+        {
+          "name": "test_same_planet",
+          "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+          "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+          "input_domain": "Both arguments are the same valid planet name.",
+          "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+          "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+        },
+        {
+          "name": "test_full_range_reverse",
+          "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+          "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+          "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+          "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+          "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+        }
+      ],
+      "attempts": [
+        {
+          "name": "test_basic_order",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_reversed_order",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_adjacent_planets",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_invalid_planet_name",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_same_planet",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_full_range_reverse",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_basic_order",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_reversed_order",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_adjacent_planets",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_invalid_planet_name",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_same_planet",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_full_range_reverse",
+          "status": "REJECTED",
+          "diagnostic": "contract_quote must quote at least 12 characters verbatim from a solution.py docstring"
+        },
+        {
+          "name": "test_basic_order",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.365,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_reversed_order",
+          "contract_checks": {
+            "sut_calls": 1,
+            "checked_calls": 0,
+            "unchecked_calls": 1,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.216,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_adjacent_planets",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_invalid_planet_name",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_same_planet",
+          "contract_checks": {
+            "sut_calls": 3,
+            "checked_calls": 0,
+            "unchecked_calls": 3,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.215,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        },
+        {
+          "name": "test_full_range_reverse",
+          "contract_checks": {
+            "sut_calls": 2,
+            "checked_calls": 0,
+            "unchecked_calls": 2,
+            "violations": []
+          },
+          "status": "ACCEPTED",
+          "returncode": 0,
+          "seconds": 0.216,
+          "diagnostic": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "timeout_seconds": 2.0
+        }
+      ],
+      "subprocess_runs": 12,
+      "validation_seconds": 2.8
+    }
+  },
+  "checkpoints": [],
+  "final": {
+    "checkpoint": 0,
+    "has_tests": true,
+    "all_pass": true,
+    "import_ok": true,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "pytest_returncode": 0,
+    "pytest_timed_out": false,
+    "pytest_summary": "6 passed in 0.03s",
+    "line_coverage": 1.0,
+    "covered_lines": 6,
+    "executable_lines": 6,
+    "mutation_score": 0.75,
+    "mutants_total": 4,
+    "mutants_killed": 3,
+    "mutants_errors": 0,
+    "mutants_survived": [
+      {
+        "mutant_id": "M2",
+        "operator": "ROR",
+        "line": 21,
+        "column": 7,
+        "description": "Gt -> GtE"
+      }
+    ],
+    "mutant_operators": {
+      "LCR": 1,
+      "ROR": 1,
+      "AOR": 1,
+      "CRP": 1
+    },
+    "killed_by_operator": {
+      "LCR": 1,
+      "AOR": 1,
+      "CRP": 1
+    },
+    "solution_modified": false,
+    "eval_error": "",
+    "eval_duration_sec": 2.394
+  },
+  "error": "",
+  "environment": {
+    "python": "3.13.13",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "pytest": "9.1.1",
+    "coverage": "7.16.2"
+  },
+  "network_attempt": false,
+  "solution_modified": false,
+  "tool_trace": [
+    {
+      "turn": 1,
+      "name": "read_file",
+      "is_error": false,
+      "duration_sec": 0.028,
+      "arguments": {
+        "path": "solution.py"
+      },
+      "first_line": "文件 `solution.py` 共 24 行，显示第 1-24 行："
+    },
+    {
+      "turn": 2,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.063,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_order",
+            "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+            "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(\"Jupiter\", \"Neptune\") ==> (\"Saturn\", \"Uranus\"). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+            "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+          },
+          {
+            "name": "test_reversed_order",
+            "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+            "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(\"Earth\", \"Mercury\") ==> (\"Venus\"). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+            "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+          },
+          {
+            "name": "test_adjacent_planets",
+            "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+            "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+            "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+            "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+          },
+          {
+            "name": "test_invalid_planet_name",
+            "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+            "contract_quote": "\"The function should return an empty tuple if planet1 or planet2 are not correct planet names.\"",
+            "input_domain": "One or both arguments are strings that are not valid planet names.",
+            "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+            "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+          },
+          {
+            "name": "test_same_planet",
+            "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+            "input_domain": "Both arguments are the same valid planet name.",
+            "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+            "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+          },
+          {
+            "name": "test_full_range_reverse",
+            "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are located between the orbit of planet1 and the orbit of planet2, sorted by the proximity to the sun.\"",
+            "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+            "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+            "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 18, \"results\": [{\"name\": \"test_basic_order\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a solution."
+    },
+    {
+      "turn": 3,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 0.069,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_order",
+            "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+            "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(\"Jupiter\", \"Neptune\") ==> (\"Saturn\", \"Uranus\"). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+            "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+          },
+          {
+            "name": "test_reversed_order",
+            "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+            "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(\"Earth\", \"Mercury\") ==> (\"Venus\"). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+            "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+          },
+          {
+            "name": "test_adjacent_planets",
+            "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+            "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+            "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+            "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+          },
+          {
+            "name": "test_invalid_planet_name",
+            "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+            "contract_quote": "\"The function should return an empty tuple if planet1 or planet2\"",
+            "input_domain": "One or both arguments are strings that are not valid planet names.",
+            "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+            "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+          },
+          {
+            "name": "test_same_planet",
+            "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+            "input_domain": "Both arguments are the same valid planet name.",
+            "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+            "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+          },
+          {
+            "name": "test_full_range_reverse",
+            "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+            "contract_quote": "\"The function should return a tuple containing all planets whose orbits are\"",
+            "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+            "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+            "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 0, \"attempts_remaining\": 12, \"results\": [{\"name\": \"test_basic_order\", \"status\": \"REJECTED\", \"diagnostic\": \"contract_quote must quote at least 12 characters verbatim from a solution."
+    },
+    {
+      "turn": 4,
+      "name": "submit_tests",
+      "is_error": false,
+      "duration_sec": 2.891,
+      "arguments": {
+        "cases": [
+          {
+            "name": "test_basic_order",
+            "code": "def test_basic_order():\n    \"\"\"Test that bf returns planets between Jupiter and Neptune in correct order.\"\"\"\n    from solution import bf\n    result = bf(\"Jupiter\", \"Neptune\")\n    assert result == (\"Saturn\", \"Uranus\")\n    assert isinstance(result, tuple)",
+            "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+            "input_domain": "Two valid planet names where planet1 is closer to the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(Jupiter, Neptune) ==> (Saturn, Uranus). Jupiter is index 4, Neptune is index 7, so planets between are indices 5 and 6: Saturn and Uranus.",
+            "fault_hypothesis": "Function might include the endpoint planets or return them in wrong order."
+          },
+          {
+            "name": "test_reversed_order",
+            "code": "def test_reversed_order():\n    \"\"\"Test that bf handles reversed planet order correctly.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mercury\")\n    assert result == (\"Venus\",)\n    assert isinstance(result, tuple)",
+            "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+            "input_domain": "Two valid planet names where planet1 is farther from the sun than planet2.",
+            "oracle_reason": "From the docstring example: bf(Earth, Mercury) ==> (Venus). Earth is index 2, Mercury is index 0; after swapping, planets between indices 0 and 2 is just Venus at index 1.",
+            "fault_hypothesis": "Function might not handle reversed order and could return empty tuple or wrong planets."
+          },
+          {
+            "name": "test_adjacent_planets",
+            "code": "def test_adjacent_planets():\n    \"\"\"Test that bf returns empty tuple when planets are adjacent in orbit.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Mars\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Also test reverse\n    result2 = bf(\"Mars\", \"Earth\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)",
+            "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+            "input_domain": "Two valid adjacent planet names (consecutive in orbital order).",
+            "oracle_reason": "Earth is index 2, Mars is index 3. There are no planets strictly between indices 2 and 3, so the slice [3:3] yields [].",
+            "fault_hypothesis": "Function might incorrectly include one of the adjacent planets in the result."
+          },
+          {
+            "name": "test_invalid_planet_name",
+            "code": "def test_invalid_planet_name():\n    \"\"\"Test that bf returns empty tuple for invalid planet names.\"\"\"\n    from solution import bf\n    result = bf(\"Pluto\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with another invalid name\n    result2 = bf(\"Mars\", \"Krypton\")\n    assert result2 == ()\n    assert isinstance(result2, tuple)\n    # Both invalid\n    result3 = bf(\"Pluto\", \"Krypton\")\n    assert result3 == ()\n    assert isinstance(result3, tuple)",
+            "contract_quote": "The function should return an empty tuple if planet1 or planet2",
+            "input_domain": "One or both arguments are strings that are not valid planet names.",
+            "oracle_reason": "The contract explicitly states: return empty tuple if planet1 or planet2 are not correct planet names.",
+            "fault_hypothesis": "Function might raise an exception instead of returning empty tuple, or might partially match if only one name is invalid."
+          },
+          {
+            "name": "test_same_planet",
+            "code": "def test_same_planet():\n    \"\"\"Test that bf returns empty tuple when both arguments are the same planet.\"\"\"\n    from solution import bf\n    result = bf(\"Earth\", \"Earth\")\n    assert result == ()\n    assert isinstance(result, tuple)\n    # Test with other planets too\n    result2 = bf(\"Mercury\", \"Mercury\")\n    assert result2 == ()\n    result3 = bf(\"Neptune\", \"Neptune\")\n    assert result3 == ()",
+            "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+            "input_domain": "Both arguments are the same valid planet name.",
+            "oracle_reason": "When i1 == i2, the slice [i1+1:i2] becomes [i1+1:i1] which is always empty. No planet can be between a planet and itself.",
+            "fault_hypothesis": "Function might return a non-empty tuple or fail on equal indices."
+          },
+          {
+            "name": "test_full_range_reverse",
+            "code": "def test_full_range_reverse():\n    \"\"\"Test that bf returns all intermediate planets regardless of argument order.\"\"\"\n    from solution import bf\n    result_forward = bf(\"Mercury\", \"Neptune\")\n    result_reverse = bf(\"Neptune\", \"Mercury\")\n    expected = (\"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\")\n    assert result_forward == expected\n    assert result_reverse == expected\n    assert isinstance(result_forward, tuple)\n    assert isinstance(result_reverse, tuple)",
+            "contract_quote": "The function should return a tuple containing all planets whose orbits are",
+            "input_domain": "Two valid planet names being the extremes (Mercury and Neptune) in either order.",
+            "oracle_reason": "Mercury is index 0, Neptune is index 7. Planets between are indices 1-6: Venus, Earth, Mars, Jupiter, Saturn, Uranus. Reversing should yield the same result due to the swap logic.",
+            "fault_hypothesis": "Function might return different results for forward vs reverse order, or miss/include boundary planets."
+          }
+        ]
+      },
+      "first_line": "{\"accepted_total\": 6, \"attempts_remaining\": 6, \"results\": [{\"name\": \"test_basic_order\", \"contract_checks\": {\"sut_calls\": 1, \"checked_calls\": 0, \"unchecked_calls\": 1, \"violations\": []}, \"status\": \"ACCE"
+    }
+  ],
+  "started_at": 1791332558.6098032,
+  "duration_sec": 51.074,
+  "tests_chars": 2134
+}
