@@ -1,4 +1,4 @@
-# Kytest Agent：Python 测试生成助手
+# Kytest Agent：Python Test Generation Agent
 
 给定 Python 函数源码和任务，Kytest Agent 通过语言模型与文件、执行工具的循环生成 pytest 测试，并依据反馈修正。项目提供 CLI 和 Web 交互；Web 支持同一输入并行比较通用生成与契约候选验证，展示实际工具记录、测试质量和运行成本。
 
