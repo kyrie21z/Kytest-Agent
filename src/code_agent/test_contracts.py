@@ -124,6 +124,8 @@ class CandidateAnalysis(ast.NodeVisitor):
     def __init__(self, contracts, *, assertions=False, max_calls=MAX_TARGET_CALLS):
         self.contracts, self.assertions, self.max_calls = contracts, assertions, max_calls
         self.bindings, self.values, self.dependent = {}, {}, set()
+        self.effective_dependent = set()
+        self.canceled_assertions = 0
         self.calls = self.checked = self.unknown = 0
         self.violations, self.assertion_errors = [], []
         self.relevant_assertions = self.anchors = 0
@@ -139,6 +141,29 @@ class CandidateAnalysis(ast.NodeVisitor):
     def depends(self, node):
         return any(isinstance(n, ast.Call) and self.target(n) or isinstance(n, ast.Name) and n.id in self.dependent for n in ast.walk(node))
 
+    def effective_depends(self, node):
+        """Ignore simple output cancellation, without simplifying arbitrary Python.
+
+        Only repeated reads of one name are canceled; two function calls can
+        produce different results. This is an anchor policy for ordinary
+        arithmetic, not a proof about floats or overloaded operators.
+        """
+        if isinstance(node, ast.BinOp):
+            repeated_name = (isinstance(node.left, ast.Name) and
+                             isinstance(node.right, ast.Name) and
+                             node.left.id == node.right.id)
+            if isinstance(node.op, ast.Sub) and repeated_name:
+                return False
+            if isinstance(node.op, ast.Mult):
+                operands = (constant(node.left, self.values), constant(node.right, self.values))
+                if any(type(value) in (int, float) and value == 0 for value in operands):
+                    return False
+        if isinstance(node, ast.Name):
+            return node.id in self.effective_dependent
+        if isinstance(node, ast.Call) and self.target(node):
+            return True
+        return any(self.effective_depends(child) for child in ast.iter_child_nodes(node))
+
     def visit_ImportFrom(self, node):
         for alias in node.names:
             self.bindings[alias.asname or alias.name] = alias.name if node.module == "solution" else "@other"
@@ -148,20 +173,22 @@ class CandidateAnalysis(ast.NodeVisitor):
             self.bindings[alias.asname or alias.name] = "@solution" if alias.name == "solution" else "@other"
 
     def visit_FunctionDef(self, node):
-        original = self.bindings.copy(), self.values.copy(), self.dependent.copy()
+        original = self.bindings.copy(), self.values.copy(), self.dependent.copy(), self.effective_dependent.copy()
         # Python local binding applies throughout the function, including uses
         # before an assignment/import. Nested scopes are handled separately.
         for name in local_bindings(node):
             self.bindings[name] = "@local"
             self.values.pop(name, None)
             self.dependent.discard(name)
+            self.effective_dependent.discard(name)
         for child in node.body:
             self.visit(child)
-        self.bindings, self.values, self.dependent = original
+        self.bindings, self.values, self.dependent, self.effective_dependent = original
 
     def visit_Assign(self, node):
         self.visit(node.value)
         value, dependent = constant(node.value, self.values), self.depends(node.value)
+        effective = self.effective_depends(node.value)
         binding = self.bindings.get(node.value.id) if isinstance(node.value, ast.Name) else None
         for target in node.targets:
             if isinstance(target, ast.Name):
@@ -171,6 +198,10 @@ class CandidateAnalysis(ast.NodeVisitor):
                     self.dependent.add(target.id)
                 else:
                     self.dependent.discard(target.id)
+                if effective:
+                    self.effective_dependent.add(target.id)
+                else:
+                    self.effective_dependent.discard(target.id)
 
     def visit_AnnAssign(self, node):
         if node.value is not None:
@@ -188,17 +219,18 @@ class CandidateAnalysis(ast.NodeVisitor):
             for child in node.body if value else node.orelse:
                 self.visit(child)
             return
-        original = self.bindings.copy(), self.values.copy(), self.dependent.copy()
+        original = self.bindings.copy(), self.values.copy(), self.dependent.copy(), self.effective_dependent.copy()
         self.visit(node.test)
         for child in node.body:
             self.visit(child)
-        left = self.bindings.copy(), self.values.copy(), self.dependent.copy()
-        self.bindings, self.values, self.dependent = original
+        left = self.bindings.copy(), self.values.copy(), self.dependent.copy(), self.effective_dependent.copy()
+        self.bindings, self.values, self.dependent, self.effective_dependent = original
         for child in node.orelse:
             self.visit(child)
         self.bindings = {k: v if self.bindings.get(k) == v else "@unknown" for k, v in left[0].items()}
         self.values = {k: v if v is not UNKNOWN and self.values.get(k, UNKNOWN) is not UNKNOWN and self.values[k] == v else UNKNOWN for k, v in left[1].items()}
         self.dependent |= left[2]
+        self.effective_dependent |= left[3]
 
     def visit_Call(self, node):
         target = self.target(node)
@@ -218,7 +250,9 @@ class CandidateAnalysis(ast.NodeVisitor):
         if isinstance(node.value, ast.Call):
             target = self.target(node.value)
             if target and self.contracts[target].get("side_effects"):
-                self.dependent.update(n.id for value in node.value.args for n in ast.walk(value) if isinstance(n, ast.Name))
+                names = {n.id for value in node.value.args for n in ast.walk(value) if isinstance(n, ast.Name)}
+                self.dependent.update(names)
+                self.effective_dependent.update(names)
         self.generic_visit(node)
 
     def visit_For(self, node):
@@ -246,14 +280,17 @@ class CandidateAnalysis(ast.NodeVisitor):
             related = self.depends(node.test)
             if related:
                 self.relevant_assertions += 1
+                effective = self.effective_depends(node.test)
+                if not effective:
+                    self.canceled_assertions += 1
                 if isinstance(node.test, ast.Compare):
                     operands = [node.test.left, *node.test.comparators]
                     for left, right in zip(operands, operands[1:]):
                         if ast.dump(left) == ast.dump(right):
                             self.assertion_errors.append("Self-comparison cannot distinguish faulty behavior")
-                        if self.depends(left) != self.depends(right):
+                        if effective and self.effective_depends(left) != self.effective_depends(right):
                             self.anchors += 1
-                else:
+                elif effective:
                     self.anchors += 1  # an independent truth predicate
             else:
                 self.assertion_errors.append("Assertion does not depend on a target result")
@@ -263,7 +300,8 @@ class CandidateAnalysis(ast.NodeVisitor):
         if self.calls > self.max_calls:
             self.violations.append(f"resource limit: maximum {self.max_calls} target calls per candidate")
         if self.assertions and self.relevant_assertions and not self.anchors:
-            self.assertion_errors.append("Target-derived comparisons require an independent output anchor")
+            prefix = "Algebraically canceled output: " if self.canceled_assertions else ""
+            self.assertion_errors.append(prefix + "Target-derived comparisons require an independent output anchor")
         return {"sut_calls": self.calls, "checked_calls": self.checked, "unchecked_calls": self.unknown,
                 "violations": list(dict.fromkeys(self.violations)), "assertion_errors": list(dict.fromkeys(self.assertion_errors))}
 

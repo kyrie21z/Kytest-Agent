@@ -134,6 +134,27 @@ def test_dynamic_domain_violation_cannot_be_hidden_by_catching_guard(submitter):
     assert row["runtime_contract_checks"]["violations"]
 
 
+@pytest.mark.parametrize("body", [
+    "    r=count(2)\n    assert r-r==0\n",
+    "    r=count(2)\n    delta=r-r\n    assert delta==0\n",
+    "    r=count(2)\n    assert (r-r)+7==7\n",
+    "    r=count(2)\n    assert r*0==0\n",
+    "    r=count(2)\n    zero=0\n    scaled=zero*r\n    assert scaled==0\n",
+])
+def test_canceled_result_cannot_supply_an_output_anchor(submitter, body):
+    row = submit(submitter, body)
+    assert row["status"] == "REJECTED" and submitter.subprocess_runs == 0
+    assert "independent output anchor" in row["diagnostic"]
+
+
+def test_independent_oracle_survives_cancellation_filter_and_detects_fault(submitter):
+    row = submit(submitter, "    r=count(2)\n    assert r==3\n    assert r-r==0\n")
+    assert row["status"] == "ACCEPTED"
+    measured = run_mutation_tests(submitter.workspace, SOURCE, "test_solution.py", max_mutants=1, timeout=3)
+    assert measured["killed"] == measured["total"] == 1
+    assert (submitter.workspace / "solution.py").read_text() == SOURCE
+
+
 def test_dynamic_loop_is_bounded_by_actual_target_calls(submitter):
     row = submit(submitter, "    for _ in range(int('1000')):\n        assert count(2)==3\n")
     assert row["status"] == "RESOURCE_LIMIT" and not submitter.accepted
