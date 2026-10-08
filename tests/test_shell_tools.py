@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 
 from code_agent.config import Settings
+from code_agent.pytest_result import parse_pytest_result
+from code_agent.tools.base import ToolRegistry
 from code_agent.tools.shell_tools import MAX_TIMEOUT_SEC, RunCommandTool
 
 PROBE = "import sys; print('out'); sys.stderr.write('err\\n'); sys.exit({code})"
@@ -189,6 +191,22 @@ def test_real_pytest_run_gives_usable_failure_information(tool: RunCommandTool, 
     assert "test_bad" in result.content
     assert "expected 2 but got 3" in result.content
     assert not (workspace / "__pycache__").exists()
+
+
+def test_registry_display_truncation_preserves_process_evidence(tool: RunCommandTool, workspace: Path):
+    # pytest emits a long captured failure before its summary. Both presentation
+    # caps may hide the summary; measurement must still use the captured process.
+    (workspace / "test_sample.py").write_text(
+        "def test_bad():\n    print('x' * 20000)\n    assert False\n")
+    registry = ToolRegistry()
+    registry.register(tool)
+    result = registry.execute("run_command", {
+        "command": f'"{sys.executable}" -m pytest test_sample.py -q', "timeout": 15})
+    observed = parse_pytest_result(result.process)
+    assert not result.ok and observed.complete and observed.process.exit_code == 1
+    assert observed.failed == 1 and observed.errors == 0
+    assert "输出过长已截断" in result.content
+    assert not observed.process.output_truncated
 
 
 def test_schema_declares_command_as_required(tool: RunCommandTool):

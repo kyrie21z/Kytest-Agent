@@ -43,6 +43,18 @@ def test_mixed_batch_keeps_good_case_and_identifies_wrong_oracle(tool):
     assert "test_wrong" not in (tool.workspace / "test_solution.py").read_text()
 
 
+def test_candidate_acceptance_uses_raw_summary_before_diagnostic_excerpt(tool, monkeypatch):
+    from code_agent import testgen
+    original = testgen.run_capture
+    def with_trailing_diagnostic(*args, **kwargs):
+        result = original(*args, **kwargs)
+        result.stdout += "\n" + "trailing diagnostic " * 150
+        return result
+    monkeypatch.setattr(testgen, "run_capture", with_trailing_diagnostic)
+    assert results(tool, [case()])[0]["status"] == "ACCEPTED"
+    assert "test_two" in (tool.workspace / "test_solution.py").read_text()
+
+
 def test_positive_precondition_refuses_zero_before_execution(tool):
     bad = case("test_zero", "from solution import count\ndef test_zero():\n    assert count(0) == 1\n")
     assert results(tool, [bad])[0]["status"] == "REJECTED"

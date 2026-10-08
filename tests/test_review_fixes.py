@@ -342,7 +342,7 @@ def test_evaluation_of_generated_tests_cannot_read_external_file(sandbox_workspa
         f"    assert not Path({str(sentinel)!r}).exists()\n"
     )
     result = run_pytest_on("test_probe.py", sandbox_workspace)
-    assert result.all_pass, result.stderr + result.stdout
+    assert result.all_pass, result.process
 
 
 def test_evaluation_cannot_report_pass_when_isolation_is_missing(tmp_path, monkeypatch):

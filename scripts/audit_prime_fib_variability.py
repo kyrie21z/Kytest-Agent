@@ -26,11 +26,11 @@ def main():
             for mutant in mutants:
                 (w/'solution.py').write_text(f'import random\nrandom.seed({seed})\n'+mutant.source)
                 result=run_pytest_on('test_solution.py',w,timeout=5)
-                killed=not result.timed_out and (result.failed>0 or result.errors>0)
+                killed=not result.process.timed_out and (result.failed>0 or result.errors>0)
                 rows.append({'mutant_id':mutant.mutant_id,'operator':mutant.operator,'line':mutant.line,
-                             'description':mutant.description,'killed':killed,'timed_out':result.timed_out,
+                             'description':mutant.description,'killed':killed,'timed_out':result.process.timed_out,
                              'passed':result.passed,'failed':result.failed,'errors':result.errors})
-                print(f'seed={seed} {mutant.mutant_id} killed={killed} timeout={result.timed_out}',flush=True)
+                print(f'seed={seed} {mutant.mutant_id} killed={killed} timeout={result.process.timed_out}',flush=True)
         return {'seed':seed,'mutants_total':len(rows),'mutants_killed':sum(r['killed'] for r in rows),
                 'mutants_errors':sum(r['timed_out'] for r in rows),'per_mutant':rows}
     with ThreadPoolExecutor(max_workers=2) as pool:

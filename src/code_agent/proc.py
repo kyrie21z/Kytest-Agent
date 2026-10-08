@@ -81,22 +81,6 @@ def build_child_env(overlay: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     return env
 
 
-@dataclass
-class CompletedProcess:
-    """同步执行一个短命令的返回结果，字段与 `subprocess.CompletedProcess` 对齐。"""
-
-    args: List[str] = field(default_factory=list)
-    returncode: Optional[int] = None
-    stdout: str = ""
-    stderr: str = ""
-    timed_out: bool = False
-    duration_sec: float = 0.0
-
-    @property
-    def ok(self) -> bool:
-        return self.returncode == 0 and not self.timed_out
-
-
 def run_capture(
     argv: Sequence[str],
     *,
@@ -104,8 +88,8 @@ def run_capture(
     timeout: float,
     env: Optional[Dict[str, str]] = None,
     execution_mode: str = "sandbox",
-) -> CompletedProcess:
-    """执行命令并完整捕获输出。
+) -> ProcResult:
+    """按执行策略运行命令，保留采集上限、启动错误等全部进程事实。
 
     评测层需要"跑一个命令、拿到输出与退出码"，这个封装让它们复用同一套
     超时与进程树清理逻辑，而不是各自写一遍 `subprocess.run`——
@@ -119,18 +103,10 @@ def run_capture(
         try:
             command = sandbox_command(argv, workspace=directory, cwd=directory, allow_write=True)
         except SandboxUnavailable as exc:
-            return CompletedProcess(args=list(argv), stderr=str(exc))
+            return ProcResult(argv=list(argv), error=str(exc))
     elif execution_mode != "trusted":
-        return CompletedProcess(args=list(argv), stderr="命令执行已禁用或策略无效")
-    result = run_process(command, cwd=directory, timeout=timeout, env=env)
-    return CompletedProcess(
-        args=list(argv),
-        returncode=result.exit_code,
-        stdout=result.stdout,
-        stderr=result.stderr + (f"\n{result.error}" if result.error else ""),
-        timed_out=result.timed_out,
-        duration_sec=result.duration_sec,
-    )
+        return ProcResult(argv=list(argv), error="命令执行已禁用或策略无效")
+    return run_process(command, cwd=directory, timeout=timeout, env=env)
 
 
 def split_command(command: str) -> List[str]:

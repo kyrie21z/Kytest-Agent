@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from code_agent.agent import Agent, TurnDecision
 from code_agent.agent.events import _EventTypes
-from code_agent.tools.base import ToolResult
+from code_agent.tools.base import ToolRegistry, ToolResult
 
 from .helpers import (
     FailingLLM,
@@ -361,14 +361,9 @@ def test_finish_turn_can_force_another_turn_without_tool_calls():
 
 def test_tool_terminate_requests_end_the_run():
     llm = ScriptedLLM([tool_response(("read_file", {"path": "a.py"})), text_response("不应到达")])
-    registry = StubRegistry(
-        [
-            RecordingTool(
-                "read_file",
-                behavior=lambda **kwargs: ToolResult(ok=True, content="读完了", terminate=True),
-            )
-        ]
-    )
+    registry = ToolRegistry()
+    registry.register(RecordingTool(
+        "read_file", behavior=lambda **kwargs: ToolResult(ok=True, content="读完了", terminate=True)))
     agent, _ = _agent(llm, registry)
     result = agent.run()
 

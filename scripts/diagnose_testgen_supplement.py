@@ -49,9 +49,9 @@ def main():
                     result=run_capture([sys.executable,"-m","pytest","test_solution.py","-q","--tb=short","--no-header","-p","no:cacheprovider"],
                                        cwd=w,timeout=10,env=child_env(w),execution_mode="sandbox")
                 failures.append({**row,"original_status":d["status"],"original_reference_timed_out":d.get("final",{}).get("pytest_timed_out"),
-                                 "replay_timed_out":result.timed_out,"replay_returncode":result.returncode,
-                                 "output":((result.stdout or "")+(result.stderr or ""))[-6000:]})
-                print(f"Failure replay {variant}/{d['instance_id']}: timeout={result.timed_out}, exit={result.returncode}",flush=True)
+                                 "replay_timed_out":result.timed_out,"replay_returncode":result.exit_code,
+                                 "output":(result.stdout+result.stderr+(result.error or ""))[-6000:]})
+                print(f"Failure replay {variant}/{d['instance_id']}: timeout={result.timed_out}, exit={result.exit_code}",flush=True)
     instance=instances["HumanEval/129"]
     for variant in ("A1", "A2", "A3"):
         path=output/variant/"HumanEval__129.tests.py"

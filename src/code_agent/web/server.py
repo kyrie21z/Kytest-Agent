@@ -20,7 +20,8 @@ from ..tools.base import resolve_workspace_path
 from ..tools.shell_tools import RunCommandTool
 from .demo import DemoLLM, SOURCE, TASK
 from .examples import ROTATION_SOURCE, ROTATION_TASK
-from .quality import evaluate_quality, pytest_counts
+from .quality import evaluate_quality
+from ..pytest_result import parse_pytest_result
 
 FILES = {"solution.py", "test_solution.py", "testgen_report.json", "fault_feedback.json", "quality_report.json"}
 
@@ -167,9 +168,8 @@ class Run:
                 else:
                     checked = RunCommandTool(self.settings).run(
                         command="python -m pytest test_solution.py -q", timeout=15)
-                    counts = pytest_counts(checked.content)
-                    validation.update(passed=checked.ok and counts["passed"]>0 and not counts["failed"] and not counts["errors"],
-                                      content=checked.content,counts=counts)
+                    observed = parse_pytest_result(checked.process)
+                    validation.update(passed=observed.all_pass, content=checked.content,counts=observed.counts)
                     if not self.source_intact():
                         self.restore_source()
                         validation.update(passed=False,source_unchanged=False,

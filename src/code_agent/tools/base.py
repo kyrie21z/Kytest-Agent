@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List
 
 from ..errors import ToolError
+from ..proc import ProcResult
 
 MAX_TOOL_OUTPUT_CHARS = 6000
 
@@ -78,11 +79,14 @@ class ToolResult:
     `terminate` 对应 Pi 的 `AgentToolResult.terminate`（`types.ts:424-446`）：
     工具可以请求"这批工具跑完后就结束本次 run"。Agent 循环只在**整批**工具
     都要求终止时才提前结束，避免单个工具劫持整轮对话。
+
+    `process` 保留命令执行事实供程序读取；展示内容的截断不改变这些事实。
     """
 
     ok: bool
     content: str
     terminate: bool = False
+    process: ProcResult | None = None
 
     @classmethod
     def success(cls, content: str, terminate: bool = False) -> "ToolResult":
@@ -238,4 +242,4 @@ class ToolRegistry:
             return ToolResult.failure(f"工具 `{name}` 执行异常：{type(exc).__name__}: {exc}")
         if not isinstance(result, ToolResult):
             result = ToolResult.success(str(result))
-        return ToolResult(result.ok, truncate(result.content))
+        return replace(result, content=truncate(result.content))

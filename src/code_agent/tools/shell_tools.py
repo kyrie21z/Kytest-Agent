@@ -94,9 +94,7 @@ def _format(result, argv: List[str], timeout: float) -> ToolResult:
         body.append("（命令没有产生任何输出）")
 
     text = truncate_middle("\n".join(header_lines + body), MAX_OUTPUT_CHARS)
-    if result.error or result.timed_out or result.exit_code != 0:
-        return ToolResult.failure(text)
-    return ToolResult.success(text)
+    return ToolResult(result.ok, text, process=result)
 
 
 class RunCommandTool(Tool):

@@ -58,7 +58,7 @@ def main():
             mutation = run_mutation_tests(w, instance.solution_source, "test_solution.py", timeout=timeouts["per_mutant"])
             restored = (w/"solution.py").read_text() == instance.solution_source
         row.update({"suite_present": True, "expected_mutants": expected_mutants, "reference_passed": reference.all_pass,
-                    "reference_timed_out": reference.timed_out, "reference_matches": reference.all_pass == f.get("all_pass", False),
+                    "reference_timed_out": reference.process.timed_out, "reference_matches": reference.all_pass == f.get("all_pass", False),
                     "mutants_total": mutation["total"], "mutants_killed": mutation["killed"], "mutation_errors": mutation["errors"],
                     "scoring_matches": mutation["total"] == f.get("mutants_total") and mutation["killed"] == f.get("mutants_killed")
                         and mutation["errors"] == f.get("mutants_errors", 0), "reference_restored": restored})

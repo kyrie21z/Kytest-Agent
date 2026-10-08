@@ -14,7 +14,6 @@ import pytest
 from eval.dataset import load_dataset
 from eval.metrics import (
     Metrics,
-    parse_pytest_output,
     run_pytest_on,
 )
 from eval.mutation import (
@@ -119,29 +118,6 @@ def test_mutant_is_a_frozen_dataclass_with_serializable_dict():
     assert isinstance(mutant, Mutant)
     payload = mutant.to_dict()
     assert set(payload) == {"mutant_id", "operator", "line", "column", "description"}
-
-
-# ----------------------------------------------------------------------
-# pytest 输出解析
-# ----------------------------------------------------------------------
-def test_parse_pytest_output_reads_the_summary_line():
-    counts = parse_pytest_output("....\n3 failed, 5 passed in 0.12s\n", "")
-    assert counts["failed"] == 3
-    assert counts["passed"] == 5
-    assert "3 failed" in counts["summary"]
-
-
-def test_parse_pytest_output_handles_errors_and_skips():
-    counts = parse_pytest_output("1 error, 2 passed, 1 skipped in 0.30s", "")
-    assert counts["errors"] == 1
-    assert counts["passed"] == 2
-    assert counts["skipped"] == 1
-
-
-def test_parse_pytest_output_returns_zeros_when_no_summary():
-    """取不到汇总行时返回全零，不猜测——避免把"没跑起来"误判成通过。"""
-    counts = parse_pytest_output("some random output", "")
-    assert counts == {"passed": 0, "failed": 0, "errors": 0, "skipped": 0, "summary": ""}
 
 
 def test_pytest_result_all_pass_requires_passing_tests():
@@ -320,4 +296,4 @@ def test_official_tests_pass_on_the_reference_solution(tmp_path: Path):
 
     write_official_tests(instance, workspace)
     result = run_pytest_on(OFFICIAL_TESTS_FILENAME, workspace)
-    assert result.all_pass, result.stdout
+    assert result.all_pass, result.process.stdout

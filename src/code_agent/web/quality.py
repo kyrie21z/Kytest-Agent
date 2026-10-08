@@ -3,11 +3,11 @@ from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
-import re
 import tempfile
 import time
 
 from ..tools.shell_tools import RunCommandTool
+from ..pytest_result import parse_pytest_result
 from .demo import SOURCE
 from .examples import ROTATION_SOURCE, ROTATION_FAULTS
 
@@ -18,16 +18,6 @@ FAULTS = (
     ('above_zero', '上方错误返回0', SOURCE.replace('return 1', 'return 0'), (9, 2, 8), 1),
     ('inside_one', '区间内部错误返回1', SOURCE.rsplit('return 0', 1)[0]+'return 1\n', (5, 2, 8), 0),
 )
-
-
-def pytest_counts(content):
-    counts = {'passed':0, 'failed':0, 'errors':0, 'skipped':0}
-    summaries = [line for line in content.splitlines()
-                 if re.search(r'\b\d+ (?:passed|failed|errors?|skipped)\b.*\bin \d+(?:\.\d+)?s', line)]
-    if summaries:
-        for number, name in re.findall(r'(\d+) (passed|failed|errors?|skipped)\b', summaries[-1]):
-            counts['errors' if name in ('error', 'errors') else name] = int(number)
-    return counts
 
 
 def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
@@ -67,11 +57,11 @@ def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
                         and tests_path.read_bytes()==tests.encode())
             emit({'type':'evaluation_progress','stage':'coverage','message':'独立副本：执行语句与分支覆盖率测量。'})
             checked = tool.run(command='python -m coverage run --branch --source=solution -m pytest test_solution.py -q',timeout=15)
-            counts = pytest_counts(checked.content)
+            reference = parse_pytest_result(checked.process)
             if not intact(source):
                 report['reason'] = '评测期间输入文件被改写，质量结果无效。'
                 return finish('invalid')
-            reference_valid = checked.ok and counts['passed']>0 and not counts['failed'] and not counts['errors']
+            reference_valid = reference.all_pass
             if cancelled.is_set():
                 return finish('cancelled')
             if reference_valid:
@@ -111,11 +101,10 @@ def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
                 source_path.write_bytes(mutant.encode())
                 emit({'type':'evaluation_progress','stage':'fault','index':index+1,'total':total,'message':label})
                 outcome=tool.run(command='python -m pytest test_solution.py -q',timeout=5)
-                counts=pytest_counts(outcome.content)
+                result=parse_pytest_result(outcome.process)
                 unchanged=intact(mutant)
-                assertion_exit = bool(re.match(r'^\$[^\n]*\n\[退出码 1｜',outcome.content))
-                status=('SURVIVED' if outcome.ok and counts['passed']>0 and unchanged else
-                        'KILLED' if assertion_exit and counts['failed']>0 and not counts['errors'] and unchanged else 'UNCERTAIN')
+                status=('SURVIVED' if result.all_pass and unchanged else
+                        'KILLED' if result.complete and result.process.exit_code==1 and result.failed>0 and not result.errors and unchanged else 'UNCERTAIN')
                 faults['results'][index]={'id':key,'label':label,'status':status,'witness':list(witness),
                     'expected':expected,'faulty_result':observed,'source_sha256':hashlib.sha256(mutant.encode()).hexdigest(),
                     'diagnostic':outcome.content}

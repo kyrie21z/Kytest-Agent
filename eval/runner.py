@@ -491,7 +491,7 @@ def _resolve_status(result: Optional[RunResult], timed_out: bool, metrics) -> st
         return "timeout"
     if not metrics.has_tests:
         return "no_tests"
-    if metrics.pytest.timed_out:
+    if metrics.pytest.process.timed_out:
         return "reference_timeout"
     if not metrics.pytest.import_ok:
         return "import_error"

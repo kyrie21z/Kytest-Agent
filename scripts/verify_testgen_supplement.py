@@ -51,10 +51,10 @@ def main():
             reference = run_pytest_on('test_solution.py',w,timeout=manifest['measurement_seconds']['pytest'])
             mutation = run_mutation_tests(w,instance.solution_source,'test_solution.py',timeout=manifest['measurement_seconds']['per_mutant'])
             restored = (w/'solution.py').read_text() == instance.solution_source
-        row.update(reference_passed=reference.all_pass, reference_timed_out=reference.timed_out,
+        row.update(reference_passed=reference.all_pass, reference_timed_out=reference.process.timed_out,
                    reference_passed_count=reference.passed, reference_failed_count=reference.failed,
                    reference_errors_count=reference.errors, reference_summary=reference.summary_line,
-                   reference_failure_output=(reference.stdout+reference.stderr)[-4000:] if not reference.all_pass else '',
+                   reference_failure_output=(reference.process.stdout+reference.process.stderr)[-4000:] if not reference.all_pass else '',
                    reference_matches=reference.all_pass == f.get('all_pass',False),
                    mutants_total=mutation['total'], mutants_killed=mutation['killed'], mutation_errors=mutation['errors'],
                    scoring_matches=all(mutation[k] == f.get(saved,0) for k,saved in (('total','mutants_total'),('killed','mutants_killed'),('errors','mutants_errors'))),

@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import json
-import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -26,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from code_agent.agent import TurnDecision
 from code_agent.proc import run_capture
+from code_agent.pytest_result import parse_pytest_result
 
 from .metrics import child_env
 from .workspace import SOLUTION_FILENAME, TESTS_FILENAME
@@ -72,30 +72,13 @@ def _run_pytest(workspace: Path) -> Dict[str, Any]:
          "-p", "no:cacheprovider", "--tb=no", "-rA"],
         cwd=str(workspace), timeout=PYTEST_TIMEOUT_SEC, env=child_env(workspace),
     )
-    out = (completed.stdout or "") + (completed.stderr or "")
-    counts: Dict[str, int] = {}
-    failures: List[str] = []
-    for line in out.splitlines():
-        stripped = line.strip()
-        # pytest 短摘要行：`FAILED test_solution.py::test_x - AssertionError: ...`
-        # `PASSED`/`SKIPPED` 等同格式，由 `-rA` 打开
-        for tag in ("FAILED", "ERROR"):
-            if stripped.startswith(tag + " "):
-                failures.append(stripped[:200])
-        if " in " in stripped and ("passed" in stripped or "failed" in stripped or "error" in stripped):
-            for value, label in re.findall(r"(\d+)\s+(passed|failed|error|errors)", stripped):
-                key = "errors" if label.startswith("error") else label
-                counts[key] = counts.get(key, 0) + int(value)
-    status = "PASS" if completed.returncode == 0 and counts.get("passed", 0) > 0 else "FAIL"
-    if completed.timed_out:
-        status = "TIMEOUT"
+    result = parse_pytest_result(completed)
+    status = "TIMEOUT" if completed.timed_out else "PASS" if result.all_pass else "FAIL"
     return {
         "status": status,
-        "passed": counts.get("passed", 0),
-        "failed": counts.get("failed", 0),
-        "errors": counts.get("errors", 0),
-        "failures": failures[:MAX_FAILURES_IN_FEEDBACK],
-        "returncode": completed.returncode,
+        **result.counts,
+        "failures": [line[:200] for line in result.failure_lines[:MAX_FAILURES_IN_FEEDBACK]],
+        "returncode": completed.exit_code,
     }
 
 
@@ -107,11 +90,11 @@ def _coverage_missing_lines(workspace: Path) -> Dict[str, Any]:
     json_file.unlink(missing_ok=True)
     execution = run_capture([sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q", "-p", "no:cacheprovider"],
                 cwd=str(workspace), timeout=COVERAGE_TIMEOUT_SEC, env=child_env(workspace))
-    if execution.timed_out or execution.returncode != 0:
+    if execution.timed_out or execution.exit_code != 0:
         return {"error": "coverage 执行超时或测试未通过"}
     exported = run_capture([sys.executable, "-m", "coverage", "json", "-o", str(json_file), "--pretty-print"],
                 cwd=str(workspace), timeout=120, env=child_env(workspace))
-    if exported.timed_out or exported.returncode != 0:
+    if exported.timed_out or exported.exit_code != 0:
         return {"error": "coverage JSON 导出失败"}
     if not json_file.exists():
         return {"error": "coverage 未生成报告"}

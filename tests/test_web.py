@@ -12,7 +12,8 @@ from code_agent.config import Settings
 from code_agent.llm import LLMResponse
 from code_agent.web import server as web
 from code_agent.web.demo import DemoLLM, SOURCE, TASK, TESTS
-from code_agent.web.quality import evaluate_quality, pytest_counts
+from code_agent.web.quality import evaluate_quality
+from code_agent.proc import ProcResult
 from tests.helpers import ScriptedLLM, text_response, tool_response
 
 
@@ -304,6 +305,20 @@ def test_failed_reference_blocks_quality_and_custom_source_has_no_fault_score(tm
     assert blocked['status']=='blocked' and blocked['fault_detection']['percent'] is None
 
 
+def test_quality_uses_process_facts_even_when_display_text_is_replaced(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from code_agent.web import quality
+    original = quality.RunCommandTool.run
+    def localized(tool, **kwargs):
+        return replace(original(tool, **kwargs), content='Localized command result: 90 passed')
+    monkeypatch.setattr(quality.RunCommandTool, 'run', localized)
+    report = evaluate_quality(Settings(workspace=tmp_path), SOURCE, lambda _:TESTS,
+        {'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)
+    assert report['status']=='measured', report
+    assert report['fault_detection']['confirmed_killed']==5
+    assert report['fault_detection']['uncertain']==0
+
+
 def test_only_skipped_tests_are_not_a_valid_suite(app,monkeypatch):
     code='import pytest\n@pytest.mark.skip(reason="no executed assertion")\ndef test_skip():\n    assert True\n'
     scripted_real(app,monkeypatch,[tool_response(('write_file',{'path':'test_solution.py','content':code})),text_response('done')])
@@ -311,19 +326,15 @@ def test_only_skipped_tests_are_not_a_valid_suite(app,monkeypatch):
     assert not result['validation']['passed'] and result['validation']['counts']['skipped']==1
 
 
-def test_pytest_counts_use_final_summary_instead_of_model_claims():
-    assert pytest_counts('Claims: 90 passed\n1 failed, 2 passed in 0.01s\n')['failed']==1
-    assert pytest_counts('5 skipped in 0.02s')['passed']==0
-
-
 def test_quality_does_not_score_timeout_or_abnormal_exit_with_failure_output(tmp_path,monkeypatch):
     from code_agent.tools.base import ToolResult
     from code_agent.web import quality
     original=quality.RunCommandTool.run
-    for header in ('已超时并被终止','退出码 2'):
+    for facts in ({'exit_code':1,'timed_out':True}, {'exit_code':2}, {'exit_code':1,'output_truncated':True}):
         def interrupted(tool,command,**kwargs):
             if command=='python -m pytest test_solution.py -q':
-                return ToolResult.failure('$ '+command+'\n['+header+'｜耗时 5s｜超时上限 5s]\n1 failed in 0.01s')
+                return ToolResult(False, '1 failed in 0.01s',
+                    process=ProcResult(stdout='1 failed in 0.01s', **facts))
             return original(tool,command,**kwargs)
         monkeypatch.setattr(quality.RunCommandTool,'run',interrupted)
         report=quality.evaluate_quality(Settings(workspace=tmp_path),SOURCE,lambda _:TESTS,

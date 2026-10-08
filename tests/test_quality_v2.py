@@ -9,7 +9,9 @@ from code_agent.config import Settings
 from code_agent.testgen import SubmitTestsTool, make_testgen_hook
 from code_agent.tools.factories import build_registry
 from eval.dataset import Instance
-from eval.metrics import MEASUREMENT_VERSION, PytestResult, collect_metrics, run_mutation_tests
+from eval.metrics import MEASUREMENT_VERSION, collect_metrics, run_mutation_tests
+from code_agent.proc import ProcResult
+from code_agent.pytest_result import parse_pytest_result
 from eval.mutation import Mutant
 from tests.helpers import ScriptedLLM, text_response, tool_response
 
@@ -106,8 +108,8 @@ def test_collection_failure_without_target_evidence_is_unknown(tmp_path, monkeyp
     from eval import metrics
     (tmp_path / "solution.py").write_text(SOURCE)
     monkeypatch.setattr(metrics, "generate_mutants", lambda *a, **kw: [Mutant("M", "AOR", 3, 0, "offset", SOURCE.replace("+ 1", "- 1"))])
-    monkeypatch.setattr(metrics, "run_pytest_on", lambda *a, **kw: PytestResult(ran=True, returncode=2, errors=1))
-    reference = PytestResult(ran=True, returncode=0, passed=1, passed_nodes=["test_solution.py::test_count"])
+    monkeypatch.setattr(metrics, "run_pytest_on", lambda *a, **kw: parse_pytest_result(ProcResult(exit_code=2, stdout="1 error in 0.01s")))
+    reference = parse_pytest_result(ProcResult(exit_code=0, stdout="PASSED test_solution.py::test_count\n1 passed in 0.01s"))
     result = run_mutation_tests(tmp_path, SOURCE, "test_solution.py", baseline=reference)
     assert result["mutant_results"][0]["status"] == "INFRA_ERROR"
     assert result["killed"] == 0 and result["total"] == 1 and result["upper_bound"] == 1

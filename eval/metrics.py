@@ -17,13 +17,13 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from code_agent.proc import run_capture
+from code_agent.pytest_result import PytestResult, parse_pytest_result
 
 from .mutation import Mutant, generate_mutants, mutation_summary
 from .source_stats import _MIN_RATIO
@@ -60,68 +60,6 @@ def child_env(workspace: Path) -> Dict[str, str]:
         parts.append(existing)
     env["PYTHONPATH"] = os.pathsep.join(parts)
     return env
-
-# pytest 汇总行，例如 "3 failed, 5 passed in 0.12s" / "2 passed, 1 warning in 0.05s"
-_SUMMARY = re.compile(
-    r"^(?=.*\b(?:passed|failed|error|errors|skipped|xfailed|xpassed)\b)"
-    r".*\bin \d+(?:\.\d+)?s",
-    re.IGNORECASE,
-)
-_COUNT = re.compile(r"(\d+)\s+(passed|failed|error|errors|skipped|xfailed|xpassed|warning|warnings)", re.I)
-
-
-@dataclass
-class PytestResult:
-    """一次 pytest 运行的结构化结果。"""
-
-    ran: bool = False
-    returncode: Optional[int] = None
-    passed: int = 0
-    failed: int = 0
-    errors: int = 0
-    skipped: int = 0
-    timed_out: bool = False
-    duration_sec: float = 0.0
-    summary_line: str = ""
-    stdout: str = ""
-    stderr: str = ""
-    passed_nodes: List[str] = field(default_factory=list)
-    failure_nodes: List[str] = field(default_factory=list)
-    failure_in_solution: bool = False
-
-    @property
-    def collected(self) -> int:
-        return self.passed + self.failed + self.skipped
-
-    @property
-    def all_pass(self) -> bool:
-        """全部通过且无收集错误。
-
-        这是协议 §2.2 的门槛指标。`errors > 0` 一律判否——包括测试文件无法导入、
-        fixture 报错、收集期异常。
-        """
-        return (
-            self.ran
-            and not self.timed_out
-            and self.returncode == 0
-            and self.failed == 0
-            and self.errors == 0
-            and self.passed > 0
-        )
-
-    @property
-    def import_ok(self) -> bool:
-        """测试文件能否被正常收集。用于区分"测试逻辑错"与"文件根本跑不起来"。"""
-        return self.ran and not self.timed_out and self.errors == 0 and self.collected > 0
-
-    def to_dict(self) -> Dict[str, Any]:
-        payload = asdict(self)
-        payload.pop("stdout", None)
-        payload.pop("stderr", None)
-        payload["all_pass"] = self.all_pass
-        payload["import_ok"] = self.import_ok
-        return payload
-
 
 @dataclass
 class Metrics:
@@ -166,9 +104,11 @@ class Metrics:
             "passed": self.pytest.passed,
             "failed": self.pytest.failed,
             "errors": self.pytest.errors,
-            "pytest_returncode": self.pytest.returncode,
-            "pytest_timed_out": self.pytest.timed_out,
+            "pytest_returncode": self.pytest.process.exit_code,
+            "pytest_timed_out": self.pytest.process.timed_out,
             "pytest_summary": self.pytest.summary_line,
+            "pytest_output_truncated": self.pytest.process.output_truncated,
+            "pytest_execution_error": self.pytest.process.error,
             "line_coverage": round(self.line_coverage, 4),
             "covered_lines": self.covered_lines,
             "executable_lines": self.executable_lines,
@@ -194,36 +134,6 @@ class Metrics:
 # ----------------------------------------------------------------------
 # pytest
 # ----------------------------------------------------------------------
-def parse_pytest_output(stdout: str, stderr: str) -> Dict[str, int]:
-    """从 pytest 输出里提取计数。
-
-    优先用汇总行，因为它是 pytest 自己算出来的、包含全部类别。取不到时返回全零，
-    由调用方依据退出码判断"是否跑起来过"——不猜测，避免把没跑起来误判成通过。
-    """
-    text = f"{stdout}\n{stderr}"
-    summary_line = ""
-    for line in reversed(text.splitlines()):
-        stripped = line.strip().strip("= ").strip()
-        if stripped and _SUMMARY.match(stripped):
-            summary_line = stripped
-            break
-    if not summary_line:
-        return {"passed": 0, "failed": 0, "errors": 0, "skipped": 0, "summary": ""}
-
-    counts = {"passed": 0, "failed": 0, "errors": 0, "skipped": 0}
-    for value, label in _COUNT.findall(summary_line):
-        label = label.lower()
-        if label == "passed":
-            counts["passed"] = int(value)
-        elif label == "failed":
-            counts["failed"] = int(value)
-        elif label.startswith("error"):
-            counts["errors"] = int(value)
-        elif label == "skipped":
-            counts["skipped"] = int(value)
-    return {**counts, "summary": summary_line}
-
-
 def run_pytest_on(
     target: str,
     cwd: Path,
@@ -238,23 +148,7 @@ def run_pytest_on(
     directory = Path(cwd).expanduser().resolve()
     completed = run_capture(argv, cwd=directory, timeout=timeout, env=child_env(directory))
 
-    counts = parse_pytest_output(completed.stdout, completed.stderr)
-    return PytestResult(
-        ran=True,
-        returncode=completed.returncode,
-        passed=counts["passed"],
-        failed=counts["failed"],
-        errors=counts["errors"],
-        skipped=counts["skipped"],
-        timed_out=completed.timed_out,
-        duration_sec=completed.duration_sec,
-        summary_line=counts["summary"],
-        stdout=completed.stdout,
-        stderr=completed.stderr,
-        passed_nodes=re.findall(r"^PASSED (\S+)", completed.stdout, re.M),
-        failure_nodes=re.findall(r"^(?:FAILED|ERROR) (\S+)", completed.stdout, re.M),
-        failure_in_solution=bool(re.search(r"(?:^|[/\\\s])solution\.py(?::\d+|\"?, line \d+)", completed.stdout + completed.stderr, re.M)),
-    )
+    return parse_pytest_result(completed)
 
 
 # ----------------------------------------------------------------------
@@ -277,7 +171,7 @@ def measure_coverage(workspace: Path, target: str, *, timeout: float = COVERAGE_
     lint = run_capture(
         [sys.executable, "-m", "coverage", "--version"], cwd=workspace, timeout=60, env=child_env(workspace)
     )
-    if lint.returncode != 0:
+    if lint.exit_code != 0:
         return {"error": "coverage 不可用：未安装或无法执行"}
 
     run_capture(
@@ -294,7 +188,7 @@ def measure_coverage(workspace: Path, target: str, *, timeout: float = COVERAGE_
         env=child_env(workspace),
     )
     if not json_file.exists():
-        tail = (report.stderr or report.stdout or "").strip()[-300:]
+        tail = (report.error or report.stderr or report.stdout or "").strip()[-300:]
         return {"error": f"coverage 未生成报告：{tail}"}
 
     try:
@@ -375,7 +269,7 @@ def run_mutation_tests(
         blocked_reason = blocked_reason or "reference_modified_target"
     valid = baseline.all_pass and not blocked_reason
     result["baseline"] = baseline.to_dict()
-    result["status"] = "measured" if valid else (blocked_reason or ("reference_timeout" if baseline.timed_out else "reference_invalid"))
+    result["status"] = "measured" if valid else (blocked_reason or ("reference_timeout" if baseline.process.timed_out else "reference_invalid"))
     killed_by_operator: Dict[str, int] = {}
     try:
         for mutant in mutants:
@@ -394,18 +288,18 @@ def run_mutation_tests(
                 continue
             solution_path.write_text(mutant.source, encoding="utf-8")
             outcome = run_pytest_on(tests_target, workspace, timeout=timeout)
-            detail.update(duration_sec=outcome.duration_sec, timed_out=outcome.timed_out,
-                          returncode=outcome.returncode, failure_nodes=outcome.failure_nodes,
+            detail.update(duration_sec=outcome.process.duration_sec, timed_out=outcome.process.timed_out,
+                          returncode=outcome.process.exit_code, failure_nodes=outcome.failure_nodes,
                           passed=outcome.passed, failed=outcome.failed, errors=outcome.errors,
                           summary=outcome.summary_line)
             unchanged = solution_path.exists() and solution_path.read_text(encoding="utf-8") == mutant.source
             if not unchanged:
                 detail.update(status="INFRA_ERROR", reason="Test altered the target during mutation measurement")
                 result["errors"] += 1
-            elif outcome.timed_out:
+            elif outcome.process.timed_out:
                 detail.update(status="TIMEOUT_UNKNOWN", reason="No confirmed detection within the measurement limit")
                 result["errors"] += 1
-            elif outcome.returncode == 1 and (set(outcome.failure_nodes) & set(baseline.passed_nodes) or
+            elif outcome.complete and outcome.process.exit_code == 1 and (set(outcome.failure_nodes) & set(baseline.passed_nodes) or
                                               outcome.errors > 0 and outcome.failure_in_solution):
                 detail.update(status="KILLED", reason="New test failure or target-module exception after a passing reference")
                 result["killed"] += 1
@@ -415,7 +309,7 @@ def run_mutation_tests(
                 result["survived"].append(mutant.to_dict())
             else:
                 detail.update(status="INFRA_ERROR", reason="Execution/collection failure lacks differential target evidence",
-                              diagnostic=(outcome.stdout + outcome.stderr)[-800:])
+                              diagnostic=(outcome.process.stdout + outcome.process.stderr)[-800:])
                 result["errors"] += 1
             result["mutant_results"].append(detail)
     finally:

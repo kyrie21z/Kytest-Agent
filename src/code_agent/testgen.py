@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 
 from .agent import TurnDecision
 from .proc import run_capture
+from .pytest_result import parse_pytest_result
 from .tools.base import Tool, ToolError, ToolResult, resolve_workspace_path
 
 TESTGEN_PROMPT = """You are a coding agent generating useful unit tests for solution.py.
@@ -195,9 +196,8 @@ class SubmitTestsTool(Tool):
                 runtime_checks = None
         self.subprocess_runs += 1
         self.validation_seconds += result.duration_sec
-        output = ((result.stdout or "") + (result.stderr or ""))[-1800:]
-        passed = bool(re.search(r"\b\d+ passed\b", output))
-        status = "PASS" if result.returncode == 0 and passed and unchanged else "FAIL"
+        output = (result.stdout + result.stderr + (result.error or ""))[-1800:]
+        status = "PASS" if parse_pytest_result(result).all_pass and unchanged else "FAIL"
         if result.timed_out:
             status = "TIMEOUT"
         elif runtime_checks is not None and runtime_checks["violations"]:
@@ -207,7 +207,7 @@ class SubmitTestsTool(Tool):
             status = "NO_TARGET_CALL"
         if not unchanged:
             status = "SUT_MODIFIED"
-        return {"status": status, "returncode": result.returncode,
+        return {"status": status, "returncode": result.exit_code,
                 "seconds": round(result.duration_sec, 3), "diagnostic": output,
                 "timeout_seconds": timeout, "runtime_contract_checks": runtime_checks}
 
