@@ -53,6 +53,43 @@ def test_submission_has_code_and_identical_root_documents_and_video(submission_s
             assert manifest["root_copies"][name]["code_path"] == inner
 
 
+def test_portable_documents_are_generated_from_the_only_source(submission_source, tmp_path):
+    source, spec, _ = submission_source
+    readme = ("# Project\n[Design](Design.md#architecture) [Start](#start) "
+              "[Demo](docs/demo.mp4)\n![Preview](docs/preview.png)\n"
+              "[Evidence](submission/EXPERIMENTS.md) [Site](https://example.com)\n")
+    (source / "README.md").write_text(readme)
+    (source / "Design.md").write_text("# Design\n[README](README.md) [Demo](docs/demo.mp4)\n")
+    spec["portable_docs"] = ["README.md", "Design.md"]
+    (source / "submission/spec.json").write_text(json.dumps(spec))
+    output, archive_path = tmp_path / "delivery", tmp_path / "delivery.zip"
+    builder.build(output, archive_path)
+    portable = (output / "README.md").read_text()
+    assert "[Design](Design.md#architecture) [Start](#start)" in portable
+    assert f"[Demo]({builder.PUBLIC}docs/demo.mp4)" in portable
+    assert f"![Preview]({builder.RAW}docs/preview.png)" in portable
+    assert f"[Evidence]({builder.PUBLIC}submission/EXPERIMENTS.md)" in portable
+    assert "[Site](https://example.com)" in portable
+    assert (source / "README.md").read_text() == readme
+    manifest = json.loads((output / "code-agent/SUBMISSION_MANIFEST.json").read_text())
+    for name in spec["portable_docs"]:
+        assert (output / name).read_bytes() == (output / "code-agent" / name).read_bytes()
+        entry = manifest["files"][name]
+        assert entry["source_path"] == name
+        assert entry["source_sha256"] == builder.digest((source / name).read_bytes())
+        assert entry["sha256"] == builder.digest((output / name).read_bytes())
+        assert entry["transformation"]
+
+
+def test_research_links_keep_their_pinned_archive(submission_source):
+    source, _, _ = submission_source
+    original = "[Included](demo.mp4) [Research](../results/report.md#details)"
+    generated = builder.submission_links(original, "docs/guide.md",
+                                         {"docs/demo.mp4": source / "docs/demo.mp4"})
+    assert "[Included](demo.mp4)" in generated
+    assert f"[Research]({builder.ARCHIVE}results/report.md#details)" in generated
+
+
 @pytest.mark.parametrize("existing", ["directory", "zip"])
 def test_submission_keeps_completed_artifacts(submission_source, tmp_path, existing):
     output, archive_path = tmp_path/"delivery", tmp_path/"delivery.zip"

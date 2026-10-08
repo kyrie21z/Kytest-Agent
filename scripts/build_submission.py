@@ -9,7 +9,10 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-ARCHIVE = "https://github.com/kyrie21z/Kytest-Agent/blob/e34bb5c8770f85815612e5669a50a02a0c5f5532/"
+REPOSITORY = "https://github.com/kyrie21z/Kytest-Agent"
+ARCHIVE = REPOSITORY + "/blob/e34bb5c8770f85815612e5669a50a02a0c5f5532/"
+PUBLIC = REPOSITORY + "/blob/main/"
+RAW = REPOSITORY.replace("github.com", "raw.githubusercontent.com") + "/main/"
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -48,7 +51,7 @@ def selected_files(spec):
             raise ValueError("Missing or external submission input: "+str(source))
     return chosen
 
-def archive_links(text,relative_path,chosen):
+def submission_links(text,relative_path,chosen,*,portable=False):
     def replace(match):
         label,target = match.groups()
         if target.startswith(("http://","https://","#")):
@@ -58,6 +61,12 @@ def archive_links(text,relative_path,chosen):
         if ROOT not in resolved.parents:
             return match.group(0)
         name = str(resolved.relative_to(ROOT))
+        # Root document copies have no docs/ directory. Keep links between the
+        # two documents local and make all other relative links usable there.
+        if portable and name not in {"README.md", "Design.md"}:
+            image = match.start() > 0 and text[match.start()-1] == "!"
+            base = RAW if image else PUBLIC
+            return f"[{label}]({base}{name}{separator}{anchor})"
         if name in chosen:
             return match.group(0)
         return f"[{label}]({ARCHIVE}{name}{separator}{anchor})"
@@ -84,10 +93,14 @@ def build(output,zip_path):
         original = source.read_bytes()
         data = original
         transformation = None
-        if name in spec["archive_link_docs"]:
-            data = archive_links(original.decode(),name,selected).encode()
+        portable = name in spec.get("portable_docs", [])
+        if portable or name in spec["archive_link_docs"]:
+            data = submission_links(original.decode("utf-8"),name,selected,
+                                    portable=portable).encode("utf-8")
             if data!=original:
-                transformation = "Excluded research links redirected to their pinned archive; no behavior change"
+                transformation = ("Root document links made portable; content generated from repository document"
+                                  if portable else
+                                  "Excluded research links redirected to their pinned archive; no behavior change")
         destination = code_output/name
         destination.parent.mkdir(parents=True,exist_ok=True)
         destination.write_bytes(data)
