@@ -6,7 +6,7 @@ import pytest
 
 from code_agent.agent import Agent
 from code_agent.config import Settings
-from code_agent.testgen import SubmitTestsTool, make_testgen_hook
+from code_agent.testgen import TestGeneration as Generation
 from code_agent.tools.factories import build_registry
 from eval.dataset import Instance
 from eval.metrics import MEASUREMENT_VERSION, collect_metrics, run_mutation_tests
@@ -28,12 +28,12 @@ def proposal(code, name="test_count", quote=QUOTE):
 @pytest.fixture
 def submitter(tmp_path):
     (tmp_path / "solution.py").write_text(SOURCE)
-    return SubmitTestsTool(Settings(workspace=tmp_path))
+    return Generation(Settings(workspace=tmp_path))
 
 
 def submit(tool, body, prefix="from solution import count\n", quote=QUOTE):
     code = prefix + "def test_count():\n" + body
-    return json.loads(tool.run(cases=[proposal(code, quote=quote)]).content)["results"][0]
+    return json.loads(tool.submit(cases=[proposal(code, quote=quote)]).content)["results"][0]
 
 
 def test_invalid_reference_has_zero_quality_without_executing_mutants(tmp_path):
@@ -186,14 +186,14 @@ def test_comprehension_local_does_not_shadow_enclosing_import(submitter):
 def test_function_local_alias_does_not_get_renamed_to_global_math_alias(submitter):
     row = submit(submitter, "    from solution import count as f\n    assert f(2)==3\n", prefix="from math import sqrt as f\n")
     assert row["status"] == "ACCEPTED"
-    assert submitter._execute(submitter.suite_source(), 3)["status"] == "PASS"
+    assert submitter.evaluate(submitter.suite_source(), 3)["status"] == "PASS"
 
 
 def test_documented_in_place_side_effect_can_supply_assertion_dependency(tmp_path):
     (tmp_path / "solution.py").write_text('def append_one(items):\n    """Append one to the input list in place."""\n    items.append(1)\n')
-    tool = SubmitTestsTool(Settings(workspace=tmp_path))
+    tool = Generation(Settings(workspace=tmp_path))
     code = 'from solution import append_one\ndef test_count():\n    items=[]\n    append_one(items)\n    assert items==[1]\n'
-    result = json.loads(tool.run(cases=[proposal(code, quote="Append one to the input list in place.")]).content)
+    result = json.loads(tool.submit(cases=[proposal(code, quote="Append one to the input list in place.")]).content)
     assert result["results"][0]["status"] == "ACCEPTED"
 
 
@@ -216,12 +216,12 @@ def test_a5_cannot_naturally_finish_without_development_check(tmp_path):
     (tmp_path / "solution.py").write_text(interval)
     registry = build_registry(Settings(workspace=tmp_path), ("submit_tests", "inspect_survivors"))
     llm = ScriptedLLM([tool_response(("submit_tests", {"cases": [candidate("test_inside", 5, 0)]})), text_response("done")])
-    tool = registry.get("submit_tests")
-    agent = Agent(llm=llm, tools=registry, system_prompt="generate", max_turns=5, finish_turn=make_testgen_hook(tool))
+    tool = registry.get("submit_tests").generation
+    agent = Agent(llm=llm, tools=registry, system_prompt="generate", max_turns=5, finish_turn=tool.finish_turn)
     agent.state.add_user("generate tests")
     result = agent.run()
     assert result.status == "stopped" and result.error == "development_no_progress"
-    assert len(registry.get("inspect_survivors").actions) == 1
+    assert len(registry.get("inspect_survivors").generation.snapshot()["fault_feedback"]) == 1
     assert len(llm.requests) == 3 and len(tool.accepted) == 1
     assert tool.quality_actions[0]["decision"] == "development_feedback"
 
@@ -230,15 +230,15 @@ def test_automatic_feedback_records_actual_increment_and_preserves_suite(tmp_pat
     from scripts.demo_fault_feedback import SOURCE as interval, candidate
     (tmp_path / "solution.py").write_text(interval)
     registry = build_registry(Settings(workspace=tmp_path), ("submit_tests", "inspect_survivors"))
-    tool = registry.get("submit_tests")
+    tool = registry.get("submit_tests").generation
     llm = ScriptedLLM([tool_response(("submit_tests", {"cases": [candidate("test_inside", 5, 0)]})),
                       tool_response(("submit_tests", {"cases": [candidate("test_below", 1, -1), candidate("test_above", 9, 1), candidate("test_low", 2, 0), candidate("test_high", 8, 0)]}))])
-    agent = Agent(llm=llm, tools=registry, system_prompt="generate", max_turns=4, finish_turn=make_testgen_hook(tool))
+    agent = Agent(llm=llm, tools=registry, system_prompt="generate", max_turns=4, finish_turn=tool.finish_turn)
     agent.state.add_user("generate")
     result = agent.run()
-    reports = registry.get("inspect_survivors").actions
+    reports = registry.get("inspect_survivors").generation.snapshot()["fault_feedback"]
     assert result.status == "stopped" and len(reports) == 2 and len(tool.accepted) == 5
     assert reports[1]["newly_detected_faults"] and not reports[1]["lost_detections"]
     assert reports[1]["detected"] > reports[0]["detected"]
-    assert tool._execute(tool.suite_source(), 5)["status"] == "PASS"
+    assert tool.evaluate(tool.suite_source(), 5)["status"] == "PASS"
     assert (tmp_path / "solution.py").read_text() == interval

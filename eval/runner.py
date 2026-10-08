@@ -407,7 +407,7 @@ def run_single(
             item.get("solution_modified") for item in outcome.checkpoints
         )
         submitter = registry.get("submit_tests")
-        outcome.solution_modified |= bool(getattr(submitter, "sut_restorations", 0)) or any(
+        outcome.solution_modified |= bool(submitter.generation.snapshot()["sut_restorations"] if submitter else 0) or any(
             a.get("solution_restored") for a in getattr(getattr(finish_hook, "state", None), "actions", []))
         metrics.solution_modified = outcome.solution_modified
         if outcome.solution_modified and metrics.mutants_total:
@@ -452,15 +452,11 @@ def run_single(
             outcome.agent["measurement_deferred"] = True
         submitter = registry.get("submit_tests")
         if submitter is not None:
-            outcome.agent["testgen"] = {
-                "accepted": list(submitter.accepted.values()), "attempts": submitter.attempts,
-                "subprocess_runs": submitter.subprocess_runs,
-                "validation_seconds": round(submitter.validation_seconds, 3),
-                "quality_actions": submitter.quality_actions,
-            }
-        inspector = registry.get("inspect_survivors")
-        if inspector is not None:
-            outcome.agent["fault_feedback"] = inspector.actions
+            snapshot = submitter.generation.snapshot()
+            outcome.agent["testgen"] = {key: snapshot[key] for key in (
+                "accepted", "attempts", "subprocess_runs", "validation_seconds", "quality_actions")}
+            if registry.get("inspect_survivors") is not None:
+                outcome.agent["fault_feedback"] = snapshot["fault_feedback"]
         outcome.network_attempt = _detect_network_attempt(registry)
         outcome.duration_sec = time.time() - started
 

@@ -38,7 +38,7 @@ def main():
     settings = Settings(workspace=workspace, max_steps=4)
     policy = AgentPolicy.test_generation(tool_names=("read_file",))
     registry = build_registry(settings, policy.tool_names)
-    submitter = registry.get("submit_tests")
+    submitter = registry.get("submit_tests").generation
     llm = MockLLM(responses=[response([candidate("test_valid", "increment(2) == 3"),
                                     candidate("test_wrong", "increment(3) == 99"),
                                     candidate("test_invalid", "increment(0) == 1")]),
@@ -52,7 +52,7 @@ def main():
     agent.state.add_user("Generate tests for solution.py")
     print("Offline scripted LLM: demonstrates the real tool loop, not model quality.", flush=True)
     result = agent.run()
-    if len(submitter.accepted) != 3 or result.status != "completed":
+    if len(submitter.snapshot()["accepted"]) != 3 or result.status != "completed":
         raise SystemExit("Demo acceptance failed")
     print(result.final_text); print(f"Artifacts: {workspace}")
 

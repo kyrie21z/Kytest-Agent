@@ -85,7 +85,7 @@ def test_cli_custom_tools_do_not_implicitly_enable_validation(tmp_path, flag):
         assert agent.tools.names() == sorted(expected)
         if flag == "--fault-feedback":
             submitter, inspector = agent.tools.get("submit_tests"), agent.tools.get("inspect_survivors")
-            assert inspector.submitter is submitter and submitter.inspector is inspector
+            assert inspector.generation is submitter.generation
 
 
 @pytest.mark.parametrize("options", [{"allow_write": False}, {"allow_code_execution": False},

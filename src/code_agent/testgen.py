@@ -7,7 +7,9 @@ reference implementation establishes compatibility, not specification correctnes
 from __future__ import annotations
 
 import ast
+from copy import deepcopy
 import hashlib
+import difflib
 import json
 import re
 import sys
@@ -78,19 +80,12 @@ def check_literal_inputs(tree: ast.Module, contracts: Dict[str, Dict[str, Any]])
     return analyze(tree, contracts)
 
 
-class SubmitTestsTool(Tool):
-    name = "submit_tests"
-    description = "Validate contract-grounded test candidates individually, report failures/timeouts, and append accepted tests with a regression check."
-    _fields = ("name", "code", "contract_quote", "input_domain", "oracle_reason", "fault_hypothesis")
-    parameters = {
-        "type": "object", "properties": {"cases": {"type": "array", "maxItems": 6,
-            "items": {"type": "object", "properties": {k: {"type": "string"} for k in _fields},
-                      "required": list(_fields), "additionalProperties": False}}},
-        "required": ["cases"], "additionalProperties": False,
-    }
+class TestGeneration:
+    """Own the immutable target, accepted suite, execution and development lifecycle."""
+    _fields = ('name', 'code', 'contract_quote', 'input_domain', 'oracle_reason', 'fault_hypothesis')
 
     def __init__(self, settings: Any):
-        super().__init__(settings)
+        self.settings, self.workspace = settings, settings.workspace
         source_path = resolve_workspace_path(self.workspace, "solution.py", must_exist=True)
         if source_path.stat().st_size > settings.max_file_bytes:
             raise ToolError("solution.py exceeds MAX_FILE_BYTES; use a bounded standalone target")
@@ -104,7 +99,15 @@ class SubmitTestsTool(Tool):
         self.suite_timeout = 5.0
         self.max_attempts = 24
         self.max_target_calls = 128
-        self.inspector = None
+        self.feedback_enabled = False
+        self.feedback_actions = []
+        self.last_hash = None
+        self.last_report = None
+        self.max_rounds = 2
+        self.detected_fingerprints = set()
+        self.last_feedback_digest = None
+        self.stagnant_turns = 0
+        self.on_feedback = None
         self.quality_actions: List[Dict[str, Any]] = []
         self.sut_restorations = 0
         tests = resolve_workspace_path(self.workspace, "test_solution.py")
@@ -167,7 +170,7 @@ class SubmitTestsTool(Tool):
             raise ToolError("Oracle check: " + "; ".join(checks["assertion_errors"]))
         return checks, tree
 
-    def _execute(self, code: str, timeout: float, *, source: str | None = None) -> Dict[str, Any]:
+    def evaluate(self, code: str, timeout: float, *, source: str | None = None) -> Dict[str, Any]:
         # The child can see only the immutable SUT and proposed tests, never the
         # parent workspace's .env, previous proposals, official tests, or evaluator.
         with tempfile.TemporaryDirectory(prefix="testgen-") as tmp:
@@ -279,16 +282,11 @@ class SubmitTestsTool(Tool):
             # an accepted test. A preexisting user suite is restored above.
             resolve_workspace_path(self.workspace, "testgen_unvalidated.py").write_text(tests.read_text(encoding="utf-8"), encoding="utf-8")
             tests.unlink()
-        report = {"schema": "testgen-v2", "sut_sha256": hashlib.sha256(self.source.encode()).hexdigest(),
-                  "accepted": list(self.accepted.values()), "attempts": self.attempts,
-                  "subprocess_runs": self.subprocess_runs, "validation_seconds": round(self.validation_seconds, 3),
-                  "limits": {"case_seconds": self.case_timeout, "suite_seconds": self.suite_timeout, "attempts": self.max_attempts, "target_calls_per_test": self.max_target_calls},
-                  "quality_actions": self.quality_actions, "sut_restorations": self.sut_restorations,
-                  "limitations": "Quotes and complex oracles remain model claims. Known constraints are checked on bounded static and executed paths; unknown contracts and unexecuted paths are not certified. Passing execution is not proof of mutation quality."}
+        report = self.snapshot()
         resolve_workspace_path(self.workspace, "testgen_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         return {"solution_restored": restored, "unvalidated_tests_replaced": altered}
 
-    def run(self, cases: List[Dict[str, str]]) -> ToolResult:
+    def submit(self, cases: List[Dict[str, str]]) -> ToolResult:
         if not self.settings.allow_write or not self.settings.allow_code_execution or self.settings.execution_mode == "disabled":
             return ToolResult.failure("submit_tests requires ALLOW_WRITE and ALLOW_CODE_EXECUTION, with execution enabled")
         if not isinstance(cases, list) or not 1 <= len(cases) <= 6:
@@ -308,9 +306,9 @@ class SubmitTestsTool(Tool):
                 elif name in self.seed_names:
                     record["status"] = "NAME_LOCKED"
                 else:
-                    record.update(self._execute(candidate["code"], self.case_timeout))
+                    record.update(self.evaluate(candidate["code"], self.case_timeout))
                     if record["status"] == "PASS":
-                        merged = self._execute(self.suite_source(candidate), self.suite_timeout)
+                        merged = self.evaluate(self.suite_source(candidate), self.suite_timeout)
                         if merged["status"] == "PASS":
                             self.accepted[name] = dict(candidate)
                             record["status"] = "ACCEPTED"
@@ -329,56 +327,155 @@ class SubmitTestsTool(Tool):
         summary = {"accepted_total": len(self.accepted), "attempts_remaining": max(0, self.max_attempts-len(self.attempts)), "results": feedback}
         return ToolResult.success(json.dumps(summary, ensure_ascii=False))
 
+    def snapshot(self) -> Dict[str, Any]:
+        return deepcopy({"schema": "testgen-v2", "sut_sha256": hashlib.sha256(self.source.encode()).hexdigest(),
+                  "accepted": list(self.accepted.values()), "attempts": self.attempts,
+                  "subprocess_runs": self.subprocess_runs, "validation_seconds": round(self.validation_seconds, 3),
+                  "limits": {"case_seconds": self.case_timeout, "suite_seconds": self.suite_timeout, "attempts": self.max_attempts, "target_calls_per_test": self.max_target_calls},
+                  "quality_actions": self.quality_actions, "sut_restorations": self.sut_restorations,
+                  "fault_feedback": self.feedback_actions,
+                  "limitations": "Quotes and complex oracles remain model claims. Known constraints are checked on bounded static and executed paths; unknown contracts and unexecuted paths are not certified. Passing execution is not proof of mutation quality."})
 
-def make_testgen_hook(tool: SubmitTestsTool):
-    """Preserve A4 validity; linked A5 also checks development quality before finish."""
-    last_feedback_digest = None
-    stagnant_turns = 0
-    def hook(agent, outcome):
-        nonlocal last_feedback_digest, stagnant_turns
-        if not tool.settings.allow_write:
+    @staticmethod
+    def _public(report):
+        # Keep a complete JSON response within the registry's output limit. All
+        # development findings are retained in the report, never scoring faults.
+        return {**report, "survivors": report["survivors"][:3],
+                "survivors_total": len(report["survivors"]),
+                "report_file": "fault_feedback.json"}
+
+    def inspect(self) -> ToolResult:
+        from .fault_feedback import fingerprint, independent_pools
+        if not self.settings.allow_write or not self.settings.allow_code_execution or self.settings.execution_mode == "disabled":
+            return ToolResult.failure("Fault execution is disabled")
+        if not self.accepted and not self.previous_tests:
+            return ToolResult.failure("Submit a valid suite before inspecting development faults")
+        suite = self.suite_source()
+        digest = hashlib.sha256(suite.encode()).hexdigest()
+        if digest == self.last_hash:
+            return ToolResult.success(json.dumps({"cached": True, **self._public(self.last_report)}, ensure_ascii=False))
+        if len(self.feedback_actions) >= self.max_rounds:
+            return ToolResult.failure("Development feedback budget exhausted (two changed-suite rounds)")
+        started_seconds, started_runs = self.validation_seconds, self.subprocess_runs
+        compatibility = self.evaluate(suite, self.suite_timeout)
+        if compatibility["status"] != "PASS":
+            return ToolResult.failure("Accepted suite unavailable on the reference: " + json.dumps(compatibility))
+        feedback, _ = independent_pools(self.source)
+        # Assert separation here, but never expose held-out IDs, source or counts
+        # in the model's feedback or the workspace report.
+        killed, survivors, uncertain = [], [], []
+        canonical = ast.unparse(ast.parse(self.source)).splitlines()
+        for mutant in feedback:
+            outcome = self.evaluate(suite, self.case_timeout, source=mutant.source)
+            details = {"mutant_id": mutant.mutant_id, "operator": mutant.operator, "line": mutant.line,
+                       "description": mutant.description, "fingerprint": fingerprint(mutant),
+                       "status": outcome["status"], "seconds": outcome.get("seconds", 0)}
+            if outcome["status"] == "PASS":
+                change = "\n".join(difflib.unified_diff(canonical, mutant.source.splitlines(), n=1, lineterm=""))
+                survivors.append({**details, "change": change[:600]})
+            elif outcome["status"] == "FAIL" and outcome["returncode"] == 1:
+                killed.append(details)
+            else:
+                uncertain.append({**details, "status": outcome["status"]})
+        detected = {d["fingerprint"] for d in killed}
+        newly_detected = [d for d in killed if d["fingerprint"] not in self.detected_fingerprints]
+        lost = sorted(self.detected_fingerprints - detected)
+        report = {"scope": "development-only", "round": len(self.feedback_actions)+1,
+                  "suite_sha256": digest, "detected_faults": killed,
+                  "newly_detected_faults": newly_detected, "lost_detections": lost,
+                  "validation_seconds": round(self.validation_seconds-started_seconds, 3),
+                  "subprocess_runs": self.subprocess_runs-started_runs,
+                  "reference_passed": True, "total": len(feedback), "detected": len(killed),
+                  "survivors": survivors, "uncertain": uncertain,
+                  "warning": "Survivors can be equivalent; timeouts are inconclusive. These counts are not the held-out quality score."}
+        self.feedback_actions.append(report)
+        self.detected_fingerprints = detected
+        self.last_hash, self.last_report = digest, report
+        path = resolve_workspace_path(self.workspace, "fault_feedback.json")
+        path.write_text(json.dumps(self.feedback_actions, ensure_ascii=False, indent=2), encoding="utf-8")
+        response = ToolResult.success(json.dumps(self._public(report), ensure_ascii=False))
+        if self.on_feedback is not None:
+            self.on_feedback(deepcopy({"suite_source": suite, "suite_sha256": digest,
+                              "accepted_names": list(self.accepted),
+                              "response": response.content, "report": report}))
+        return response
+
+    def finish_turn(self, agent, outcome):
+        if not self.settings.allow_write:
             return None
-        repaired = tool.publish()
+        repaired = self.publish()
         if repaired["solution_restored"] or repaired["unvalidated_tests_replaced"]:
             agent.state.add_user("[System] Restored the immutable SUT and accepted suite. Submit candidates through submit_tests; direct writes are unvalidated.")
-        if not outcome.tool_results and not tool.accepted and len(tool.attempts) < tool.max_attempts:
+        if not outcome.tool_results and not self.accepted and len(self.attempts) < self.max_attempts:
             agent.state.add_user("[System] No accepted tests yet. Read solution.py and use submit_tests to submit contract-grounded, bounded candidates.")
             return TurnDecision(continue_=True, reason="no_accepted_tests")
-        inspector = tool.inspector
-        if inspector is not None and (tool.accepted or tool.previous_tests):
-            digest = hashlib.sha256(tool.suite_source().encode()).hexdigest()
+        if self.feedback_enabled and (self.accepted or self.previous_tests):
+            digest = hashlib.sha256(self.suite_source().encode()).hexdigest()
             # Check before natural completion while the fixed feedback budget
             # permits it. Explicitly record unmeasured versions on exhaustion.
-            response = inspector.run()
+            response = self.inspect()
             reason = "development_feedback"
             if not response.ok:
-                reason = "development_budget_exhausted" if len(inspector.actions) >= inspector.max_rounds else "development_unavailable"
+                reason = "development_budget_exhausted" if len(self.feedback_actions) >= self.max_rounds else "development_unavailable"
             else:
-                report = inspector.last_report
-                if digest == last_feedback_digest:
-                    stagnant_turns += 1
+                report = self.last_report
+                if digest == self.last_feedback_digest:
+                    self.stagnant_turns += 1
                 else:
-                    stagnant_turns = 0
-                last_feedback_digest = digest
+                    self.stagnant_turns = 0
+                self.last_feedback_digest = digest
                 if not report["survivors"] and not report["uncertain"]:
                     reason = "development_targets_exhausted"
-                elif len(inspector.actions) >= inspector.max_rounds:
+                elif len(self.feedback_actions) >= self.max_rounds:
                     reason = "development_budget_exhausted"
-                elif stagnant_turns >= 2:
+                elif self.stagnant_turns >= 2:
                     reason = "development_no_progress"
             end = reason != "development_feedback"
             action = {"turn": outcome.turn, "decision": reason, "suite_sha256": digest,
                       "current_suite_checked": bool(response.ok),
-                      "feedback_rounds": len(inspector.actions), "stagnant_turns": stagnant_turns,
-                      "newly_detected_faults": inspector.last_report.get("newly_detected_faults", []) if response.ok and not json.loads(response.content).get("cached") else []}
-            tool.quality_actions.append(action)
-            tool.publish()
+                      "feedback_rounds": len(self.feedback_actions), "stagnant_turns": self.stagnant_turns,
+                      "newly_detected_faults": self.last_report.get("newly_detected_faults", []) if response.ok and not json.loads(response.content).get("cached") else []}
+            self.quality_actions.append(action)
+            self.publish()
             agent.state.add_user("[System] Development quality check: " + response.content +
-                                 f"\nDecision: {reason}. Candidate attempts remaining: {max(0, tool.max_attempts-len(tool.attempts))}. "
-                                 f"Feedback rounds remaining: {max(0, inspector.max_rounds-len(inspector.actions))}. "
+                                 f"\nDecision: {reason}. Candidate attempts remaining: {max(0, self.max_attempts-len(self.attempts))}. "
+                                 f"Feedback rounds remaining: {max(0, self.max_rounds-len(self.feedback_actions))}. "
                                  f"Model turns remaining: {max(0, agent.max_turns-agent.state.turn_index)}. "
                                  "Add one or two contract-valid tests for a surviving development target; preserve accepted tests. "
                                  "Survivors may be equivalent and uncertainty is not a detected fault.")
             return TurnDecision(end=end, continue_=not end, reason=reason)
         return None
-    return hook
+
+
+class SubmitTestsTool(Tool):
+    name = "submit_tests"
+    description = "Validate contract-grounded test candidates individually, report failures/timeouts, and append accepted tests with a regression check."
+    _fields = TestGeneration._fields
+    parameters = {
+        "type": "object", "properties": {"cases": {"type": "array", "maxItems": 6,
+            "items": {"type": "object", "properties": {k: {"type": "string"} for k in _fields},
+                      "required": list(_fields), "additionalProperties": False}}},
+        "required": ["cases"], "additionalProperties": False,
+    }
+
+    def __init__(self, settings: Any):
+        super().__init__(settings)
+        self.generation = TestGeneration(settings)
+
+    def run(self, cases: List[Dict[str, str]]) -> ToolResult:
+        return self.generation.submit(cases)
+
+
+class InspectSurvivorsTool(Tool):
+    name = "inspect_survivors"
+    description = "Inspect bounded DEVELOPMENT faults that the accepted suite misses, for targeted additional tests. Not the final scoring pool. Equivalent faults and timeouts remain uncertain."
+    parameters = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+
+    def __init__(self, settings: Any):
+        super().__init__(settings)
+        self.generation = None
+
+    def run(self) -> ToolResult:
+        if self.generation is None:
+            return ToolResult.failure("inspect_survivors requires submit_tests in the same registry")
+        return self.generation.inspect()

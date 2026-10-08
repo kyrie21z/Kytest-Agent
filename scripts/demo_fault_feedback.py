@@ -49,11 +49,11 @@ def main():
     settings = Settings(workspace=workspace, max_steps=6)
     policy = AgentPolicy.test_generation(feedback=True, tool_names=())
     registry = build_registry(settings, policy.tool_names)
-    submitter = registry.get("submit_tests")
+    submitter = registry.get("submit_tests").generation
     stages = {}
     def event(e):
         if getattr(e, "name", None) == "submit_tests" and hasattr(e, "content"):
-            if len(submitter.accepted) == 1:
+            if len(submitter.snapshot()["accepted"]) == 1:
                 stages["before"] = submitter.suite_source()
     llm = MockLLM(responses=[
         response("submit_tests", {"cases": [candidate("test_inside", 5, 0)]}),
@@ -65,7 +65,7 @@ def main():
     agent = create_agent(settings, policy, llm=llm, registry=registry, on_event=event)
     agent.state.add_user("Generate tests for solution.py")
     result = agent.run()
-    if result.status not in ("completed", "stopped") or len(submitter.accepted) != 5 or "before" not in stages:
+    if result.status not in ("completed", "stopped") or len(submitter.snapshot()["accepted"]) != 5 or "before" not in stages:
         raise SystemExit("Production-loop demo failed")
     stages["after"] = submitter.suite_source()
     development, heldout = independent_pools(SOURCE)
@@ -74,11 +74,11 @@ def main():
     for stage, suite in stages.items():
         rows = []
         for mutant in heldout:
-            outcome = submitter._execute(suite, 2, source=mutant.source)
+            outcome = submitter.evaluate(suite, 2, source=mutant.source)
             rows.append({**mutant.to_dict(), "fingerprint": fingerprint(mutant),
                          "status": outcome["status"],
                          "detected": outcome["status"] == "FAIL" and outcome["returncode"] == 1})
-        measurements[stage] = {"reference_passed": submitter._execute(suite, 5)["status"] == "PASS",
+        measurements[stage] = {"reference_passed": submitter.evaluate(suite, 5)["status"] == "PASS",
                                "total": len(rows), "detected": sum(r["detected"] for r in rows), "faults": rows}
         (output / f"{stage}.tests.py").write_text(suite, encoding="utf-8")
     receipt = {"evidence_scope": "controlled scripted demonstration, not real-model quality evidence",
@@ -88,9 +88,9 @@ def main():
                "feedback_fingerprints": [fingerprint(m) for m in development],
                "heldout_fingerprints": [fingerprint(m) for m in heldout],
                "measurements": measurements, "agent_status": result.status,
-               "accepted": len(submitter.accepted),
-               "development_feedback": registry.get("inspect_survivors").actions,
-               "quality_actions": submitter.quality_actions, "stop_reason": result.error,
+               "accepted": len(submitter.snapshot()["accepted"]),
+               "development_feedback": submitter.snapshot()["fault_feedback"],
+               "quality_actions": submitter.snapshot()["quality_actions"], "stop_reason": result.error,
                "reference_unchanged": (workspace / "solution.py").read_text() == SOURCE}
     (output / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
     if not receipt["reference_unchanged"] or not all(m["reference_passed"] for m in measurements.values()):

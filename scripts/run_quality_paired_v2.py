@@ -165,21 +165,12 @@ class ObservedLLM:
 
 def observer_factory(trace, path, events):
     def factory(variant, settings, registry, workspace):
-        submitter, inspector = registry.get("submit_tests"), registry.get("inspect_survivors")
-        if inspector:
-            original_run = inspector.run
-            def observed_feedback():
-                previous = len(inspector.actions)
-                suite = submitter.suite_source()
-                response = original_run()
-                if len(inspector.actions) > previous:
-                    trace["development_stages"].append({"suite_source": suite,
-                        "suite_sha256": hashlib.sha256(suite.encode()).hexdigest(),
-                        "accepted_names": list(submitter.accepted),
-                        "response": response.content, "report": inspector.actions[-1]})
-                    write_json(path, trace)
-                return response
-            inspector.run = observed_feedback
+        submitter = registry.get("submit_tests")
+        if submitter is not None:
+            def observed_feedback(stage):
+                trace["development_stages"].append(stage)
+                write_json(path, trace)
+            submitter.generation.on_feedback = observed_feedback
         started = time.monotonic()
         def bounded(agent, outcome):
             decision = policy(agent, outcome) if policy else None

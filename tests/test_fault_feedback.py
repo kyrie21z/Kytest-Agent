@@ -30,12 +30,14 @@ def test_feedback_requires_valid_private_suite_and_execution(registry):
     assert not inspector.run().ok
     accept(registry, "test_inside", 5, 0)
     inspector.settings.allow_code_execution = False
-    assert not inspector.run().ok and not inspector.actions
+    assert not inspector.run().ok and not inspector.generation.snapshot()["fault_feedback"]
 
 
 def test_changed_suite_gets_specific_feedback_cached_calls_cost_nothing(registry):
     accept(registry, "test_inside", 5, 0)
-    tool, inspector = registry.get("submit_tests"), registry.get("inspect_survivors")
+    tool, inspector = registry.get("submit_tests").generation, registry.get("inspect_survivors")
+    stages = []
+    tool.on_feedback = stages.append
     report = json.loads(registry.execute("inspect_survivors", {}).content)
     assert report["scope"] == "development-only" and report["survivors_total"] > 0
     assert all(s["change"] and s["line"] > 0 for s in report["survivors"])
@@ -43,19 +45,20 @@ def test_changed_suite_gets_specific_feedback_cached_calls_cost_nothing(registry
     runs = tool.subprocess_runs
     assert json.loads(inspector.run().content)["cached"] is True
     assert tool.subprocess_runs == runs
+    assert len(stages) == 1 and stages[0]["report"]["suite_sha256"] == report["suite_sha256"]
     assert (tool.workspace / "solution.py").read_text() == SOURCE
     accept(registry, "test_above", 9, 1)
     assert json.loads(inspector.run().content)["round"] == 2
     accept(registry, "test_below", 1, -1)
-    assert not inspector.run().ok and len(inspector.actions) == 2
+    assert not inspector.run().ok and len(inspector.generation.snapshot()["fault_feedback"]) == 2
 
 
 def test_reference_failure_and_mutant_timeout_never_claim_detection(registry, monkeypatch):
     accept(registry, "test_inside", 5, 0)
-    tool, inspector = registry.get("submit_tests"), registry.get("inspect_survivors")
-    monkeypatch.setattr(tool, "_execute", lambda *args, **kw: {"status": "FAIL", "returncode": 1})
-    assert not inspector.run().ok and not inspector.actions
-    monkeypatch.setattr(tool, "_execute", lambda *args, **kw:
+    tool, inspector = registry.get("submit_tests").generation, registry.get("inspect_survivors")
+    monkeypatch.setattr(tool, "evaluate", lambda *args, **kw: {"status": "FAIL", "returncode": 1})
+    assert not inspector.run().ok and not inspector.generation.snapshot()["fault_feedback"]
+    monkeypatch.setattr(tool, "evaluate", lambda *args, **kw:
         {"status": "TIMEOUT", "returncode": None} if "source" in kw else {"status": "PASS", "returncode": 0})
     report = json.loads(inspector.run().content)
     assert report["detected"] == 0 and len(report["uncertain"]) == report["total"]
@@ -63,9 +66,9 @@ def test_reference_failure_and_mutant_timeout_never_claim_detection(registry, mo
 
 def test_complete_feedback_response_fits_registry_when_many_faults_survive(registry, monkeypatch):
     accept(registry, "test_inside", 5, 0)
-    tool = registry.get("submit_tests")
+    tool = registry.get("submit_tests").generation
     tool.source = 'def f(x):\n    """' + ('契约' * 1000) + '"""\n    return x+1+1+1+1+1+1+1+1\n'
-    monkeypatch.setattr(tool, "_execute", lambda *args, **kw: {"status": "PASS", "returncode": 0})
+    monkeypatch.setattr(tool, "evaluate", lambda *args, **kw: {"status": "PASS", "returncode": 0})
     result = registry.execute("inspect_survivors", {})
     report = json.loads(result.content)
     assert result.ok and report["survivors_total"] == 8 and len(report["survivors"]) == 3
@@ -100,7 +103,6 @@ def test_engine_move_preserves_exact_historical_fault_candidates():
 
 def test_a5_runner_scores_heldout_faults_and_baseline_can_match_pool(tmp_path):
     from code_agent.agent import Agent
-    from code_agent.testgen import make_testgen_hook
     from eval.dataset import Instance
     from eval.runner import default_variant, run_single
     from tests.helpers import ScriptedLLM, text_response, tool_response
@@ -108,7 +110,7 @@ def test_a5_runner_scores_heldout_faults_and_baseline_can_match_pool(tmp_path):
     def factory(variant, settings, registry, workspace):
         llm = ScriptedLLM([tool_response(("submit_tests", {"cases": [candidate("test_inside", 5, 0)]})), text_response("done")])
         return Agent(llm=llm, tools=registry, system_prompt=variant.resolve_system_prompt(),
-                     finish_turn=make_testgen_hook(registry.get("submit_tests")))
+                     finish_turn=registry.get("submit_tests").generation.finish_turn)
     for name in ("A4", "A5"):
         outcome = run_single(instance, default_variant(name), run_root=tmp_path,
                              settings_factory=lambda w: Settings(workspace=w), agent_factory=factory,
@@ -124,7 +126,7 @@ def test_cli_fault_flag_assembles_shared_private_tools(registry):
     from code_agent import cli
     args = cli.build_parser().parse_args(["--fault-feedback", "--mock", "--no-session"])
     agent, _, _ = cli.build_agent(args, registry.get("submit_tests").settings, lambda _: None, session_enabled=False)
-    assert agent.tools.get("inspect_survivors").submitter is agent.tools.get("submit_tests")
+    assert agent.tools.get("inspect_survivors").generation is agent.tools.get("submit_tests").generation
     assert "inspect_survivors" in agent.state.system_prompt
     args = cli.build_parser().parse_args(["--tools", "inspect_survivors", "--mock"])
     from code_agent.errors import ConfigError

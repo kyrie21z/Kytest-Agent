@@ -112,4 +112,4 @@ def test_observer_records_feedback_suite_and_actual_next_model_input(tmp_path,mo
     first=trace['development_stages'][0]
     assert hashlib.sha256(first['suite_source'].encode()).hexdigest()==first['report']['suite_sha256']
     assert first['response'] in trace['requests'][1]['messages'][-1]['content']
-    assert len(registry.get('submit_tests').accepted)==5
+    assert len(registry.get('submit_tests').generation.snapshot()['accepted'])==5

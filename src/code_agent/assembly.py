@@ -82,11 +82,10 @@ def create_agent(settings: Settings, policy: AgentPolicy, *, llm=None, registry=
     """
     registry = registry if registry is not None else build_registry(settings, policy.tool_names)
     if policy.validate_tests:
-        from .testgen import make_testgen_hook
         tool = registry.get("submit_tests")
         if tool is None:
             raise ConfigError("Test-generation policy requires submit_tests")
-        finish_turn = make_testgen_hook(tool)
+        finish_turn = tool.generation.finish_turn
     return Agent(
         llm=llm if llm is not None else build_llm(settings)[0],
         tools=registry, system_prompt=policy.system_prompt,

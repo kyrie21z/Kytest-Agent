@@ -60,7 +60,7 @@ def build_tool(settings: Any, name: str) -> Tool:
         from ..testgen import SubmitTestsTool
         return SubmitTestsTool(settings)
     if name == "inspect_survivors":
-        from ..fault_feedback import InspectSurvivorsTool
+        from ..testgen import InspectSurvivorsTool
         return InspectSurvivorsTool(settings)
     builder = _BUILDERS.get(name)
     if builder is None:
@@ -88,9 +88,10 @@ def build_registry(
         registry.register(build_tool(settings, name))
     inspector = registry.get("inspect_survivors")
     if inspector is not None:
-        inspector.submitter = registry.get("submit_tests")
-        if inspector.submitter is not None:
-            inspector.submitter.inspector = inspector
+        submitter = registry.get("submit_tests")
+        if submitter is not None:
+            inspector.generation = submitter.generation
+            submitter.generation.feedback_enabled = True
     return registry
 
 

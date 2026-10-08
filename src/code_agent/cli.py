@@ -209,7 +209,7 @@ def run_print(args: argparse.Namespace, settings: Settings) -> int:
 
     if args.mode == "json":
         submitter = agent.tools.get("submit_tests")
-        return EXIT_FAILED if requires_tests and not submitter.accepted else _exit_code(result)
+        return EXIT_FAILED if requires_tests and not submitter.generation.snapshot()["accepted"] else _exit_code(result)
 
     if result.final_text:
         print(result.final_text)
@@ -217,7 +217,7 @@ def run_print(args: argparse.Namespace, settings: Settings) -> int:
         print(f"运行失败：{result.error}", file=sys.stderr)
     _print_summary(result)
     submitter = agent.tools.get("submit_tests")
-    if requires_tests and not submitter.accepted:
+    if requires_tests and not submitter.generation.snapshot()["accepted"]:
         print("未生成通过逐条验证的测试；诊断见 testgen_report.json。", file=sys.stderr)
         return EXIT_FAILED
     return _exit_code(result)

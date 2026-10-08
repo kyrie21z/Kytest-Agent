@@ -6,7 +6,7 @@ import pytest
 
 from code_agent.agent import Agent
 from code_agent.config import Settings
-from code_agent.testgen import SubmitTestsTool, make_testgen_hook
+from code_agent.testgen import TestGeneration as Generation
 from code_agent.tools.factories import build_registry
 from tests.helpers import ScriptedLLM, text_response, tool_response
 
@@ -25,11 +25,11 @@ def case(name="test_two", code=None, **overrides):
 @pytest.fixture
 def tool(tmp_path):
     (tmp_path / "solution.py").write_text(SOURCE)
-    return SubmitTestsTool(Settings(workspace=tmp_path, allow_code_execution=True))
+    return Generation(Settings(workspace=tmp_path, allow_code_execution=True))
 
 
 def results(tool, candidates):
-    result = tool.run(cases=candidates)
+    result = tool.submit(cases=candidates)
     assert result.ok, result.content
     return json.loads(result.content)["results"]
 
@@ -41,6 +41,16 @@ def test_mixed_batch_keeps_good_case_and_identifies_wrong_oracle(tool):
     assert "99" in report[0]["diagnostic"]
     assert set(tool.accepted) == {"test_two"}
     assert "test_wrong" not in (tool.workspace / "test_solution.py").read_text()
+
+
+def test_snapshot_cannot_mutate_the_owned_suite_or_attempts(tool):
+    results(tool, [case()])
+    snapshot = tool.snapshot()
+    snapshot["accepted"][0]["code"] = "corrupted outside the generation module"
+    snapshot["attempts"].clear()
+    current = tool.snapshot()
+    assert current["accepted"][0]["code"] == case()["code"]
+    assert len(current["attempts"]) == 1
 
 
 def test_candidate_acceptance_uses_raw_summary_before_diagnostic_excerpt(tool, monkeypatch):
@@ -66,7 +76,7 @@ def test_numeric_and_length_ranges_are_checked_without_execution(tmp_path):
     """Sum the first k elements. 1 <= len(arr) <= 100. 1 <= k <= len(arr)."""
     return sum(arr[:k])
 ''')
-    tool = SubmitTestsTool(Settings(workspace=tmp_path))
+    tool = Generation(Settings(workspace=tmp_path))
     bad = case("test_range", "from solution import pick\ndef test_range():\n    assert pick([1], 2) == 1\n",
                contract_quote="1 <= k <= len(arr)", input_domain="nonempty list and valid prefix length")
     row = results(tool, [bad])[0]
@@ -95,7 +105,7 @@ def test_conflicting_import_aliases_keep_original_bindings(tool):
     one = case("test_one", "from solution import count as f\ndef test_one():\n    assert f(2) == 3\n")
     two = case("test_sqrt", "from math import sqrt as f\nfrom solution import count\ndef test_sqrt():\n    assert count(3) == f(16)\n")
     assert [r["status"] for r in results(tool, [one, two])] == ["ACCEPTED", "ACCEPTED"]
-    assert tool._execute(tool.suite_source(), 5)["status"] == "PASS"
+    assert tool.evaluate(tool.suite_source(), 5)["status"] == "PASS"
 
 
 def test_modifying_sut_cannot_be_accepted(tool):
@@ -119,7 +129,7 @@ def test_invalid_metadata_or_code_has_no_execution(tool, overrides):
 
 def test_permissions_fail_closed(tool):
     tool.settings.allow_code_execution = False
-    assert not tool.run(cases=[case()]).ok
+    assert not tool.submit(cases=[case()]).ok
     assert tool.subprocess_runs == 0 and not (tool.workspace / "testgen_report.json").exists()
 
 
@@ -132,13 +142,13 @@ def test_attempt_budget_survives_multiple_calls(tool):
 
 def test_agent_repairs_rejected_case_and_preserves_good_test(tool):
     registry = build_registry(tool.settings, ("read_file", "submit_tests"))
-    tool = registry.get("submit_tests")
+    tool = registry.get("submit_tests").generation
     bad = case("test_three", "from solution import count\ndef test_three():\n    assert count(3) == 99\n")
     good = {**bad, "code": "from solution import count\ndef test_three():\n    assert count(3) == 4\n"}
     llm = ScriptedLLM([tool_response(("submit_tests", {"cases": [case(), bad]})),
                       tool_response(("submit_tests", {"cases": [good]})), text_response("finished")])
     agent = Agent(llm=llm, tools=registry, system_prompt="generate tests", max_turns=4,
-                  finish_turn=make_testgen_hook(tool))
+                  finish_turn=tool.finish_turn)
     agent.state.add_user("generate tests")
     assert agent.run().status == "completed"
     assert len(tool.accepted) == 2
@@ -148,11 +158,11 @@ def test_agent_repairs_rejected_case_and_preserves_good_test(tool):
 
 def test_hook_restores_sut_and_refuses_direct_unvalidated_suite(tool):
     registry = build_registry(tool.settings, ("write_file", "submit_tests"))
-    tool = registry.get("submit_tests")
+    tool = registry.get("submit_tests").generation
     llm = ScriptedLLM([tool_response(("write_file", {"path": "test_solution.py", "content": "def test_fake(): assert True"})),
                       tool_response(("submit_tests", {"cases": [case()]})), text_response("done")])
     agent = Agent(llm=llm, tools=registry, system_prompt="generate", max_turns=4,
-                  finish_turn=make_testgen_hook(tool))
+                  finish_turn=tool.finish_turn)
     agent.state.add_user("generate")
     assert agent.run().status == "completed"
     assert "test_fake" not in (tool.workspace / "test_solution.py").read_text()
@@ -250,16 +260,16 @@ def test_local_solution_import_is_recognized(tool):
 def test_existing_suite_survives_new_proposals_with_conflicting_aliases(tool):
     seed = "from math import sqrt as f\ndef test_seed():\n    assert f(16) == 4\n"
     (tool.workspace / "test_solution.py").write_text(seed)
-    tool = SubmitTestsTool(tool.settings)
+    tool = Generation(tool.settings)
     assert results(tool, [case(code="from solution import count as f\ndef test_two():\n    assert f(2) == 3\n")])[0]["status"] == "ACCEPTED"
     assert "test_seed" in tool.suite_source()
-    assert tool._execute(tool.suite_source(), 5)["status"] == "PASS"
+    assert tool.evaluate(tool.suite_source(), 5)["status"] == "PASS"
 
 
 def test_failed_existing_suite_is_preserved_instead_of_silently_replaced(tool):
     seed = "def test_seed():\n    assert 1 == 99\n"
     (tool.workspace / "test_solution.py").write_text(seed)
-    tool = SubmitTestsTool(tool.settings)
+    tool = Generation(tool.settings)
     row = results(tool, [case()])[0]
     assert row["status"] == "REGRESSION_FAIL" and not tool.accepted
     assert (tool.workspace / "test_solution.py").read_text() == seed
@@ -269,7 +279,7 @@ def test_source_size_limit_applies_to_new_specialized_reader(tool):
     from code_agent.errors import ToolError
     tool.settings.max_file_bytes = 2
     with pytest.raises(ToolError, match="MAX_FILE_BYTES"):
-        SubmitTestsTool(tool.settings)
+        Generation(tool.settings)
 
 
 def test_six_failures_fit_in_one_complete_registry_response(tool):
@@ -297,7 +307,7 @@ def test_cli_specialized_mode_builds_the_real_tool_and_hook(tool, monkeypatch):
     agent, _, _ = cli.build_agent(args, tool.settings, lambda _: None, session_enabled=False)
     agent.state.add_user("generate")
     assert agent.run().status == "completed"
-    assert len(agent.tools.get("submit_tests").accepted) == 1
+    assert len(agent.tools.get("submit_tests").generation.snapshot()["accepted"]) == 1
     assert agent.finish_turn is not None
 
 
@@ -341,10 +351,10 @@ def test_deferred_measurement_runs_once_after_generation(tmp_path, monkeypatch):
         measurements.append(kwargs["checkpoint"])
         return actual(*args, **kwargs)
     def factory(variant, settings, registry, workspace):
-        submitter = registry.get("submit_tests")
+        submitter = registry.get("submit_tests").generation
         llm = ScriptedLLM([tool_response(("submit_tests", {"cases": [case()]})), text_response("done")])
         return Agent(llm=llm, tools=registry, system_prompt=variant.resolve_system_prompt(),
-                     finish_turn=make_testgen_hook(submitter))
+                     finish_turn=submitter.finish_turn)
     monkeypatch.setattr(runner, "collect_metrics", measure)
     outcome = run_single(inst, default_variant("A4"), run_root=tmp_path,
                          settings_factory=lambda w: Settings(workspace=w), agent_factory=factory,
