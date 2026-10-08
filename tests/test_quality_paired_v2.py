@@ -102,7 +102,7 @@ def test_observer_records_feedback_suite_and_actual_next_model_input(tmp_path,mo
     llm=ScriptedLLM([tool_response(('submit_tests',{'cases':[candidate('test_inside',5,0)]})),
         tool_response(('submit_tests',{'cases':[candidate('test_below',1,-1),candidate('test_above',9,1),
             candidate('test_low',2,0),candidate('test_high',8,0)]}))])
-    monkeypatch.setattr(runner,'_build_llm',lambda _:llm)
+    monkeypatch.setattr(runner,'build_llm',lambda _:(llm,'scripted'))
     trace={'requests':[],'development_stages':[]}
     path=tmp_path/'observation.json'
     agent=observer_factory(trace,path,[])(default_variant('A5'),settings,registry,tmp_path)

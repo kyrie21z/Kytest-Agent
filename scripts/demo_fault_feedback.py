@@ -9,11 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from code_agent.agent import Agent
+from code_agent.assembly import AgentPolicy, create_agent
 from code_agent.config import Settings
-from code_agent.fault_feedback import FAULT_PROMPT, fingerprint, independent_pools
+from code_agent.fault_feedback import fingerprint, independent_pools
 from code_agent.llm import LLMResponse, MockLLM, ToolCall
-from code_agent.testgen import TESTGEN_PROMPT, make_testgen_hook
 from code_agent.tools.factories import build_registry
 
 SOURCE = '''def classify(value, low, high):
@@ -47,7 +46,9 @@ def main():
     workspace = output / "agent_workspace"
     workspace.mkdir(parents=True, exist_ok=False)
     (workspace / "solution.py").write_text(SOURCE, encoding="utf-8")
-    registry = build_registry(Settings(workspace=workspace), ("submit_tests", "inspect_survivors"))
+    settings = Settings(workspace=workspace, max_steps=6)
+    policy = AgentPolicy.test_generation(feedback=True, tool_names=())
+    registry = build_registry(settings, policy.tool_names)
     submitter = registry.get("submit_tests")
     stages = {}
     def event(e):
@@ -61,8 +62,7 @@ def main():
                                              candidate("test_low_inclusive", 2, 0), candidate("test_high_inclusive", 8, 0)]}),
         response("inspect_survivors", {}),
         LLMResponse(content="Preserved the accepted test and added contract-based outside and adjacent boundary checks.")])
-    agent = Agent(llm=llm, tools=registry, system_prompt=TESTGEN_PROMPT + FAULT_PROMPT,
-                  max_turns=6, finish_turn=make_testgen_hook(submitter), on_event=event)
+    agent = create_agent(settings, policy, llm=llm, registry=registry, on_event=event)
     agent.state.add_user("Generate tests for solution.py")
     result = agent.run()
     if result.status not in ("completed", "stopped") or len(submitter.accepted) != 5 or "before" not in stages:

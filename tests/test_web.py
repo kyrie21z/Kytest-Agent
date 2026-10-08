@@ -71,12 +71,7 @@ def scripted_real(app,monkeypatch,responses):
     app.settings.api_key='private-demo-credential-123456'
     app.settings.base_url='https://example.invalid/v1'
     app.settings.model='test-model'
-    original=web.build_agent
-    def factory(*args,**kwargs):
-        agent,store,description=original(*args,**kwargs)
-        agent.llm=ScriptedLLM(responses)
-        return agent,store,description
-    monkeypatch.setattr(web,'build_agent',factory)
+    monkeypatch.setattr(web,'build_llm',lambda settings:(ScriptedLLM(responses),'scripted'))
 
 
 def test_no_generated_test_file_is_not_reported_as_success(app,monkeypatch):

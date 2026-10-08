@@ -21,14 +21,14 @@ import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
-from code_agent.agent import Agent, TurnDecision
+from code_agent.agent import TurnDecision
+from code_agent.assembly import build_llm, create_agent
 from code_agent.config import Settings
 from code_agent.fault_feedback import HELDOUT_OPERATORS, independent_pools
-from code_agent.testgen import make_testgen_hook
 from code_agent.tools.shell_tools import RunCommandTool
 from eval.dataset import load_dataset
 from eval.metrics import MEASUREMENT_VERSION, run_mutation_tests, run_pytest_on
-from eval.runner import (RunOutcome, _build_llm, _tool_trace, default_variant,
+from eval.runner import (RunOutcome, _tool_trace, default_variant,
                          environment_snapshot, run_single, write_result)
 from scripts.analyze_ablation import bootstrap_ci, holm
 from scipy.stats import wilcoxon
@@ -180,7 +180,6 @@ def observer_factory(trace, path, events):
                     write_json(path, trace)
                 return response
             inspector.run = observed_feedback
-        policy = make_testgen_hook(submitter) if submitter else None
         started = time.monotonic()
         def bounded(agent, outcome):
             decision = policy(agent, outcome) if policy else None
@@ -192,10 +191,14 @@ def observer_factory(trace, path, events):
             trace.setdefault("events", []).append({"timestamp": time.time(), **event.to_dict()})
             if event.type == "run_end":
                 trace["generation_finished_at"] = time.time()
-        return Agent(llm=ObservedLLM(_build_llm(settings), trace, path), tools=registry,
-            system_prompt=variant.resolve_system_prompt(), max_turns=variant.max_turns,
-            max_total_tokens=variant.max_total_tokens, max_context_chars=settings.max_context_chars,
-            finish_turn=bounded, on_event=observe_event)
+        agent = create_agent(
+            replace(settings, max_steps=variant.max_turns, max_total_tokens=variant.max_total_tokens),
+            variant.agent_policy(), llm=ObservedLLM(build_llm(settings)[0], trace, path),
+            registry=registry, on_event=observe_event,
+        )
+        policy = agent.finish_turn
+        agent.finish_turn = bounded
+        return agent
     return factory
 
 
@@ -375,7 +378,7 @@ def main():
         print(f"Frozen {len(spec['jobs'])} jobs, source_files={len(spec['files_sha256'])}; no model requests",flush=True)
         return
     if not (output / "api-admission.json").exists():
-        response = _build_llm(replace(settings, llm_max_tokens=32)).chat([
+        response = build_llm(replace(settings, llm_max_tokens=32))[0].chat([
             {"role":"user","content":"Reply with API_OK only."}])
         if "API_OK" not in response.content:
             raise ValueError("Live provider admission response was unexpected")

@@ -19,10 +19,10 @@ WRONG = 'from solution import classify\ndef test_wrong():\n    assert classify(1
 
 @pytest.mark.parametrize('variant,first,decisions',[('A2',WRONG,['tests_failed','tests_passed']),('A3',WEAK,['coverage_incomplete','coverage_full'])])
 def test_deferred_scoring_keeps_real_guided_trace(tmp_path,monkeypatch,variant,first,decisions):
-    from eval import runner
+    from code_agent import assembly
     llm=ScriptedLLM([tool_response(('write_file',{'path':'test_solution.py','content':first})),
                      tool_response(('write_file',{'path':'test_solution.py','content':STRONG,'overwrite':True}))])
-    monkeypatch.setattr(runner,'_build_llm',lambda settings:llm)
+    monkeypatch.setattr(assembly,'build_llm',lambda settings:(llm,'scripted'))
     outcome=run_single(Instance('D/1','',SOLUTION,'classify',''),default_variant(variant),run_root=tmp_path,
                        settings_factory=lambda workspace:Settings(workspace=workspace,allow_write=True),
                        defer_measurement=True,checkpoints=(),max_mutants=2,measurement_timeouts=(3,10,3))

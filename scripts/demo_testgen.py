@@ -8,10 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from code_agent.agent import Agent
+from code_agent.assembly import AgentPolicy, create_agent
 from code_agent.config import Settings
 from code_agent.llm import LLMResponse, MockLLM, ToolCall
-from code_agent.testgen import TESTGEN_PROMPT, make_testgen_hook
 from code_agent.tools.factories import build_registry
 
 
@@ -36,8 +35,9 @@ def main():
     if sut.exists():
         raise SystemExit("Use an empty demo output directory")
     sut.write_text('def increment(n):\n    """Given a positive integer n, return the integer n plus one."""\n    return n + 1\n')
-    settings = Settings(workspace=workspace)
-    registry = build_registry(settings, ("read_file", "submit_tests"))
+    settings = Settings(workspace=workspace, max_steps=4)
+    policy = AgentPolicy.test_generation(tool_names=("read_file",))
+    registry = build_registry(settings, policy.tool_names)
     submitter = registry.get("submit_tests")
     llm = MockLLM(responses=[response([candidate("test_valid", "increment(2) == 3"),
                                     candidate("test_wrong", "increment(3) == 99"),
@@ -48,8 +48,7 @@ def main():
     def event(e):
         if getattr(e, "name", None) == "submit_tests" and hasattr(e, "content"):
             print(e.content, flush=True)
-    agent = Agent(llm=llm, tools=registry, system_prompt=TESTGEN_PROMPT, max_turns=4,
-                  finish_turn=make_testgen_hook(submitter), on_event=event)
+    agent = create_agent(settings, policy, llm=llm, registry=registry, on_event=event)
     agent.state.add_user("Generate tests for solution.py")
     print("Offline scripted LLM: demonstrates the real tool loop, not model quality.", flush=True)
     result = agent.run()

@@ -1,4 +1,4 @@
-"""Loopback-only stdlib HTTP adapter; Agent policies stay in the existing CLI factory."""
+"""Loopback-only stdlib HTTP adapter; Agent policies use shared assembly."""
 import argparse
 import hashlib
 from dataclasses import replace
@@ -8,11 +8,10 @@ from pathlib import Path
 import tempfile
 import threading
 import time
-from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 import uuid
 
-from ..cli import build_agent
+from ..assembly import AgentPolicy, build_llm, create_agent
 from ..config import Settings
 from ..errors import ToolError
 from ..session import redact_text
@@ -129,13 +128,10 @@ class Run:
             self.started_wall = time.time()
             self.phase = "running"
         try:
-            args = SimpleNamespace(mock=False, tools=None, test_generation=self.variant=="A4",
-                                   fault_feedback=False)
-            agent, _, _ = build_agent(args, self.settings, self.handle_event,
-                                      session_enabled=False)
+            policy = AgentPolicy.interactive(self.settings, test_generation=self.variant=="A4")
+            llm = DemoLLM(variant=self.variant) if self.mode=="demo" else build_llm(self.settings)[0]
+            agent = create_agent(self.settings, policy, llm=llm, on_event=self.handle_event)
             self.agent = agent
-            if self.mode == "demo":
-                agent.llm = DemoLLM(variant=self.variant)
             policy_position = 1  # The first user message is the submitted task.
             def before_turn(current, state):
                 nonlocal policy_position

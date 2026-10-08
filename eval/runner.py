@@ -26,6 +26,7 @@ if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from code_agent.agent import Agent, RunResult, TurnDecision  # noqa: E402
+from code_agent.assembly import AgentPolicy, GENERAL_PROMPT, create_agent  # noqa: E402
 from code_agent.config import Settings  # noqa: E402
 from code_agent.tools.factories import GENERAL_TOOL_NAMES, build_registry  # noqa: E402
 
@@ -77,10 +78,11 @@ class Variant:
     def resolve_system_prompt(self) -> str:
         if self.system_prompt:
             return self.system_prompt
-        return (
-            "You are a coding agent. Inspect the workspace and complete the requested "
-            "software engineering task using the available tools."
-        )
+        return GENERAL_PROMPT
+
+    def agent_policy(self) -> AgentPolicy:
+        return AgentPolicy(self.resolve_system_prompt(), tuple(self.tool_names),
+                           validate_tests="submit_tests" in self.tool_names)
 
 
 def default_variant(name: str = "A0") -> Variant:
@@ -108,17 +110,12 @@ def default_variant(name: str = "A0") -> Variant:
             system_runs_cap=4,
             coverage_rounds_cap=2,
         )
-    if name == "A4":
-        from code_agent.testgen import TESTGEN_PROMPT
-        return Variant(name=name, description="契约依据 + 逐测试验证 + 增量保留",
-                       system_prompt=TESTGEN_PROMPT,
-                       tool_names=(*GENERAL_TOOL_NAMES, "submit_tests"))
-    if name == "A5":
-        from code_agent.testgen import TESTGEN_PROMPT
-        from code_agent.fault_feedback import FAULT_PROMPT
-        return Variant(name=name, description="A4 + 开发故障反馈（独立评分池）",
-                       system_prompt=TESTGEN_PROMPT + FAULT_PROMPT,
-                       tool_names=(*GENERAL_TOOL_NAMES, "submit_tests", "inspect_survivors"))
+    if name in {"A4", "A5"}:
+        policy = AgentPolicy.test_generation(feedback=name == "A5")
+        description = ("契约依据 + 逐测试验证 + 增量保留" if name == "A4" else
+                       "A4 + 开发故障反馈（独立评分池）")
+        return Variant(name=name, description=description,
+                       system_prompt=policy.system_prompt, tool_names=policy.tool_names)
     raise KeyError(f"未知变体 `{name}`")
 
 
@@ -126,9 +123,7 @@ def default_variant(name: str = "A0") -> Variant:
 # （开发计划 §5.1）。任务提示（user message）保持冻结不变；工具、预算与循环
 # 与 A0 完全一致——A1 − A0 必须只能归因到这段文本。
 A1_SYSTEM_PROMPT = (
-    "You are a coding agent. Inspect the workspace and complete the requested "
-    "software engineering task using the available tools.\n"
-    "\n"
+    GENERAL_PROMPT + "\n\n"
     "You are writing unit tests. Before writing the test file, plan the cases "
     "explicitly, covering:\n"
     "1. Normal cases with typical inputs.\n"
@@ -353,9 +348,9 @@ def run_single(
                     max_pytest_runs=variant.system_runs_cap,
                     max_coverage_rounds=variant.coverage_rounds_cap,
                 )
-            if "submit_tests" in variant.tool_names:
-                from code_agent.testgen import make_testgen_hook
-                finish_hook = make_testgen_hook(registry.get("submit_tests"))
+            agent = create_agent(settings, variant.agent_policy(), registry=registry,
+                                 finish_turn=finish_hook, on_event=events.append)
+            finish_hook = agent.finish_turn
             if defer_measurement:
                 policy_hook = finish_hook
                 def bounded_hook(agent, outcome):
@@ -365,16 +360,7 @@ def run_single(
                     return decision
                 bounded_hook.state = getattr(policy_hook, "state", None)
                 finish_hook = bounded_hook
-            agent = Agent(
-                llm=_build_llm(settings),
-                tools=registry,
-                system_prompt=variant.resolve_system_prompt(),
-                max_turns=variant.max_turns,
-                max_total_tokens=variant.max_total_tokens,
-                max_context_chars=settings.max_context_chars,
-                finish_turn=finish_hook,
-                on_event=events.append,
-            )
+                agent.finish_turn = bounded_hook
         else:
             agent = agent_factory(variant, settings, registry, workspace)
 
@@ -503,25 +489,6 @@ def _resolve_status(result: Optional[RunResult], timed_out: bool, metrics) -> st
     if agent_status == "max_turns":
         return "max_turns"
     return "all_pass"
-
-
-def _build_llm(settings: Settings):
-    """按配置构造 LLM。未配置时退回离线 Mock——评测可在无 Key 环境下自检。"""
-    if settings.is_llm_configured:
-        from code_agent.llm import OpenAICompatibleLLM
-
-        return OpenAICompatibleLLM(
-            api_key=settings.api_key,
-            base_url=settings.base_url,
-            model=settings.model,
-            temperature=settings.temperature,
-            max_tokens=settings.llm_max_tokens,
-            timeout=settings.request_timeout,
-            max_retries=settings.max_retries,
-        )
-    from code_agent.llm import MockLLM
-
-    return MockLLM(workspace=settings.workspace)
 
 
 def run_batch(

@@ -17,7 +17,7 @@ import importlib
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 # 以脚本方式直接运行（python src/code_agent/cli.py）时，包不在 sys.path 上。
 # 这里补一次，让"零安装即可运行"成立——否则必须先 pip install -e . 才能用。
@@ -25,11 +25,12 @@ if __package__ in (None, ""):  # pragma: no cover - 仅脚本运行路径
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from .agent import Agent, RunResult
+from .assembly import AgentPolicy, build_llm, create_agent
 from .config import Settings
 from .errors import ConfigError, ToolError
 from .render import EventRenderer, JsonRenderer
 from .session import SessionStore
-from .tools.factories import available_tool_names, build_registry
+from .tools.factories import available_tool_names
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -121,28 +122,6 @@ def resolve_tools(args: argparse.Namespace) -> Optional[List[str]]:
     return names
 
 
-def build_llm(settings: Settings, force_mock: bool) -> tuple[Any, str]:
-    """构造 LLM 客户端。返回 (客户端, 描述文本)。"""
-    if not force_mock and settings.is_llm_configured:
-        from .llm import OpenAICompatibleLLM
-
-        client = OpenAICompatibleLLM(
-            api_key=settings.api_key,
-            base_url=settings.base_url,
-            model=settings.model,
-            temperature=settings.temperature,
-            max_tokens=settings.llm_max_tokens,
-            timeout=settings.request_timeout,
-            max_retries=settings.max_retries,
-        )
-        return client, f"{settings.model} @ {settings.base_url}"
-
-    from .llm import MockLLM
-
-    reason = "（--mock）" if force_mock else "（未配置 LLM_API_KEY，自动退回离线模式）"
-    return MockLLM(workspace=settings.workspace), f"离线 Mock {reason}"
-
-
 def build_agent(
     args: argparse.Namespace,
     settings: Settings,
@@ -151,29 +130,17 @@ def build_agent(
     session_enabled: bool = True,
 ) -> tuple[Agent, Optional[SessionStore], str]:
     llm, description = build_llm(settings, args.mock)
-    names = resolve_tools(args)
-    if names and "inspect_survivors" in names and "submit_tests" not in names:
-        raise ConfigError("inspect_survivors requires submit_tests in --tools")
-    registry = build_registry(settings, names)
-    finish_hook = None
-    prompt = interactive_system_prompt(settings.workspace)
-    if getattr(args, "fault_feedback", False):
-        args.test_generation = True
-    if getattr(args, "test_generation", False):
-        from .testgen import TESTGEN_PROMPT, SubmitTestsTool, make_testgen_hook
-        if not settings.allow_write or not settings.allow_code_execution or settings.execution_mode == "disabled":
-            raise ConfigError("--test-generation requires writing and code execution")
-        tool = registry.get("submit_tests") or registry.register(SubmitTestsTool(settings))
-        finish_hook = make_testgen_hook(tool)
-        prompt = TESTGEN_PROMPT
-        if getattr(args, "fault_feedback", False):
-            from .fault_feedback import FAULT_PROMPT, InspectSurvivorsTool
-            inspector = registry.get("inspect_survivors") or registry.register(InspectSurvivorsTool(settings))
-            inspector.submitter = tool
-            tool.inspector = inspector
-            prompt += FAULT_PROMPT
-
+    policy = AgentPolicy.interactive(
+        settings, resolve_tools(args), test_generation=getattr(args, "test_generation", False),
+        fault_feedback=getattr(args, "fault_feedback", False),
+    )
     store: Optional[SessionStore] = None
+    def handle_event(event) -> None:
+        on_event(event)
+        if store is not None:
+            store.record_event(event)
+
+    agent = create_agent(settings, policy, llm=llm, on_event=handle_event)
     if session_enabled and settings.session_dir is not None:
         # 已知密钥原文传给脱敏器：工具输出（如读到的 .env、带凭据的响应）
         # 落盘前必须替换，轨迹文件不能变成凭据的持久化副本。
@@ -186,25 +153,10 @@ def build_agent(
         store.write_header(
             workspace=settings.workspace,
             model=description,
-            tools=registry.names(),
+            tools=agent.tools.names(),
             mode="json" if args.mode == "json" else ("print" if args.print_mode else "interactive"),
         )
 
-    def handle_event(event) -> None:
-        on_event(event)
-        if store is not None:
-            store.record_event(event)
-
-    agent = Agent(
-        llm=llm,
-        tools=registry,
-        system_prompt=prompt,
-        max_turns=settings.max_steps,
-        max_total_tokens=settings.max_total_tokens,
-        max_context_chars=settings.max_context_chars,
-        on_event=handle_event,
-        finish_turn=finish_hook,
-    )
     return agent, store, description
 
 
@@ -226,27 +178,11 @@ def announce_fallback(settings: Settings, force_mock: bool, description: str) ->
         print(f"提示：当前使用 {description}", file=sys.stderr)
 
 
-def interactive_system_prompt(workspace: Path) -> str:
-    """通用编码 Agent 的系统提示。
-
-    刻意保持通用：不提测试、不提覆盖率、不指定流程。作业里的 A0 就是这个提示，
-    A1 及以后的变体才会在这里加入测试专用知识。若在这里写死"必须运行 pytest"，
-    反事实对照就失效了。
-    """
-    return (
-        "You are a coding agent. Inspect the workspace and complete the requested "
-        "software engineering task using the available tools.\n"
-        f"The workspace root is: {workspace}\n"
-        "Prefer reading the real code before making claims about it. "
-        "When you need to know whether something works, run it with run_command "
-        "instead of guessing."
-    )
-
-
 # ----------------------------------------------------------------------
 # 三种模式
 # ----------------------------------------------------------------------
 def run_print(args: argparse.Namespace, settings: Settings) -> int:
+    requires_tests = args.test_generation or args.fault_feedback
     task = " ".join(args.prompt).strip()
     if not task:
         print("错误：--print 需要一个任务描述，例如 code-agent --print \"解释 solution.py\"", file=sys.stderr)
@@ -273,7 +209,7 @@ def run_print(args: argparse.Namespace, settings: Settings) -> int:
 
     if args.mode == "json":
         submitter = agent.tools.get("submit_tests")
-        return EXIT_FAILED if args.test_generation and not submitter.accepted else _exit_code(result)
+        return EXIT_FAILED if requires_tests and not submitter.accepted else _exit_code(result)
 
     if result.final_text:
         print(result.final_text)
@@ -281,7 +217,7 @@ def run_print(args: argparse.Namespace, settings: Settings) -> int:
         print(f"运行失败：{result.error}", file=sys.stderr)
     _print_summary(result)
     submitter = agent.tools.get("submit_tests")
-    if args.test_generation and not submitter.accepted:
+    if requires_tests and not submitter.accepted:
         print("未生成通过逐条验证的测试；诊断见 testgen_report.json。", file=sys.stderr)
         return EXIT_FAILED
     return _exit_code(result)

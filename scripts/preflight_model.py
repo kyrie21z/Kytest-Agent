@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from code_agent.config import Settings  # noqa: E402
 from code_agent.errors import LLMError  # noqa: E402
-from code_agent.llm import OpenAICompatibleLLM  # noqa: E402
+from code_agent.assembly import build_llm  # noqa: E402
 
 EVIDENCE_FUNCTION = {
     "type": "function",
@@ -97,15 +97,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  LLM_API_KEY=sk-...")
         return 2
 
-    client = OpenAICompatibleLLM(
-        api_key=settings.api_key,
-        base_url=settings.base_url,
-        model=settings.model,
-        temperature=settings.temperature,
-        max_tokens=settings.llm_max_tokens,
-        timeout=settings.request_timeout,
-        max_retries=settings.max_retries,
-    )
+    client, _ = build_llm(settings)
 
     passed = True
     messages: List[Dict[str, Any]] = [

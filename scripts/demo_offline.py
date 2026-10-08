@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from code_agent.agent import Agent  # noqa: E402
+from code_agent.assembly import AgentPolicy, GENERAL_PROMPT, create_agent  # noqa: E402
 from code_agent.config import Settings  # noqa: E402
 from code_agent.tools.base import ToolRegistry  # noqa: E402
 from code_agent.tools.factories import build_registry  # noqa: E402
@@ -210,14 +210,8 @@ def main() -> int:
 
         settings = Settings(workspace=workspace, allow_write=True, exec_timeout=120)
         registry = RecordingRegistry(build_registry(settings))
-        agent = Agent(
-            llm=ScriptedLLM(),
-            tools=registry,
-            system_prompt=(
-                "You are a coding agent. Inspect the workspace and complete the "
-                "requested software engineering task using the available tools."
-            ),
-            max_turns=8,
+        agent = create_agent(
+            settings, AgentPolicy(GENERAL_PROMPT), llm=ScriptedLLM(), registry=registry,
             on_event=lambda event: print(render(event), flush=True),
         )
 
