@@ -17,13 +17,13 @@
 """
 from __future__ import annotations
 
-import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from code_agent.agent import TurnDecision
+from code_agent.coverage import collect_coverage
 from code_agent.proc import run_capture
 from code_agent.pytest_result import parse_pytest_result
 
@@ -84,31 +84,13 @@ def _run_pytest(workspace: Path) -> Dict[str, Any]:
 
 def _coverage_missing_lines(workspace: Path) -> Dict[str, Any]:
     """跑一次覆盖率并返回 solution.py 的未覆盖行（压缩成区间）。"""
-    data_file = workspace / ".coverage"
-    json_file = workspace / ".coverage.json"
-    data_file.unlink(missing_ok=True)
-    json_file.unlink(missing_ok=True)
-    execution = run_capture([sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q", "-p", "no:cacheprovider"],
-                cwd=str(workspace), timeout=COVERAGE_TIMEOUT_SEC, env=child_env(workspace))
-    if execution.timed_out or execution.exit_code != 0:
-        return {"error": "coverage 执行超时或测试未通过"}
-    exported = run_capture([sys.executable, "-m", "coverage", "json", "-o", str(json_file), "--pretty-print"],
-                cwd=str(workspace), timeout=120, env=child_env(workspace))
-    if exported.timed_out or exported.exit_code != 0:
-        return {"error": "coverage JSON 导出失败"}
-    if not json_file.exists():
-        return {"error": "coverage 未生成报告"}
-    try:
-        payload = json.loads(json_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"error": f"coverage 报告解析失败：{exc}"}
-    entry = None
-    for name, value in (payload.get("files") or {}).items():
-        if name.replace("\\", "/").endswith(SOLUTION_FILENAME):
-            entry = value
-            break
-    if entry is None:
-        return {"error": f"coverage 报告里没有 {SOLUTION_FILENAME}"}
+    result = collect_coverage(workspace, SOLUTION_FILENAME,
+        lambda argv, limit: run_capture(argv, cwd=workspace, timeout=limit, env=child_env(workspace)),
+        command=[sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q", "-p", "no:cacheprovider"],
+        timeout=COVERAGE_TIMEOUT_SEC, export_if=lambda execution: not execution.timed_out and execution.exit_code == 0)
+    if result.error:
+        return {"error": result.error}
+    entry = result.target
     summary = entry.get("summary") or {}
     missing = [int(line) for line in entry.get("missing_lines") or []]
 

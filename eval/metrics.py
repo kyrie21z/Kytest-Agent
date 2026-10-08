@@ -15,13 +15,13 @@
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
+from code_agent.coverage import collect_coverage
 from code_agent.proc import run_capture
 from code_agent.pytest_result import PytestResult, parse_pytest_result
 
@@ -163,48 +163,19 @@ def measure_coverage(workspace: Path, target: str, *, timeout: float = COVERAGE_
     from .source_stats import count_file
 
     workspace = Path(workspace).expanduser().resolve()
-    data_file = workspace / ".coverage"
-    json_file = workspace / ".coverage.json"
-    for stale in (data_file, json_file):
-        stale.unlink(missing_ok=True)
-
     lint = run_capture(
         [sys.executable, "-m", "coverage", "--version"], cwd=workspace, timeout=60, env=child_env(workspace)
     )
     if lint.exit_code != 0:
         return {"error": "coverage 不可用：未安装或无法执行"}
-
-    run_capture(
-        [sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q",
-         "-p", "no:cacheprovider", "--continue-on-collection-errors"],
-        cwd=workspace,
-        timeout=timeout,
-        env=child_env(workspace),
-    )
-    report = run_capture(
-        [sys.executable, "-m", "coverage", "json", "-o", str(json_file), "--pretty-print"],
-        cwd=workspace,
-        timeout=120,
-        env=child_env(workspace),
-    )
-    if not json_file.exists():
-        tail = (report.error or report.stderr or report.stdout or "").strip()[-300:]
-        return {"error": f"coverage 未生成报告：{tail}"}
-
-    try:
-        payload = json.loads(json_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"error": f"coverage 报告解析失败：{exc}"}
-
-    wanted = str(target).replace("\\", "/")
-    entry = None
-    for name, value in (payload.get("files") or {}).items():
-        if name.replace("\\", "/").endswith(wanted):
-            entry = value
-            break
-    if entry is None:
-        return {"error": f"coverage 报告里没有 {wanted}"}
-
+    result = collect_coverage(workspace, target,
+        lambda argv, limit: run_capture(argv, cwd=workspace, timeout=limit, env=child_env(workspace)),
+        command=[sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q",
+                 "-p", "no:cacheprovider", "--continue-on-collection-errors"], timeout=timeout)
+    if result.error:
+        error = "覆盖率口径失真：" + result.error if result.error.startswith("coverage 报告里没有") else result.error
+        return {"error": error}
+    entry = result.target
     summary = entry.get("summary") or {}
     executable_lines = int(summary.get("num_statements") or 0)
     covered_lines = int(summary.get("covered_lines") or 0)

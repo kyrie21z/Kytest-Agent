@@ -1,11 +1,14 @@
 """Post-run measurements, isolated from generation and never fed back to either agent."""
 from dataclasses import replace
 import hashlib
-import json
+import shlex
+import subprocess
 from pathlib import Path
 import tempfile
 import time
 
+from ..coverage import collect_coverage
+from ..proc import IS_WINDOWS
 from ..tools.shell_tools import RunCommandTool
 from ..pytest_result import parse_pytest_result
 from .demo import SOURCE
@@ -56,30 +59,29 @@ def evaluate_quality(settings, source, read_file, validation, cancelled, emit):
                         and source_path.read_bytes()==expected_source.encode()
                         and tests_path.read_bytes()==tests.encode())
             emit({'type':'evaluation_progress','stage':'coverage','message':'独立副本：执行语句与分支覆盖率测量。'})
-            checked = tool.run(command='python -m coverage run --branch --source=solution -m pytest test_solution.py -q',timeout=15)
-            reference = parse_pytest_result(checked.process)
+            coverage = collect_coverage(workspace, "solution.py",
+                lambda argv, limit: tool.run(command=subprocess.list2cmdline(argv) if IS_WINDOWS else shlex.join(argv), timeout=limit).process,
+                command=['python', '-m', 'coverage', 'run', '--branch', '--source=solution', '-m',
+                         'pytest', 'test_solution.py', '-q'], timeout=15, export_timeout=15,
+                export_if=lambda execution: parse_pytest_result(execution).all_pass and not cancelled.is_set())
+            reference_valid = parse_pytest_result(coverage.execution).all_pass
             if not intact(source):
                 report['reason'] = '评测期间输入文件被改写，质量结果无效。'
                 return finish('invalid')
-            reference_valid = reference.all_pass
             if cancelled.is_set():
                 return finish('cancelled')
-            if reference_valid:
-                exported = tool.run(command='python -m coverage json -o quality_coverage.json',timeout=15)
-                path = workspace/'quality_coverage.json'
-                if exported.ok and path.is_file() and not path.is_symlink() and path.stat().st_size<=200_000:
-                    payload = json.loads(path.read_text())
-                    target = next(value for key,value in payload['files'].items() if Path(key).name=='solution.py')
-                    summary = target['summary']
-                    lines,covered = summary['num_statements'],summary['covered_lines']
-                    branches,covered_branches = summary.get('num_branches',0),summary.get('covered_branches',0)
-                    report['coverage'] = {'status':'measured','statements':lines,'covered_statements':covered,
-                        'line_percent':round(100*covered/lines,1) if lines else None,
-                        'branches':branches,'covered_branches':covered_branches,
-                        'branch_percent':round(100*covered_branches/branches,1) if branches else None,
-                        'missing_lines':target.get('missing_lines',[]),'missing_branches':target.get('missing_branches',[])}
-            if report['coverage']['status']!='measured':
-                report['coverage'] = {'status':'unavailable','diagnostic':checked.content,
+            if coverage.target is not None:
+                target = coverage.target
+                summary = target['summary']
+                lines,covered = summary['num_statements'],summary['covered_lines']
+                branches,covered_branches = summary.get('num_branches',0),summary.get('covered_branches',0)
+                report['coverage'] = {'status':'measured','statements':lines,'covered_statements':covered,
+                    'line_percent':round(100*covered/lines,1) if lines else None,
+                    'branches':branches,'covered_branches':covered_branches,
+                    'branch_percent':round(100*covered_branches/branches,1) if branches else None,
+                    'missing_lines':target.get('missing_lines',[]),'missing_branches':target.get('missing_branches',[])}
+            else:
+                report['coverage'] = {'status':'unavailable', 'diagnostic':coverage.error,
                                       'reason':'覆盖率依赖、执行或报告不可用；未将缺失值当成0。'}
             faults = report['fault_detection']
             if not pool:
