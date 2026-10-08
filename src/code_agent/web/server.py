@@ -338,7 +338,7 @@ class Handler(BaseHTTPRequestHandler):
                     "model":redact_text(app.settings.model,[app.settings.api_key]),"execution_mode":app.settings.execution_mode,
                     "latest_run":latest,"latest_comparison":comparison_id})
             if method=="GET" and url.path=="/api/examples/rotation-record":
-                path=Path(__file__).resolve().parents[3]/"submission/evidence/ui-rotation.json"
+                path=Path(__file__).with_name("data")/"rotation.json"
                 try:
                     receipt=json.loads(path.read_text())
                     comparison=receipt["comparison"]

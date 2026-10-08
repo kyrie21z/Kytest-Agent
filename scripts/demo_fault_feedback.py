@@ -82,8 +82,7 @@ def main():
                                "total": len(rows), "detected": sum(r["detected"] for r in rows), "faults": rows}
         (output / f"{stage}.tests.py").write_text(suite, encoding="utf-8")
     receipt = {"evidence_scope": "controlled scripted demonstration, not real-model quality evidence",
-               "protocol_sha256": hashlib.sha256((ROOT / "docs/fault-feedback.md").read_bytes()).hexdigest(),
-               "quality_protocol_sha256": hashlib.sha256((ROOT / "docs/testgen-quality-v2.md").read_bytes()).hexdigest(),
+               "design_sha256": hashlib.sha256((ROOT / "Design.md").read_bytes()).hexdigest(),
                "scoring_after_generation": True,
                "feedback_fingerprints": [fingerprint(m) for m in development],
                "heldout_fingerprints": [fingerprint(m) for m in heldout],

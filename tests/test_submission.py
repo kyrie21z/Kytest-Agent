@@ -12,7 +12,7 @@ from scripts import build_submission as builder
 @pytest.fixture
 def submission_source(tmp_path, monkeypatch):
     source = tmp_path/"source"
-    (source/"submission").mkdir(parents=True)
+    (source/"scripts").mkdir(parents=True)
     (source/"docs").mkdir()
     contents = {
         "README.md": b"# Project\nRead the design.\n",
@@ -27,7 +27,7 @@ def submission_source(tmp_path, monkeypatch):
             "overrides":{}, "archive_link_docs":[], "fixture_reason":"isolated fixture",
             "root_copies":{"README.md":"README.md", "Design.md":"Design.md",
                            "demo.mp4":"docs/demo.mp4"}}
-    (source/"submission/spec.json").write_text(json.dumps(spec))
+    (source/"scripts/submission.json").write_text(json.dumps(spec))
     monkeypatch.setattr(builder, "ROOT", source)
     return source, spec, contents
 
@@ -57,18 +57,18 @@ def test_portable_documents_are_generated_from_the_only_source(submission_source
     source, spec, _ = submission_source
     readme = ("# Project\n[Design](Design.md#architecture) [Start](#start) "
               "[Demo](docs/demo.mp4)\n![Preview](docs/preview.png)\n"
-              "[Evidence](submission/EXPERIMENTS.md) [Site](https://example.com)\n")
+              "[Evidence](docs/evaluation.md) [Site](https://example.com)\n")
     (source / "README.md").write_text(readme)
     (source / "Design.md").write_text("# Design\n[README](README.md) [Demo](docs/demo.mp4)\n")
     spec["portable_docs"] = ["README.md", "Design.md"]
-    (source / "submission/spec.json").write_text(json.dumps(spec))
+    (source / "scripts/submission.json").write_text(json.dumps(spec))
     output, archive_path = tmp_path / "delivery", tmp_path / "delivery.zip"
     builder.build(output, archive_path)
     portable = (output / "README.md").read_text()
     assert "[Design](Design.md#architecture) [Start](#start)" in portable
     assert f"[Demo]({builder.PUBLIC}docs/demo.mp4)" in portable
     assert f"![Preview]({builder.RAW}docs/preview.png)" in portable
-    assert f"[Evidence]({builder.PUBLIC}submission/EXPERIMENTS.md)" in portable
+    assert f"[Evidence]({builder.PUBLIC}docs/evaluation.md)" in portable
     assert "[Site](https://example.com)" in portable
     assert (source / "README.md").read_text() == readme
     manifest = json.loads((output / "code-agent/SUBMISSION_MANIFEST.json").read_text())
@@ -112,7 +112,7 @@ def test_submission_keeps_completed_artifacts(submission_source, tmp_path, exist
 def test_submission_rejects_root_copy_outside_its_layout(submission_source, tmp_path, name, inner):
     source, spec, _ = submission_source
     spec["root_copies"] = {name:inner}
-    (source/"submission/spec.json").write_text(json.dumps(spec))
+    (source/"scripts/submission.json").write_text(json.dumps(spec))
     output, archive_path = tmp_path/"delivery", tmp_path/"delivery.zip"
     with pytest.raises(ValueError, match="Invalid root copy"):
         builder.build(output, archive_path)

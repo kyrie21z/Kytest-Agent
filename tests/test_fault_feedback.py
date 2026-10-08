@@ -1,7 +1,5 @@
 """Behavioral acceptance for development feedback and independent scoring."""
-import importlib.util
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -77,28 +75,11 @@ def test_complete_feedback_response_fits_registry_when_many_faults_survive(regis
 
 def test_feedback_and_scoring_faults_are_disjoint_for_frozen_dataset():
     from eval.dataset import load_dataset
-    for instance in load_dataset():
+    for instance in load_dataset(Path(__file__).with_name("fixtures") / "humaneval.jsonl"):
         feedback, heldout = independent_pools(instance.solution_source)
         assert not {fingerprint(m) for m in feedback} & {fingerprint(m) for m in heldout}
         assert all(m.operator in FEEDBACK_OPERATORS for m in feedback)
         assert all(m.operator in HELDOUT_OPERATORS for m in heldout)
-
-
-def test_engine_move_preserves_exact_historical_fault_candidates():
-    from code_agent.faults import generate_mutants
-    from eval.dataset import load_dataset
-    root = Path(__file__).resolve().parents[1]
-    spec = importlib.util.spec_from_file_location("frozen_mutation", root / "results/testgen_pilot_v2/source/eval/mutation.py")
-    frozen = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = frozen
-    try:
-        spec.loader.exec_module(frozen)
-        for instance in load_dataset():
-            before = frozen.generate_mutants(instance.solution_source)
-            after = generate_mutants(instance.solution_source)
-            assert [(m.to_dict(), m.source) for m in before] == [(m.to_dict(), m.source) for m in after]
-    finally:
-        sys.modules.pop(spec.name, None)
 
 
 def test_a5_runner_scores_heldout_faults_and_baseline_can_match_pool(tmp_path):

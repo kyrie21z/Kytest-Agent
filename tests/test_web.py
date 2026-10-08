@@ -342,7 +342,7 @@ def test_quality_does_not_score_timeout_or_abnormal_exit_with_failure_output(tmp
 
 def test_rotation_quality_reproduces_saved_real_suite_and_keeps_full_pool(tmp_path):
     from code_agent.web.examples import ROTATION_SOURCE
-    receipt=json.loads((Path(web.__file__).resolve().parents[3]/'submission/evidence/ui-rotation.json').read_text())
+    receipt=json.loads((Path(web.__file__).with_name('data')/'rotation.json').read_text())
     saved=receipt['comparison']['runs'][1]
     report=evaluate_quality(Settings(workspace=tmp_path),ROTATION_SOURCE,
         lambda _:saved['saved_tests'],{'passed':True,'source_unchanged':True},threading.Event(),lambda _:None)

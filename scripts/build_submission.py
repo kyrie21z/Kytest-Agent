@@ -1,4 +1,4 @@
-"""Build the coursework profile from an explicit whitelist; retain research originals."""
+"""Build the coursework profile from an explicit whitelist."""
 import argparse
 import hashlib
 import json
@@ -10,7 +10,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "https://github.com/kyrie21z/Kytest-Agent"
-ARCHIVE = REPOSITORY + "/blob/e34bb5c8770f85815612e5669a50a02a0c5f5532/"
+ARCHIVE = REPOSITORY + "/blob/development-archive-20261008/"
 PUBLIC = REPOSITORY + "/blob/main/"
 RAW = REPOSITORY.replace("github.com", "raw.githubusercontent.com") + "/main/"
 
@@ -73,7 +73,7 @@ def submission_links(text,relative_path,chosen,*,portable=False):
     return re.sub(r"\[([^\]]+)\]\(([^)]+)\)",replace,text)
 
 def build(output,zip_path):
-    spec = json.loads((ROOT/"submission/spec.json").read_text())
+    spec = json.loads((ROOT/"scripts/submission.json").read_text())
     selected = selected_files(spec)
     root_copies = spec["root_copies"]
     for name,source in root_copies.items():
@@ -86,8 +86,8 @@ def build(output,zip_path):
     code_output = output/"code-agent"
     code_output.mkdir()
     manifest = {"schema":spec["schema"],"source_commit":revision,"source_worktree_dirty":dirty,
-        "profile":"coursework: runnable code, unchanged core regression subset, concise docs and derived evidence",
-        "archive":"https://github.com/kyrie21z/Kytest-Agent/tree/e34bb5c8770f85815612e5669a50a02a0c5f5532",
+        "profile":"coursework: runnable product, engineering tests, docs and evaluation evidence",
+        "archive":REPOSITORY + "/tree/development-archive-20261008",
         "fixture_reason":spec["fixture_reason"],"files":{},"root_copies":{}}
     for name,source in sorted(selected.items()):
         original = source.read_bytes()

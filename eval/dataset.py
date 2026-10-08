@@ -1,17 +1,10 @@
-"""实例加载：读取冻结的 HumanEval+ 子集。
-
-数据集由 `scripts/freeze_dataset.py` 固化进仓库（含来源与许可说明，见
-`benchmarks/DATASET.md`），因此加载器不做任何网络访问。
-"""
+"""Read explicitly supplied JSONL evaluation instances without network access."""
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATASET = REPO_ROOT / "benchmarks" / "humaneval_plus_30.jsonl"
 
 
 @dataclass(frozen=True)
@@ -59,13 +52,11 @@ class Instance:
         )
 
 
-def load_dataset(path: Optional[Path] = None) -> List[Instance]:
+def load_dataset(path: Path) -> List[Instance]:
     """按行读取实例。格式错误时立即报错，不静默跳过。"""
-    source = Path(path) if path else DEFAULT_DATASET
+    source = Path(path)
     if not source.exists():
-        raise FileNotFoundError(
-            f"找不到数据集 {source}。请先运行 python scripts/freeze_dataset.py"
-        )
+        raise FileNotFoundError(f"找不到数据集 {source}")
 
     instances: List[Instance] = []
     with source.open("r", encoding="utf-8") as handle:

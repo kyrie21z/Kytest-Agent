@@ -276,7 +276,7 @@ def test_coverage_works_with_a_relative_workspace_path(tmp_path: Path, simple_in
 # 真实数据集上的冒烟检查
 # ----------------------------------------------------------------------
 def test_real_dataset_loads_and_has_expected_shape():
-    dataset = load_dataset()
+    dataset = load_dataset(Path(__file__).with_name("fixtures") / "humaneval.jsonl")
     assert len(dataset) == 30
     first = dataset[0]
     assert first.instance_id.startswith("HumanEval/")
@@ -290,7 +290,7 @@ def test_official_tests_pass_on_the_reference_solution(tmp_path: Path):
 
     这条不成立的话，整个 baseline 就不可信——而 baseline 是主表的对照锚点。
     """
-    instance = load_dataset()[0]
+    instance = load_dataset(Path(__file__).with_name("fixtures") / "humaneval.jsonl")[0]
     workspace = prepare_workspace(instance, tmp_path / "official")
     from eval.workspace import OFFICIAL_TESTS_FILENAME, write_official_tests
 

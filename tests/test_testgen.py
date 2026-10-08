@@ -311,35 +311,6 @@ def test_cli_specialized_mode_builds_the_real_tool_and_hook(tool, monkeypatch):
     assert agent.finish_turn is not None
 
 
-def test_pilot_counts_no_tests_as_zero_for_mutable_reference(tmp_path):
-    from scripts.run_testgen_pilot import summarize
-    folder = tmp_path / "repeat_1" / "A4"
-    folder.mkdir(parents=True)
-    (folder / "HumanEval__1.json").write_text(json.dumps({"variant": "A4", "instance_id": "HumanEval/1",
-        "status": "no_tests", "final": {"all_pass": False, "mutants_total": 0}, "agent": {}}))
-    summary = summarize(tmp_path)
-    assert summary["per_run"][0]["valid_mutation"] == 0
-    assert summary["variants"]["A4"]["runs"] == 1 and not summary["complete"]
-
-
-def test_incomparable_pilot_cannot_promote_apparent_gain_or_lose_report_label(tmp_path):
-    from scripts.run_testgen_pilot import summarize
-    ids = ("HumanEval/1", "HumanEval/122", "HumanEval/154", "HumanEval/4", "HumanEval/69")
-    for repeat in range(1, 4):
-        for variant, score in (("A0", .5), ("A4", 1)):
-            folder = tmp_path / f"repeat_{repeat}" / variant
-            folder.mkdir(parents=True)
-            for iid in ids:
-                (folder / (iid.replace("/", "__") + ".json")).write_text(json.dumps({
-                    "variant": variant, "instance_id": iid, "status": "all_pass",
-                    "final": {"all_pass": True, "mutation_score": score}, "agent": {}}))
-    assert summarize(tmp_path)["candidate_for_independent_evaluation"] is True
-    (tmp_path / "validity.json").write_text(json.dumps({"comparable": False, "reason": "Different pytest runtimes"}))
-    assert summarize(tmp_path)["candidate_for_independent_evaluation"] is False
-    report = (tmp_path / "report.md").read_text()
-    assert "不可用于机制比较" in report and "进入独立评测候选：False" in report
-
-
 def test_deferred_measurement_runs_once_after_generation(tmp_path, monkeypatch):
     from eval.dataset import Instance
     from eval.runner import default_variant, run_single
