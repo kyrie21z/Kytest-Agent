@@ -2,13 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
 import random
 import shlex
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,6 +23,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 from code_agent.config import Settings
 from code_agent.tools.shell_tools import RunCommandTool
 from eval.dataset import load_dataset
+from eval.experiment import freeze_sources, sha256_file as sha, write_json
 from eval.mutation import generate_mutants
 from eval.runner import RunOutcome, default_variant, environment_snapshot, run_single, write_result
 from scripts.analyze_ablation import bootstrap_ci
@@ -33,10 +32,6 @@ from scipy.stats import wilcoxon
 DATASET = ROOT / "benchmarks/humaneval_plus_v2_20.jsonl"
 PROTOCOL = ROOT / "docs/testgen-formal.md"
 SEED = 20261006
-
-
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def specification(settings):
@@ -59,25 +54,7 @@ def specification(settings):
 
 
 def freeze(output, spec):
-    output.mkdir(parents=True, exist_ok=True)
-    path = output / "manifest.json"
-    if path.exists():
-        previous = json.loads(path.read_text())
-        if json.dumps(previous, sort_keys=True) != json.dumps(spec, sort_keys=True):
-            raise ValueError("Formal inputs changed; use a new output directory")
-        for name, expected in spec["files_sha256"].items():
-            if sha(output / "source" / name) != expected:
-                raise ValueError("Frozen source mismatch: " + name)
-        return
-    if any(output.iterdir()):
-        raise ValueError("New formal output must be empty")
-    for name, expected in spec["files_sha256"].items():
-        destination = output / "source" / name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / name, destination)
-        if sha(destination) != expected:
-            raise ValueError("Source changed during freeze: " + name)
-    path.write_text(json.dumps(spec, ensure_ascii=False, indent=2))
+    freeze_sources(ROOT, output, spec)
 
 
 def summarize(output):
@@ -143,7 +120,7 @@ def summarize(output):
                "excluded_zero_mutant_instances": [iid for iid, n in totals.items() if not n],
                "claim_boundary": "One sample per condition on the previously evaluated formal 20-case set. Current-version paired comparison, not a new unseen holdout or a comparison with historical A0. Scores may include equivalent faults.",
                "per_run": rows}
-    (output / "formal_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2))
+    write_json(output / "formal_summary.json", summary)
     lines = ["# A4正式20例对照结果", "", f"完成：{len(rows)}/{len(expected)}；每条件每例一次；所有启动run计入。", "",
              "| 条件 | runs | all-pass | 有效杀伤率 | 原始杀伤率 | token均值 | 生成秒数 | 变异超时/错误数 |",
              "|---|---:|---:|---:|---:|---:|---:|---:|"]

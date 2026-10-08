@@ -5,13 +5,10 @@ import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, replace
-import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import random
-import shutil
 from statistics import mean, pstdev
 import subprocess
 import sys
@@ -27,6 +24,7 @@ from code_agent.config import Settings
 from code_agent.fault_feedback import HELDOUT_OPERATORS, independent_pools
 from code_agent.tools.shell_tools import RunCommandTool
 from eval.dataset import load_dataset
+from eval.experiment import freeze_sources, sha256_file as sha, verify_sources, write_json
 from eval.metrics import MEASUREMENT_VERSION, run_mutation_tests, run_pytest_on
 from eval.runner import (RunOutcome, _tool_trace, default_variant,
                          environment_snapshot, run_single, write_result)
@@ -39,17 +37,6 @@ VARIANTS = ("A0", "A4", "A5")
 REPEATS = 3
 SEED = 20261007
 COMPARISONS = (("A0", "A4"), ("A0", "A5"), ("A4", "A5"))
-
-
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def write_json(path, data):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
-    os.replace(temporary, path)
 
 
 def result_path(output, job):
@@ -90,32 +77,14 @@ def specification(settings):
 
 
 def verify_frozen(output, live=False):
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = verify_sources(output, live_root=ROOT if live else None)
     if manifest["schema"] != "testgen-quality-paired-v2" or manifest["measurement_version"] != MEASUREMENT_VERSION:
         raise ValueError("Unexpected experiment or measurement version")
-    for name, expected in manifest["files_sha256"].items():
-        if sha(output / "source" / name) != expected:
-            raise ValueError("Frozen source mismatch: " + name)
-        if live and sha(ROOT / name) != expected:
-            raise ValueError("Live source changed: " + name)
     return manifest
 
 
 def freeze(output, spec):
-    output.mkdir(parents=True, exist_ok=True)
-    if (output / "manifest.json").exists():
-        if json.loads(json.dumps(spec)) != verify_frozen(output, live=True):
-            raise ValueError("Experiment inputs changed; use a new output directory")
-        return
-    if any(output.iterdir()):
-        raise ValueError("New experiment output must be empty")
-    for name, expected in spec["files_sha256"].items():
-        destination = output / "source" / name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / name, destination)
-        if sha(destination) != expected:
-            raise ValueError("Source changed during freeze")
-    write_json(output / "manifest.json", spec)
+    freeze_sources(ROOT, output, spec)
 
 
 def admission(settings, instances):

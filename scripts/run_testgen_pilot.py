@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import random
 import sys
@@ -16,12 +15,9 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from code_agent.config import Settings
 from eval.dataset import load_dataset
+from eval.experiment import freeze_sources, sha256_file as file_hash, write_json
 from eval.mutation import generate_mutants
 from eval.runner import default_variant, run_single, write_result
-
-
-def file_hash(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def specification(settings):
@@ -83,7 +79,7 @@ def summarize(output):
                "validity": validity,
                "delta_valid_mutation": delta, "candidate_for_independent_evaluation": go,
                "claim_boundary": "Development-only, five previously used smoke cases, three samples each. No population significance or final benchmark improvement proven.", "per_run": rows}
-    (output / "pilot_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2))
+    write_json(output / "pilot_summary.json", summary)
     lines = ["# A4 开发试验结果", "", "开发池五例，每条件每例3次。所有run计入；无效套件的有效杀伤率为0。", "",
              "| 条件 | runs | all-pass | 有效杀伤率 | token均值 | 生成秒数 |", "|---|---:|---:|---:|---:|---:|"]
     if not validity["comparable"]:
@@ -123,14 +119,8 @@ def main():
         if not interpreter.ok or sys.executable not in interpreter.content:
             raise SystemExit("Baseline interpreter differs from evaluator: " + interpreter.content)
     spec = specification(settings)
-    output = args.output.resolve(); output.mkdir(parents=True, exist_ok=True)
-    manifest = output / "manifest.json"
-    if manifest.exists():
-        previous = json.loads(manifest.read_text())
-        if json.dumps(previous, sort_keys=True) != json.dumps(spec, sort_keys=True):
-            raise SystemExit("Pilot inputs/code changed; use a new output directory. Frozen run cannot resume.")
-    else:
-        manifest.write_text(json.dumps(spec, ensure_ascii=False, indent=2))
+    output = args.output.resolve()
+    freeze_sources(ROOT, output, spec)
     instances = {x.instance_id: x for x in load_dataset(ROOT / "benchmarks/smoke_pool_5.jsonl")}
     def factory(workspace):
         return replace(settings, workspace=workspace, temperature=.2, allow_code_execution=True,
