@@ -12,7 +12,9 @@ Python 与虚拟环境的安装目录是明确允许的读取范围，不能把�
 
 Bubblewrap 不存在、平台不支持或命名空间／挂载创建失败时，命令被拒绝或返回失败，**不会自动切换到 trusted**。安装 `bwrap` 不代表内核与宿主策略允许执行；Ubuntu 的 AppArmor 和用户命名空间配置也可能影响运行。管理员应检查对应错误和系统策略，不能以关闭测试或静默降级来声称隔离成功。[Ubuntu AppArmor 文档](https://documentation.ubuntu.com/security/security-features/privilege-restriction/apparmor/)解释了这类限制。
 
-CI 在明确的 Ubuntu runner 上先通过生产 `RunCommandTool` 实际启动 Sandbox，再运行现有文件、网络、环境与只读边界测试。预检失败会使工作流失败。
+CI 在临时 Ubuntu runner 上加载发行版的 Bubblewrap 用户命名空间策略；该策略文件不存在时，仅为 `/usr/bin/bwrap` 加载显式 `userns` 授权。它不会关闭全局 AppArmor 限制，也不会更改 Agent 的 Sandbox 参数。随后通过生产 `RunCommandTool` 实际启动 Sandbox，再运行现有文件、网络、环境与只读边界测试。策略加载或预检失败会使工作流失败。
+
+Ubuntu 宿主若出现 `Failed RTM_NEWADDR: Operation not permitted`，应由管理员检查已有 Bubblewrap AppArmor 策略是否加载，按 [Ubuntu 用户命名空间说明](https://documentation.ubuntu.com/release-notes/23.10/#security)给予执行器适用的授权。已有其他策略时不要盲目创建重复的可执行文件匹配项。CI 的临时 runner 配置不能直接替代本机策略审查。
 
 ## Trusted 与 Disabled
 

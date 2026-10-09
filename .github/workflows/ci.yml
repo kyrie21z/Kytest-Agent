@@ -36,8 +36,26 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap
+          sudo apt-get install --yes bubblewrap apparmor
           python -m pip install -r requirements.txt
+      - name: Load Bubblewrap user-namespace policy on the ephemeral runner
+        run: |
+          # Keep the global AppArmor restriction; authorize only the distro bwrap binary.
+          sudo aa-status
+          if test -f /etc/apparmor.d/bwrap-userns-restrict; then
+            sudo cat /etc/apparmor.d/bwrap-userns-restrict
+            sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+          else
+            sudo tee /etc/apparmor.d/kytest-bwrap > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile kytest_bwrap /usr/bin/bwrap flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+            sudo apparmor_parser -r /etc/apparmor.d/kytest-bwrap
+          fi
+          sudo aa-status
       - name: Environment and production sandbox preflight
         run: |
           uname -a
