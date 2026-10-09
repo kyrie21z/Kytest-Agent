@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from code_agent.assembly import AgentPolicy, GENERAL_PROMPT, create_agent  # noqa: E402
 from code_agent.config import Settings  # noqa: E402
+from code_agent.pytest_result import parse_pytest_result  # noqa: E402
 from code_agent.tools.base import ToolRegistry  # noqa: E402
 from code_agent.tools.factories import build_registry  # noqa: E402
 
@@ -199,8 +200,9 @@ class RecordingRegistry(ToolRegistry):
         self.executed: list = []
 
     def execute(self, name: str, arguments: dict):
-        self.executed.append((name, arguments))
-        return super().execute(name, arguments)
+        result = super().execute(name, arguments)
+        self.executed.append((name, arguments, result))
+        return result
 
 
 def main() -> int:
@@ -230,7 +232,7 @@ def main() -> int:
         print("关键观察：Agent 自发运行了 pytest 吗？")
         print("=" * 72)
         ran = [call for call in registry.executed if call[0] == "run_command"]
-        for name, arguments in ran:
+        for name, arguments, _ in ran:
             print(f"  {name}({_json(arguments)})")
         if not ran:
             print("  （没有执行任何命令——在 A0 上这本身就是值得记录的观察结果）")
@@ -247,7 +249,14 @@ def main() -> int:
         assert result.status == "completed", result.status
         assert generated.exists(), "测试文件未生成"
         assert not agent.state.pending_tool_calls(), "存在未配对的工具调用"
-        assert ran, "演示脚本预期 Agent 会自发运行命令验证测试"
+        assert len(ran) == 1, "演示脚本预期实际执行一次 pytest"
+        _, arguments, command_result = ran[0]
+        assert arguments["command"] == f'"{PYTHON}" -m pytest test_solution.py -q'
+        assert command_result.ok, "pytest 工具执行失败：" + command_result.content
+        observation = parse_pytest_result(command_result.process)
+        assert observation.all_pass and observation.process.exit_code == 0, observation.to_dict()
+        assert observation.counts == {"passed": 5, "failed": 0, "errors": 0, "skipped": 0}, observation.to_dict()
+        print("离线闭环验收通过：pytest exit=0；5 passed；无未配对工具调用；无真实模型请求。")
     return 0
 
 

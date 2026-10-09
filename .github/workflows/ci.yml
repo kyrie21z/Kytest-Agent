@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Python ${{ matrix.python-version }} / sandbox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.9']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXECUTION_MODE: sandbox
+      LLM_API_KEY: ''
+      LLM_BASE_URL: ''
+      LLM_MODEL: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+          python -m pip install -r requirements.txt
+      - name: Environment and production sandbox preflight
+        run: |
+          uname -a
+          python --version
+          python -m pip freeze
+          bwrap --version
+          python - <<'PY'
+          import shlex
+          import sys
+          import tempfile
+          from pathlib import Path
+          sys.path.insert(0, 'src')
+          from code_agent.config import Settings
+          from code_agent.tools.shell_tools import RunCommandTool
+          assert sys.platform == 'linux'
+          with tempfile.TemporaryDirectory() as directory:
+              settings = Settings(workspace=Path(directory))
+              assert settings.execution_mode == 'sandbox'
+              result = RunCommandTool(settings).run(shlex.join([sys.executable, '-c', "print('sandbox-ready')"]))
+              print(result.content)
+              assert result.ok and result.process is not None
+              assert result.process.exit_code == 0 and 'sandbox-ready' in result.process.stdout
+          PY
+      - name: Engineering tests (including sandbox and HTTP integration)
+        run: python -m pytest tests/ -q
+      - name: Offline Agent smoke test
+        run: python scripts/demo_offline.py
+      - name: Saved statistical evidence
+        run: python scripts/verify_evaluation.py
+      - name: CLI help
+        run: python main.py --help
