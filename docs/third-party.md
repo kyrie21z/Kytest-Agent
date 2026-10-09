@@ -6,7 +6,7 @@
 
 | 材料 | 来源与处理 | 保留的授权与署名 |
 |---|---|---|
-| `src/code_agent/web/data/rotation.json`、`web/examples.py` 中的旋转源码与故障副本 | Google Research 的 MBPP/304；保存记录同时包含本项目的任务、工具事件、生成测试和测量 | Google Research 原仓库 Apache-2.0；原许可保留在 [`web/data/LICENSE`](../src/code_agent/web/data/LICENSE) |
+| `src/code_agent/web/data/rotation.json`、`src/code_agent/web/examples.py` 中的旋转源码与故障副本 | Google Research 的 MBPP/304；保存记录同时包含本项目的任务、工具事件、生成测试和测量 | Google Research 原仓库 Apache-2.0；原许可保留在 [`web/data/LICENSE`](../src/code_agent/web/data/LICENSE) |
 | `tests/fixtures/humaneval.jsonl` | 从 EvalPlus 的 HumanEval+ 发布包固定选取 30 例；字段重组与输入契约用于本项目离线工程回归，原 HumanEval 的参考断言并非 Plus 增强输入 | HumanEval 的 MIT 许可及 OpenAI 版权说明保留在 [HumanEval-MIT.txt](licenses/HumanEval-MIT.txt)，EvalPlus 的 Apache-2.0 许可及版权说明保留在 [EvalPlus-Apache-2.0.txt](licenses/EvalPlus-Apache-2.0.txt) |
 | `docs/evidence/` | 本项目对 MBPP 实验结果的派生数值、任务标识、哈希与统计期望 | 不重新授权 MBPP 数据集；来源及原件可通过[评价说明](evaluation.md)与固定档案追溯 |
 | `docs/demo-overview.png`、`docs/agent-architecture.png`、`docs/demo.mp4` | 本项目界面截图、架构素材与操作录制；可能显示第三方示例代码、模型输出和服务名称 | 项目原创展示部分不改变其中引用代码与其他第三方内容的授权；服务名称和标识不代表背书 |

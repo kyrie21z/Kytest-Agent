@@ -14,7 +14,7 @@
 
 ## 快速开始
 
-推荐 **Ubuntu / Ubuntu WSL、Python 3.11**，最低 Python 3.9；检查覆盖 3.11 与 3.9。请确保 `python3` 指向所选版本。命令执行需要 Linux Bubblewrap 及允许用户命名空间的宿主策略。原生 Windows 未作为等价执行环境验证；隔离边界见[安全说明](docs/security.md)。
+推荐 **Ubuntu / Ubuntu WSL、Python 3.11**，最低 Python 3.9；CI 检查覆盖 3.9、3.11 与 Ubuntu 24.04 默认的 3.12。请确保 `python3` 指向所选版本。命令执行需要 Linux Bubblewrap 及允许用户命名空间的宿主策略。原生 Windows 未作为等价执行环境验证；隔离边界见[安全说明](docs/security.md)。
 
 ```bash
 sudo apt-get update

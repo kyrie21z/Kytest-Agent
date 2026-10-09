@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.9']
+        python-version: ['3.11', '3.12', '3.9']
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       EXECUTION_MODE: sandbox
@@ -36,16 +36,22 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap apparmor
+          sudo apt-get install --yes bubblewrap apparmor apparmor-profiles
           python -m pip install -r requirements.txt
       - name: Load Bubblewrap user-namespace policy on the ephemeral runner
         run: |
-          # Keep the global AppArmor restriction; authorize only the distro bwrap binary.
+          # Prefer the distro policy that strips child capabilities; keep global restrictions.
           sudo aa-status
+          if ! test -f /etc/apparmor.d/bwrap-userns-restrict && test -f /usr/share/apparmor/extra-profiles/bwrap-userns-restrict; then
+            sudo install -m 644 /usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
+          fi
           if test -f /etc/apparmor.d/bwrap-userns-restrict; then
+            echo 'AppArmor policy: distribution bwrap-userns-restrict'
             sudo cat /etc/apparmor.d/bwrap-userns-restrict
             sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
           else
+            # Compatibility only: unconfined adds no file/network/capability confinement.
+            echo 'AppArmor policy: unconfined userns compatibility fallback (see docs/security.md)'
             sudo tee /etc/apparmor.d/kytest-bwrap > /dev/null <<'PROFILE'
           abi <abi/4.0>,
           include <tunables/global>

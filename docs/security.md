@@ -14,11 +14,15 @@ CLI 的 `-C` 工作区应与 Python 安装和虚拟环境目录分开。不要�
 
 Bubblewrap 不存在、平台不支持或命名空间／挂载创建失败时，命令被拒绝或返回失败，**不会自动切换到 trusted**。安装 `bwrap` 不代表内核与宿主策略允许执行；Ubuntu 的 AppArmor 和用户命名空间配置也可能影响运行。管理员应检查对应错误和系统策略，不能以关闭测试或静默降级来声称隔离成功。[Ubuntu AppArmor 文档](https://documentation.ubuntu.com/security/security-features/privilege-restriction/apparmor/)解释了这类限制。
 
-CI 在临时 Ubuntu runner 上加载发行版的 Bubblewrap 用户命名空间策略；该策略文件不存在时，仅为 `/usr/bin/bwrap` 加载显式 `userns` 授权。它不会关闭全局 AppArmor 限制，也不会更改 Agent 的 Sandbox 参数。随后通过生产 `RunCommandTool` 实际启动 Sandbox，再运行现有文件、网络、环境与只读边界测试。策略加载或预检失败会使工作流失败。
+CI 在临时 Ubuntu runner 上优先加载发行版的 `bwrap-userns-restrict`：先使用 `/etc/apparmor.d/` 中的现有文件，否则使用 `apparmor-profiles` 包提供的 [`extra-profiles` 策略](https://packages.ubuntu.com/noble-updates/all/apparmor-profiles/filelist)。[上游策略](https://gitlab.com/apparmor/apparmor/-/blob/master/profiles/apparmor/profiles/extras/bwrap-userns-restrict)允许 Bubblewrap 在命名空间内完成设置，再通过叠加子进程策略拒绝能力使用；它对文件与网络仍有广泛许可，不能把它视为严格的路径或网络白名单。
+
+两个位置均缺少策略时，CI 使用匹配 `/usr/bin/bwrap` 的 `flags=(unconfined)`、`userns` 兼容回退。这是 [Ubuntu 文档](https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions)描述的一类命名空间兼容方案：`unconfined` 不额外约束 AppArmor 文件、网络或能力访问，也不提供前述子进程能力限制。它不是“只授予一项能力”的约束型 Profile，不能独立充当安全隔离；实际执行边界仍由 Bubblewrap 的命名空间、挂载、能力移除和宿主权限决定。
+
+该回退仅用于临时 CI runner，不作为本机策略配置建议。工作流记录所选策略，不关闭全局 AppArmor 限制，不更改 Agent 的 Sandbox 参数；通过生产 `RunCommandTool` 实际启动 Sandbox，再运行文件、网络、环境与只读边界测试。发行版策略存在但加载失败时，CI 直接失败，不切换到兼容回退；预检失败也会使工作流失败。
 
 Ubuntu 宿主若出现 `Failed RTM_NEWADDR: Operation not permitted`，应由管理员检查已有 Bubblewrap AppArmor 策略是否加载，按 [Ubuntu 用户命名空间说明](https://documentation.ubuntu.com/release-notes/23.10/#security)给予执行器适用的授权。已有其他策略时不要盲目创建重复的可执行文件匹配项。CI 的临时 runner 配置不能直接替代本机策略审查。
 
-发行版提供 `/etc/apparmor.d/bwrap-userns-restrict` 时，可先查看策略，再由管理员加载并复验：
+发行版提供 `/etc/apparmor.d/bwrap-userns-restrict` 时，可先查看策略，再由管理员加载并复验。策略仅位于 `/usr/share/apparmor/extra-profiles/` 时，需要管理员先审查并安装到 `/etc/apparmor.d/`：
 
 ```bash
 sudo aa-status
