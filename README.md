@@ -14,7 +14,7 @@
 
 ## 快速开始
 
-默认运行环境为 **Ubuntu / Ubuntu WSL、Python 3.11**，最低 Python 3.9。命令执行需要 Linux Bubblewrap 及允许用户命名空间的宿主策略。原生 Windows 未作为等价执行环境验证；隔离边界见[安全说明](docs/security.md)。
+推荐 **Ubuntu / Ubuntu WSL、Python 3.11**，最低 Python 3.9；检查覆盖 3.11 与 3.9。请确保 `python3` 指向所选版本。命令执行需要 Linux Bubblewrap 及允许用户命名空间的宿主策略。原生 Windows 未作为等价执行环境验证；隔离边界见[安全说明](docs/security.md)。
 
 ```bash
 sudo apt-get update
@@ -42,6 +42,8 @@ python scripts/demo_offline.py
 ```
 
 成功时脚本在临时工作区生成测试，实际执行 pytest，并输出 **`pytest exit=0；5 passed`**。临时文件随演示结束清理；整个过程不请求真实模型，模拟 token 用量不代表真实成本。
+
+若 Ubuntu 上出现 `Failed RTM_NEWADDR: Operation not permitted`，按[安全说明](docs/security.md#默认-sandbox)检查 Bubblewrap 的 AppArmor 授权；隔离失败不会自动切换执行模式。
 
 运行自己的新任务时，复制 [`.env.example`](.env.example) 为 `.env`，填写 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，重启服务并选择“真实模型”。完整配置见[使用说明](docs/demo.md#配置真实模型)。不同模型、预算与运行可能产生不同结果。
 
